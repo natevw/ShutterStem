@@ -1,0 +1,24 @@
+This is a "developer preview" of ShutterStem. At this time you will need to be/become familiar with CouchDB, CouchApp and Unix tinkering to enjoy your stay.
+
+=== Pre-requisites ===
+
+1. You'll need an instance of CouchDB running:
+http://www.couch.io/get
+
+2. You'll need PIL installed, including JPEG libraries:
+http://www.ijg.org/
+http://www.ijg.org/files/jpegsrc.v8b.tar.gz
+
+http://www.pythonware.com/products/pil/
+http://effbot.org/downloads/Imaging-1.1.7.tar.gz
+
+Note: there's some strange caching or something, so if you've compiled PIL with JPEG support but it still can't find the jpeg decoder, remove all unarchived copies of PIL from your system (including the source you installed from) and try again.
+
+=== Usage ===
+
+> python import.py /directory/of/jpeg/photos
+# this will copy thumbnails and metadata from every JPEG into Couch
+# (to see command line options, launch import script with no args)
+
+> couchapp push webviewer/ photos
+# this will install a basic webviewer to see (some of) the imported info
