@@ -1,0 +1,181 @@
+{
+	"description": "ShutterStem photo schema recommendation",
+	"type": "Object",
+	"TODO": "Add see_also fields to properties, cross referencing with compare/contrastable EXIF, IPTC, XMP fields and applicable standards",
+	
+	"properties": {
+		"_id": {
+			"example": "fffee978c0324703a216608c03ea6984",
+			"type": "String",
+			"description": "CouchDB doc_id, must be unique across databases (set out-of-band, but does appear in fetched documents)"
+		},
+		"_rev": {
+			"example": "1-ef10d96aee9dcb55dcaf5749f529c0c9 (set out-of-band, but does appear in fetched documents)",
+			"type": "String",
+			"description": "Assigned by CouchDB"
+		},
+		"_ (reserved)": {
+			"description": "NOTE: top-level fields within a JSON document containing a name that starts with a _ prefix are reserved for use by CouchDB",
+			"TODO": "How would a schema representation capture rules like this?"
+		},
+		
+		"timestamp": {
+			"example": "2010-06-09T23:06:38Z",
+			"type": "String",
+			"validator": "function (val) { // TODO: implement RFC 3399 check }",
+			"description": "Exact time when photo was taken (if known), conforming to RFC 3339",
+			"TODO": "Add a range estimate field for (eg scanned) photos where timestamp not known (look into what ISO8601 offers here)"
+		},
+		
+		"rating": {
+			"example": 4,
+			"type": "Number",
+			"validator": "function (v) { return (v !== 0 && v >= -1 && v <= 5); }",
+			"description": "Primary user's rating of the photo. Like XMP specification, -1 may mean reject, 0 would mean unrated (but should be omitted), otherwise 1 (worst) - 5 (best)",
+		},
+		
+		"title": {
+			"example": "The Potato Eaters",
+			"type": "String",
+			"description": "Short summary or artistic title of photo",
+			"TODO": "Set a length restriction? 256? 1024?"
+		},
+		
+		"alt_text": {
+			"example": "Peasants eating a meal in a small, dimly lit house",
+			"type": "String",
+			"description": "Factual caption of image contents, suitable for the sight-impaired and perhaps text-based searching (think <img alt=...>)"
+		},
+		
+		"description": {
+			"example": "Those people, eating their potatoes under the lamplight, have dug the earth with those very hands they put in their dish",
+			"type": "String",
+			"description": "Further details or artistic commentary about the photo"
+		},
+		
+		"image": {
+			"description": "Useful information about the 'ideal' (e.g. original/canonical) image itself",
+			"details": "Note that, as much as practical, ShutterStem seeks to decouple the concept of a 'photo' and the representation of its pixels (allowing for multiple versions, representations).",
+			"type": "Object",
+			
+			"properties": {
+				"original_sha1": {
+					"example": "e52080da349bdaa429da9ae11878d3f6924816d8",
+					"type": "String",
+					"validator": "RegExp('^[0-9a-f]{40}$')",
+					"description": "SHA1 signature of originally imported file. This is very useful for simple (exact) duplicate detection but otherwise useless."
+				},
+				"original_filename": {
+					"example":"IMG_4463.JPG",
+					"type": "String",
+					"description": "Filename of originally imported file. Not to be used for linking to original file. Perhaps a useful part of extended duplicate detection, and as a fallback photo title."
+				},
+				"aspect": {
+					"example": 1.5,
+					"type": "Number",
+					"description": "Aspect ratio (width divided by height) of image as it would be presented to the user (i.e. rotation applied). Useful for linesetting/layout ahead of pixel data."
+				}
+			}
+		},
+		
+		"exposure": {
+			"description": "Interesting information about how the light was captured",
+			"type": "Object",
+			
+			"aperture": {
+				"example": 10,
+				"type": "Number",
+				"description": "Aperture size, f-stop denominator (ƒ/N)"
+			},
+			"iso": {
+				"example": 100,
+				"type": "Number",
+				"description": "ISO sensitivity ('film speed')"
+			},
+			"speed": {
+				"example": "1/400",
+				"type": "String",
+				"validator": "RegExp('^\\d+(?:/\\d+)$')",
+				"description": "Shutter speed, expressed as an integer or fraction of two integers (for human readibility and to keep as rational number)"
+			}
+		},
+		
+		"location": {
+			"description": "Camera position (and perhaps orientation)",
+			"type": "Object",
+			"TODO": "Administrative or polygon-based location properties, e.g. for when exact(ish) location is not known or shared. Sensor orientation info?",
+			
+			"properties": {
+				"latitude": {
+					"example": 42.3,
+					"type": "Number",
+					"validator": "function (v) { return (this.longitude || this.longitude === 0) && v <= 90 && v >= -90); }",
+					"description": "WGS-84 latitude coordinate of camera sensor's position (if set, longitude also required)"
+				},
+				"longitude": {
+					"example": -123.4,
+					"type": "Number",
+					"validator": "function (v) { return (this.latitude || this.latitude === 0) && v <= 180 && v >= -180); }",
+					"description": "WGS-84 longitude coordinate of camera sensor's position (if set, latitude also required)"
+				},
+				"altitude": {
+					"example": 5280,
+					"type": "Number",
+					"description": "Height (in meters) of camera sensor above Mean Sea Level",
+					"TODO": "Datum unclear from EXIF specification, make sure this is well-defined"
+				}
+			}
+		},
+		
+		"system": {
+			"description": "Information about the imaging system used to capture photo",
+			"TODO": "Clarify the distinction between this and exposure? (need a reasonable explanation for separating focal_length aperture)",
+			"type": "Object",
+			
+			"properties": {
+				"camera": {
+					"example": "Canon EOS DIGITAL REBEL XT",
+					"type": "String",
+					"description": "Make and/or model of camera (body)",
+				},
+				"lens": {
+					"example": "Canon EF 28mm f/2.8",
+					"type": "String",
+					"description": "Lens used (typically including make, focal range, aperture range, other type information)"
+				},
+				"focal_length": {
+					"type": "Number",
+					"example": 28,
+					"description": "Focal length of lens while image was captured",
+					"TODO": "Move to exposure? What about 35mm equivalence and sensor size issues?"
+				}
+			}
+		},
+		
+		"_attachments": {
+			"description": "CouchDB document attachments, which are used for thumbnails",
+			"type": "Object",
+			
+			"properties": {
+				"medium.jpg": {
+					"description": "JPEG thumbnail, oriented for display (i.e. with photo.image.aspect_ratio), with max side dimension of 512 (thus <=1MB when in memory as RGBA)",
+					"type": "Object",
+					"TODO": "Rename to thumbnail_512.jpg?",
+					
+					"content_type": {
+						"value": "image/jpeg",
+					}
+				},
+				"small.jpg": {
+					"description": "JPEG thumbnail, oriented for display (i.e. with photo.image.aspect_ratio), with max side dimension of 64 (thus <=16kB when in memory as RGBA)",
+					"type": "Object",
+					"TODO": "Rename to thumbnail_64.jpg?",
+					
+					"content_type": {
+						"value": "image/jpeg",
+					}
+				}
+			}
+		}
+	}
+}
