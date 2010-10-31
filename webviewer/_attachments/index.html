@@ -11,7 +11,7 @@
     
     <h2>Recent photos <img id="sparkline"/></h2>
     <div id="thumbnails">(Loading 25 recent photos)</div>
-    <p style="clear:both"><a href="_list/thumbnails/by_date?reduce=false&limit=150&descending=true">see all...</a></p>
+    <p style="clear:both" id="see_all"><a href="_list/thumbnails/by_date?reduce=false&limit=150&descending=true">see all...</a></p>
   </body>
   <script src="vendor/couchapp/loader.js"></script>
   <script type="text/javascript" charset="utf-8">
@@ -23,11 +23,15 @@
       function renderThumbnails(response) {
         var list;
         
-        // TODO: links to image view
-        list = $.mustache("<ul>{{#photos}}<li>{{>thumbnail}}</li>{{/photos}}</ul>",
-                          {photos:response.rows},
-                          {thumbnail: "<a href='_show/photo_info/{{id}}'><img src='" + app.db.uri + "{{id}}/small.jpg'/></a>"});
-        $("#thumbnails").attr('innerHTML', list);
+        if (response.rows.length) {
+                list = $.mustache("<ul>{{#photos}}<li>{{>thumbnail}}</li>{{/photos}}</ul>",
+                                  {photos:response.rows},
+                                  {thumbnail: "<a href='_show/photo_info/{{id}}'><img src='" + app.db.uri + "{{id}}/small.jpg'/></a>"});
+                $("#thumbnails").attr('innerHTML', list);
+        } else {
+                $("#thumbnails").attr('innerHTML', "No photos! Perhaps you'd like to <a href='_show/get_importer'>download the iPhoto importer</a> and give it a whirl?");
+                $("#see_all").hide();
+        }
       }
       //app.view("by_date?reduce=false&descending=true&limit=25", {success: renderThumbnails});
       app.view("by_date?reduce=false&descending=true&limit=25", {success: renderThumbnails});
