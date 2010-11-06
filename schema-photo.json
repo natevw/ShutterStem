@@ -7,7 +7,7 @@
 		"_id": {
 			"example": "fffee978c0324703a216608c03ea6984",
 			"type": "String",
-			"description": "CouchDB doc_id, must be unique across databases (set out-of-band, but does appear in fetched documents)"
+			"description": "CouchDB doc_id, must be unique across databases"
 		},
 		"_rev": {
 			"example": "1-ef10d96aee9dcb55dcaf5749f529c0c9 (set out-of-band, but does appear in fetched documents)",
@@ -144,10 +144,104 @@
 					"description": "Lens used (typically including make, focal range, aperture range, other type information)"
 				},
 				"focal_length": {
-					"type": "Number",
 					"example": 28,
+					"type": "Number",
 					"description": "Focal length of lens while image was captured",
 					"TODO": "Move to exposure? What about 35mm equivalence and sensor size issues?"
+				}
+			}
+		},
+		
+		"starred": {
+			"example": true,
+			"type": "Boolean",
+			"description": "Set to true if user wants to call special attention to this photo, not present otherwise",
+			"TODO": "Rename to something more generic (marked? noted? flagged?)"
+		},
+		
+		"folder": {
+			"example": "Wedding - Nate & Hannah",
+			"type": "String",
+			"description": "Camera folder or other sole parent; such as a roll, event or shoot. Unique folders must have unique names.",
+		},
+		
+		"sets": {
+			"example": ["Family Favorites", "Summer Scenery"],
+			"type": "Array",
+			"TODO": "Hey silly, this schema lets you specify array items more specifically",
+			"validator": "function (v) { v.every(function (item) { return typeof item === 'string'; } }",
+			"description": "Named collections in which this photo participates. Unique sets must have unique names.",
+		},
+		
+		"tags": {
+			"example": ["people", "landscape", "to share"],
+			"type": "Array",
+			"description": "Semi-arbitrary keywords, terms or named flags labelling this photo.",
+			
+			"items": {
+				"example": "jet fighters",
+				"type": "String",
+				"description": "Tags are intended for a human audience; they should not be used for data that is primarily machine-oriented. (For example, rather than storing 'modelreleaseid-0123213' as a tag, software should define a 'model_release' metadata field if such information is stored.)"
+			}
+		},
+		
+		"annotations": {
+			"example": [{"rect": {"x": 0.289, "y": 0.193, "w": 0.458, "h": 0.445}, "name": "Cousin Bob Roy"}],
+			"type": "Array",
+			"items": {
+				"example": {"rect": {"x": 0, "y": 0, "w": 1, "h": 1}, "note": "This is the entire photo, which wouldn't normally be annotated"},
+				"type": "Object",
+				"description": "Array of annotation objects representing information about highlighted regions within the image."
+				
+				"properties": {
+					"rect": {
+						"example": {"x": 0.25, "y": 0.125, "w": 0.5, "h": 0.75},
+						"type": "Object",
+						"validator": "function (v) { return (v.x + v.w) <= 1 &&  (v.y + v.h) <= 1; }",
+						"description": "Highlighted boundary rectangle of annotated region",
+						
+						"properties": {
+							"x": {
+								"example": 0.25,
+								"type": "Number",
+								"validator": "function (v) { return v >= 0 && v <= 1; }",
+								"description": "Left edge of boundary rectangle, as a fraction of the presented (i.e. rotated) image width with origin at left"
+							},
+							"y": {
+								"example": 0.125,
+								"type": "Number",
+								"validator": "function (v) { return v >= 0 && v <= 1; }",
+								"description": "Top edge of boundary rectangle, as a fraction of the presented image height with origin at top"
+							},
+							"w": {
+								"example": 0.5,
+								"type": "Number",
+								"validator": "function (v) { return v >= 0 && v <= 1; }",
+								"description": "Width of boundary rectangle, as a fraction of the presented image width"
+							},
+							"h": {
+								"example": 0.75,
+								"type": "Number",
+								"validator": "function (v) { return v >= 0 && v <= 1; }",
+								"description": "Height of boundary rectangle, as a fraction of the presented image height"
+							}
+						}
+					},
+					
+					"TODO": "Specify below a little better, maybe adding submitted comments, object recognition...even geographic references?",
+					
+					"name": {
+						"example": "Tobias",
+						"type": "String",
+						"TODO": "Rather than just a potentially non-unique name string, this should really be integrated with a 'people' schema, which is very likely beyond the scope of ShutterStem. Such a schema would need to support even anonymous recognizable people rather than just traditional contacts/friends.",
+						"description": "Name of person whose face is framed by the annotation rectangle."
+					},
+					
+					"note": {
+						"example": "We climbed along the top edge of this cliff!",
+						"type": "String",
+						"description": "Description or comment attached to a specific portion of the photo"
+					}
 				}
 			}
 		},
