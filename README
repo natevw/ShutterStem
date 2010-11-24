@@ -6,13 +6,7 @@ ShutterStem is a photo library that is extendable, syncable and scalable.
 
 === PREFACE ===
 
-ShutterStem starts as a "desktop" app, even though it's not really an app and it tries not to be too desktoppy.
-
-See:
-There are already many websites where I could share photos.
-
-But:
-How?
+ShutterStem is trying to make taking photos fun again.
 
 
 
@@ -32,10 +26,10 @@ ShutterStem prefers to treat the original file as a unmodifiable negative. There
 - not corrupting original files is hard, and we want photo organization utilities to be easy to build
 - it is hard to interchange arbitrary new types of metadata via many image formats (XMP doesn't seem well supported)
 - modifying original photo files can mean needing to backup a >5MB file again, because <5kB of data changed
-- decoupling the concept of a photo and its metadata from the original file enables greater flexibility
+- decoupling the concept of a photo and its metadata from the original file reduces bulk and adds flexibility
 
 Many -- after being burned repeatedly by closed, centralized legacy photo libraries -- insist
-that their metadata stay with their original files so that their curation is under their control.
+that their metadata stay with their original files, so that their curation is under their control.
 If the other goals of ShutterStem are met, there are better means of accomplishing the same end.
 
 
@@ -43,7 +37,7 @@ If the other goals of ShutterStem are met, there are better means of accomplishi
 (Buzzword: an API)
 
 While the ShutterStem project itself may provide a core set of basic photo management tools,
-it's main goal is to provide a platform upon which focused, innovative applications may be built.
+its main goal is to provide a platform upon which focused, innovative applications may be built.
 So a viewer can just show photos well, a geotagger can just geotag well, and a web uploader can just web upload well.
 ShutterStem wants to concentrate on being a great hub, so other apps can concentrate on being great spokes.
 
@@ -93,28 +87,9 @@ A. Yes, although in theory ShutterStem's components could be exported to other c
 ShutterStem should provide, on top of CouchDB, the following:
 
 1. core schema recommendation and architectural/usage descriptions, to encourage compatibility
-2. reference code, reusable libraries supporting the above
-3. basic client apps, to test architectural decisions and bootstrap the ecosystem
+2. required plumbing, reusable libraries and reference code supporting the above
+3. useful client app(s), to test architectural decisions and bootstrap the ecosystem
 
-
-Here's what ShutterStem 0.1 provides for each of these items respectively:
-
-1. The beginnings of a core schema and architecture, hidden away in a reference importer (sorry about that)
-2. A reference importer, with no reusable libraries (sorry about that)
-3. A basic webviewer client app, which is short on polish and long on not being useful (sorry about that)
-
-
-
-=== natevw's Roadmap ===
-
-Subject to massive upheaval or sudden sinkholes. ShutterStem is many things (pet project, labor of love...) but not my fulltime job.
-
-0.1 - "developer preview" (see above, but the heading will be wrong)
-0.2 - post-import demo app, and documentation of both imported (timestamp, exposure...) and common user/utility-supplied data (rating, tags...)
-0.3 - sample app that handles original file sync workflow (laptop -> mainframe+backup -> smaller "originals" back on laptop)
-0.5 - something my dad can rely on as his photo metadata hub
-1.0 - something my dad can encourage mom to use
-2.0 - I dunno...something amazing, I guess!?
 
 
 === License ===

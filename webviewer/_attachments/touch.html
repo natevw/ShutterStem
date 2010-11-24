@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>ShutterStem Touch experiments</title>
+    
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    
+    <link rel="stylesheet" href="style/touch.css" type="text/css">
+    
+    
+    <script type="text/javascript" src="/_utils/script/jquery.js"></script>
+    <script type="text/javascript">
+        $.get('_view/by_date?reduce=false', function (data) {
+            data.rows.forEach(function (row) {
+            $.get('../../' + row.id, function (photo) {
+                var image, scale, rotation;
+                
+                image = new Image();
+                image.src = '../../' + row.id + '/medium.jpg';
+                document.body.appendChild(image);
+                
+                scale = 1;
+                rotation = 0;
+                //image.addEventListener('gesturestart', function (e) {}, false);
+                image.addEventListener('gesturechange', function (e) {
+                    e.preventDefault();
+                    e.target.style.webkitTransform = 'scale(' + (e.scale * scale) + ') rotate(' + (e.rotation + rotation) + 'deg)';
+                }, false);
+                image.addEventListener('gestureend', function (e) {
+                    scale *= e.scale;
+                    rotation += e.rotation;
+                }, false);
+            }, 'json');
+            });
+        }, 'json');
+    
+    </script>
+  </head>
+  <body>
+    <h1>ShutterStem Touch</h1>
+  </body>
+</html>

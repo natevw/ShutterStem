@@ -1,0 +1,12 @@
+body {
+	background-color: black;
+	color: white;
+	font-family: sans-serif;
+}
+
+img {
+	margin: 1em;
+	-webkit-box-reflect:below 3px
+    -webkit-gradient(linear, left top, left bottom, from(transparent),
+    color-stop(0.5, transparent), to(white));
+}
