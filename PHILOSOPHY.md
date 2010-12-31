@@ -1,7 +1,6 @@
 ShutterStem is trying to make taking photos fun again.
 
-Core concepts
-=============
+# Core concepts #
 
 ShutterStem provides an extendable, syncable and scalable photo library build on top of CouchDB. The design of ShutterStem is influenced by the following principles:
 
@@ -59,8 +58,7 @@ ShutterStem should be able to gracefully handle any number of photos, and enable
 
 
 
-Questions one might ask
-=======================
+# Questions one might ask #
 
 Q. So how does ShutterStem manage to pull all of this off?
 A. CouchDB pretty much just does it all for us and we just relax.
