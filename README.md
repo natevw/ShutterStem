@@ -1,12 +1,13 @@
 ShutterStem is trying to make taking photos fun again. It is a CouchDB-based photo library that is extendable, syncable and scalable.
 
-
-=== Details ===
+Details
+=======
 
 (TODO: info about installation and use, link to philosophy document)
 
 
-=== License ===
+License
+=======
 
 Copyright 2010 Nathan Vander Wilt. All rights reserved.
 
