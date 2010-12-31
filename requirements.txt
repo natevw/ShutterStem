@@ -1,0 +1,34 @@
+ShutterStem v1.0 requirements
+
+=== Import ===
+
+It must be possible to manually trigger an import into ShutterStem via a list of bookmarked folders. This may allow last-modified based re-import.
+
+Import must avoid duplicates, even across machines via techniques like a known photo for local file path, a suitable digest of original file and/or pixel data, and filename or serial number with timestamp.
+
+Imported information must include timestamp, generated thumbnails and other interesting metadata found in the original file.
+
+
+=== Original file access ===
+
+ShutterStem must provide access to original files, when they are present, through an HTTP interface.
+
+
+=== Organization ===
+
+Users must then be able to collect photos into the current set buffer. The current set must be able to be cleared, saved with a name and used as the current set. These sets are presented as a most-recently-modified list.
+
+No means of editing, tracking or updating edits to the original file metadata or the an image's pixel data will be provided in version 1.0. Even basic metadata (captions, tags) are not a priority. 
+
+
+=== Syncing ===
+
+ShutterStem must provide a higher-level syncing mechanism based on CouchDB's built-in replication. This syncing mechanism must:
+- keep track of bookmarked peers
+- resolve conflicts automatically whenever possible
+- provide an interface for manual conflict resolution as necessary
+
+
+=== Export ===
+
+As described in the "Organization" section, ShutterStem tracks sets of photos. Export of original-sized or smaller files (with metadata added losslessly) may be performed on the current set.

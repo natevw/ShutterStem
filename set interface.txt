@@ -1,0 +1,13 @@
+Current set:
+<i>Unnamed</i> - Rename
+Revert/Clear - Save
+
+Saved sets:
+Share with family (2010/12/30)
+temp (2010/12/27)
+Export to Flickr (2010/12/25)
+[click to make current]
+
+
+Store set documents, with subfield for temporary (unsaved) state
+Photos keep reference+name to the sets they're in; this is only updated when saving set (i.e. does not reflect temporary state of current set)

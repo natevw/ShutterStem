@@ -24,4 +24,4 @@ MD5 of uncompressed pixel data
 Timestamp (store image.original_timestamp integer?) + Camera Model + Lens
 Serial number + Camera Model + ?
 Non-strict "thumbprint" of pixel data
-Filename
+Filename + timestamp
