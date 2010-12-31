@@ -1,16 +1,8 @@
-ShutterStem is a photo library that is extendable, syncable and scalable.
-
-[alternate/SPOILER: ShutterStem is a standardish way of using CouchDB to manage photos]
-
-
-
-=== PREFACE ===
-
 ShutterStem is trying to make taking photos fun again.
 
-
-
 === Core concepts ===
+
+ShutterStem provides an extendable, syncable and scalable photo library build on top of CouchDB. The design of ShutterStem is influenced by the following principles:
 
 0. Photo metadata is coupled to the purpose of taking photos.
 (Buzzword: meta)
@@ -36,8 +28,8 @@ If the other goals of ShutterStem are met, there are better means of accomplishi
 2. Photo metadata is decoupled from any one application.
 (Buzzword: an API)
 
-While the ShutterStem project itself may provide a core set of basic photo management tools,
-its main goal is to provide a platform upon which focused, innovative applications may be built.
+While the ShutterStem project itself will provide a core set of photo management tools,
+its underlying goal is to provide a platform upon which focused, innovative applications may be built.
 So a viewer can just show photos well, a geotagger can just geotag well, and a web uploader can just web upload well.
 ShutterStem wants to concentrate on being a great hub, so other apps can concentrate on being great spokes.
 
@@ -53,7 +45,7 @@ about also letting any young upstart photo utility mix in whatever additional me
 (Buzzword: peer-to-peer replication)
 
 Speaking of hubs, a mainframe sitting beneath a desk at home makes a pretty poor one when a photographer is at a friend's cabin.
-ShutterStem must enable photo curation on any device (at least, devices not crippled by anti-competitive censorship),
+ShutterStem must enable photo curation on any device (at least, any device not crippled by anti-competitive censorship),
 syncable to any other device without coordination with one "master" library. In fact, ShutterStem should take
 care of the syncing itself without placing undue burden on any other part of the system.
 
@@ -75,24 +67,7 @@ Q. CouchDB?
 A. CouchDB: http://www.building43.com/videos/2010/08/19/a-powerful-replicable-mobilized-database-couchdb/
 
 Q. So if CouchDB does all the work, then what doth ShutterStem?
-A. CouchDB is "just" a beautifully architected database, ShutterStem is a standardish way of using CouchDB to manage photos (see below)
+A. CouchDB is "just" a beautifully architected web filesystem and server, ShutterStem is a standardish way of using CouchDB to manage photos and provides the necessary app-specific infrastructure on top of CouchDB's foundation.
 
 Q. Does ShutterStem require CouchDB?
 A. Yes, although in theory ShutterStem's components could be exported to other cultures (e.g. devices crippled by anti-competitive censorship)
-
-
-
-=== See? Below! ===
-
-ShutterStem should provide, on top of CouchDB, the following:
-
-1. core schema recommendation and architectural/usage descriptions, to encourage compatibility
-2. required plumbing, reusable libraries and reference code supporting the above
-3. useful client app(s), to test architectural decisions and bootstrap the ecosystem
-
-
-
-=== License ===
-
-So far all ShutterStem code has been written by Nathan Vander Wilt for Calf Trail Software, LLC.
-Maybe public domain (CC-0/WTFPL), but probably attribution (MIT/BSD/Apache), yet certainly not anti-commercial (GPL)

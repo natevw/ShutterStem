@@ -1,6 +1,0 @@
-image
-photo
-folder
-
-set (of photos)
-?collection (of folders)
