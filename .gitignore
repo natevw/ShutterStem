@@ -1,1 +1,4 @@
 .couchapprc
+*.pbxuser
+*.mode1v3
+build/
