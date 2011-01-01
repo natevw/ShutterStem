@@ -9,11 +9,8 @@
 #import <Cocoa/Cocoa.h>
 
 
-@interface TLJSON : NSObject {
+@interface TLJSON : NSObject {}
 
-}
-
-+ (NSString*)stringify:(id)object indent:(NSUInteger)indentAmount;
 + (NSString*)stringify:(id)object;
 
 @end

@@ -71,7 +71,9 @@
     NSString* encodedString = [[NSString alloc] initWithBytes:outputBuffer length:outputLength encoding:NSASCIIStringEncoding];
     BIO_free_all(context);
     
-    return [encodedString autorelease];
+    NSString* noNewlines = [encodedString stringByReplacingOccurrencesOfString:@"\n" withString:@""];
+    [encodedString release];
+    return noNewlines;
 }
 
 

@@ -12,17 +12,37 @@
 @implementation TLJSON
 
 + (NSString*)stringify:(id)object {
-    return [self stringify:object indent:0];
-}
-
-+ (NSString*)stringify:(id)object indent:(NSUInteger)indentAmount {
     // TODO: detect cyclic structures
-    (void)indentAmount;
+    // TODO: support pretty indent
     
     if ([object isKindOfClass:[NSDictionary class]]) {
-        // TODO: implement
+        NSMutableString* string = [NSMutableString stringWithString:@"{"];
+        BOOL started = NO;
+        for (NSString* key in object) {
+            if (started) {
+                [string appendString:@", "];
+            } else {
+                started = YES;
+            }
+            NSString* value = [self stringify:[object valueForKey:key]];
+            [string appendFormat:@"\"%@\" : %@", key, value];
+        }
+        [string appendString:@"}"];
+        return string;
     } else if ([object isKindOfClass:[NSArray class]]) {
-        // TODO: implement
+        NSMutableString* string = [NSMutableString stringWithString:@"["];
+        BOOL started = NO;
+        for (NSObject* item in object) {
+            if (started) {
+                [string appendString:@", "];
+            } else {
+                started = YES;
+            }
+            NSString* value = [self stringify:item];
+            [string appendString:value];
+        }
+        [string appendString:@"]"];
+        return string;
     } else if (object == [NSNull null]) {
         return @"null";
     } else if (CFGetTypeID((CFTypeRef)object) == CFBooleanGetTypeID()) {
@@ -32,9 +52,10 @@
         return [object stringValue];
     } else if ([object isKindOfClass:[NSString class]]) {
         return [NSString stringWithFormat:@"\"%@\"", object];
-    } else if ([object isKindOfClass:[NSDate class]]) {
+    } /*else if ([object isKindOfClass:[NSDate class]]) {
         return [object descriptionWithCalendarFormat:@"\"%Y-%m-%dT%H:%M:%S%Z\""];
-    }
+    }  */
+    NSParameterAssert([object isKindOfClass:[TLJSON class]]);
     return nil;
 }
 

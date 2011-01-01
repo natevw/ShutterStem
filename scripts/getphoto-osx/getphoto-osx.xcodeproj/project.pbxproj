@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		D89019C112CFB8A3005E0815 /* NSDateFormatter+TLExtensions.m in Sources */ = {isa = PBXBuildFile; fileRef = D89019C012CFB8A2005E0815 /* NSDateFormatter+TLExtensions.m */; };
 		D8F2E3CB12CEA050003AEA15 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = D8F2E3CA12CEA050003AEA15 /* main.m */; };
 		D8F2E3E012CEA0FE003AEA15 /* ApplicationServices.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D8F2E3DF12CEA0FE003AEA15 /* ApplicationServices.framework */; };
 		D8F2E51712CEB4E6003AEA15 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D8F2E51612CEB4E6003AEA15 /* Foundation.framework */; };
@@ -15,6 +16,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		D89019BF12CFB8A2005E0815 /* NSDateFormatter+TLExtensions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "NSDateFormatter+TLExtensions.h"; sourceTree = "<group>"; };
+		D89019C012CFB8A2005E0815 /* NSDateFormatter+TLExtensions.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "NSDateFormatter+TLExtensions.m"; sourceTree = "<group>"; };
 		D8F2E3BD12CEA033003AEA15 /* getphoto */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = getphoto; sourceTree = BUILT_PRODUCTS_DIR; };
 		D8F2E3CA12CEA050003AEA15 /* main.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		D8F2E3DF12CEA0FE003AEA15 /* ApplicationServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ApplicationServices.framework; path = /System/Library/Frameworks/ApplicationServices.framework; sourceTree = "<absolute>"; };
@@ -49,6 +52,8 @@
 				D8F2E67C12CEC36A003AEA15 /* TLJSON.m */,
 				D8F2E60C12CEBD36003AEA15 /* NSData+TLBase64.h */,
 				D8F2E60D12CEBD36003AEA15 /* NSData+TLBase64.m */,
+				D89019BF12CFB8A2005E0815 /* NSDateFormatter+TLExtensions.h */,
+				D89019C012CFB8A2005E0815 /* NSDateFormatter+TLExtensions.m */,
 			);
 			sourceTree = "<group>";
 		};
@@ -105,6 +110,7 @@
 				D8F2E3CB12CEA050003AEA15 /* main.m in Sources */,
 				D8F2E60E12CEBD36003AEA15 /* NSData+TLBase64.m in Sources */,
 				D8F2E67D12CEC36A003AEA15 /* TLJSON.m in Sources */,
+				D89019C112CFB8A3005E0815 /* NSDateFormatter+TLExtensions.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

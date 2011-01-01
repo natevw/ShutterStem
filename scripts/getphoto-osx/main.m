@@ -12,6 +12,8 @@
 
 #include <getopt.h>
 #import "NSData+TLBase64.h"
+#import "TLJSON.h"
+#import "NSDateFormatter+TLExtensions.h"
 
 
 static const struct option cli_options[] = {
@@ -22,7 +24,6 @@ static const struct option cli_options[] = {
 
 int main(int argc, char* argv[]) {
     NSAutoreleasePool* pool = [NSAutoreleasePool new];
-    
     
     NSMutableArray* thumbnails = [NSMutableArray array];
     NSTimeZone* tz = [NSTimeZone defaultTimeZone];
@@ -57,7 +58,25 @@ int main(int argc, char* argv[]) {
     
     CGImageSourceRef imgSrc = CGImageSourceCreateWithURL((CFURLRef)[NSURL fileURLWithPath:file isDirectory:NO] , NULL);
     
+    NSDictionary* info = (id)CGImageSourceCopyPropertiesAtIndex(imgSrc, 0, NULL);
+    [info autorelease];
+    
+    NSString* timestamp = [[info valueForKey:(id)kCGImagePropertyExifDictionary] valueForKey:(id)kCGImagePropertyExifDateTimeOriginal];
+    if (!timestamp) {
+        fprintf(stderr, "No timestamp found\n");
+        exit(-1);
+    }
+    
+    NSDateFormatter* tiffFormat = [NSDateFormatter tl_tiffDateFormatter];
+    [tiffFormat setTimeZone:tz];
+    NSDate* date = [tiffFormat dateFromString:timestamp];
+    NSString* dateString = [NSDateFormatter tl_dateToRFC3339:date withTimezone:tz];
+    [imageDoc setObject:dateString forKey:@"timestamp"];
+    
     NSMutableDictionary* thumbnailOptions = [NSMutableDictionary dictionaryWithObjectsAndKeys:(id)kCFBooleanTrue, (id)kCGImageSourceCreateThumbnailFromImageAlways, (id)kCFBooleanTrue, (id)kCGImageSourceCreateThumbnailWithTransform, nil];
+    if ([thumbnails count] > 1) {
+        [thumbnailOptions setObject:(id)kCFBooleanTrue forKey:(id)kCGImageSourceShouldCache];
+    }
     for (NSNumber* size in thumbnails) {
         [thumbnailOptions setObject:size forKey:(id)kCGImageSourceThumbnailMaxPixelSize];
         CGImageRef img = CGImageSourceCreateThumbnailAtIndex(imgSrc, 0, (CFDictionaryRef)thumbnailOptions);
@@ -68,16 +87,16 @@ int main(int argc, char* argv[]) {
         CGImageDestinationFinalize(imgDst);
         CFRelease(imgDst);
         
-        NSMutableDictionary* thumbnail = [NSMutableDictionary dictionaryWithCapacity:3];
+        NSMutableDictionary* thumbnail = [NSMutableDictionary dictionaryWithCapacity:2];
         [thumbnail setObject:@"image/jpeg" forKey:@"content_type"];
-        [thumbnail setObject:jpegData forKey:@"data"];
+        [thumbnail setObject:[jpegData tl_base64EncodedString] forKey:@"data"];
         
         NSMutableDictionary* attachments = [imageDoc objectForKey:@"_attachments"];
         if (!attachments) {
             attachments = [NSMutableDictionary dictionary];
             [imageDoc setObject:attachments forKey:@"_attachments"];
         }
-        NSString* thumbnailName = [NSString stringWithFormat:@"thumbnails/%lu.jpg", [size unsignedLongValue]];
+        NSString* thumbnailName = [NSString stringWithFormat:@"thumbnail/%lu.jpg", [size unsignedLongValue]];
         [attachments setObject:thumbnail forKey:thumbnailName];
         
         CGImageRelease(img);
@@ -85,8 +104,7 @@ int main(int argc, char* argv[]) {
     
     CFRelease(imgSrc);
     
-    
-    NSLog(@"%@", imageDoc);
+    printf("%s\n", [[TLJSON stringify:imageDoc] UTF8String]);
     
     [pool drain];
     return 0;
