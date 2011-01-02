@@ -1,12 +1,13 @@
 var import_source = {
     path: "/Users/nathan/Pictures/elgar_digipics",
-    last_import: null
-}
+    last_import: null,
+    time_zone: 'US/Pacific'
+};
 
 var SUPPORTED_EXTENSIONS = {'jpg':true, 'jpeg':true};
+var GET_PHOTO = __dirname + '/getphoto-osx/build/Release/getphoto';
 
-
-var fs = require('fs'), path = require('path'), proc = require('child_process');
+var fs = require('fs'), path = require('path'), proc = require('child_process'), http = require('http');
 
 function Serializer(callback) {
     var queue = [];
@@ -57,39 +58,41 @@ function processFiles(folder, callback) {
 }
 
 
-var import_queue = new Serializer(function (fullpath, finish) {
-    //console.log(fullpath);
-    var sips = proc.spawn("sips", ['-g', 'creation', fullpath]);
-    
-    var output = "";
-    sips.stdout.on('data', function (data) {
-        output += data.toString();
+var couchdb = require('http').createClient(5984, "localhost");
+
+/*
+var uuids;
+var req = couchdb.request('GET', "/_uuids?count=1000", {'Connection': 'keep-alive'});
+req.end();
+req.on('response', function (resp) {
+    var uuidsDoc = "";
+    resp.setEncoding('utf8');
+    resp.on('data', function (d) {
+        uuidsDoc += d;
     });
-    sips.on('exit', function () {
-        var date = output.split("\n")[1].match("creation: (.*)$")[1];
-        if (date === "<nil>") {
-            finish();
-            return;
-        }
-        
-        date = date.replace(/(\d+):(\d+):(\d+) /, "$1-$2-$3T");
-        if (import_source.gmt) {
-            date += 'Z';
-        } else {
-            // NOTE: this takes advantage of V8 parsing zoneless timestamps as local
-            var local_date = new Date(date);
-            var gmt_date = new Date(date + 'Z');
-            var seconds_offset = (gmt_date - local_date) / 1000;
-            var minutes_offset = Math.abs(seconds_offset) / 60;
-            var hours_offset = Math.floor(minutes_offset / 60);
-            minutes_offset = Math.round(minutes_offset - hours_offset * 60);
-            date += (seconds_offset > 0) ? '+' : '-';
-            date += (hours_offset < 10) ? '0' + hours_offset : '' + hours_offset;
-            date += ':';
-            date += (minutes_offset < 10) ? '0' + minutes_offset : '' + minutes_offset;
-        }
-        console.log(fullpath, date);
-        finish();
+    resp.on('end', function () {
+        uuids = JSON.parse(uuidsDoc).uuids;
+    });
+});
+*/
+
+
+var import_queue = new Serializer(function (fullpath, finish) {
+    var get_photo = proc.spawn(GET_PHOTO, ['--thumbnail', '64', '--thumbnail', '256', '--timezone', import_source.time_zone, fullpath]);
+    
+    var imageDoc = "";
+    get_photo.stdout.on('data', function (data) {
+        imageDoc += data.toString();
+    });
+    get_photo.on('exit', function () {
+        var docName = "/dev/testphoto-" + Math.random();
+        var req = couchdb.request('PUT', docName, {'Connection': 'keep-alive'});
+        req.write(imageDoc);
+        req.end();
+        req.on('response', function (resp) {
+           console.log("Imported", fullpath, "to", docName);
+           finish();
+        });
     });
 });
 
