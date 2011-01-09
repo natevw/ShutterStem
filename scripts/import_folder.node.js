@@ -1,4 +1,13 @@
+var REF_TYPE = "testtype-reference";
+var SOURCE_TYPE = "testtype-source";
+var IMAGE_TYPE = "testtype-image";
+var PHOTO_TYPE = "testtype-photo";
+
+
 var import_source = {
+    _id: "testsource-elgar_digipics",
+    _rev: "testrev",
+    name: "Elgar pictures",
     path: "/Users/nathan/Pictures/elgar_digipics",
     last_import: null,
     time_zone: 'US/Pacific'
@@ -28,7 +37,8 @@ function Serializer(callback) {
     }
 }
 
-function processFiles(folder, callback) {
+function processFiles(base, subfolder, callback) {
+    var folder = path.join(base, subfolder);
     fs.readdir(folder, function (e, files) {
         if (e) {
             console.warn(e);
@@ -47,10 +57,11 @@ function processFiles(folder, callback) {
                     return;
                 }
                 
+                var subfile = path.join(subfolder, filename);
                 if (stats.isDirectory()) {
-                    processFiles(fullpath, callback);
+                    processFiles(base, subfile, callback);
                 } else {
-                    callback(fullpath);
+                    callback(base, subfile);
                 }
             });
         });
@@ -77,7 +88,18 @@ req.on('response', function (resp) {
 */
 
 
-var import_queue = new Serializer(function (fullpath, finish) {
+function makeRef(doc, denormalize) {
+    var reference = {};
+    reference[REF_TYPE] = true;
+    reference._id = doc._id;
+    if (denormalize) denormalize.forEach(function (field) {
+        reference[field] = doc[field];
+    }), (reference._rev = doc._rev);
+    return reference;
+}
+
+var import_queue = new Serializer(function (info, finish) {
+    var fullpath = path.join(info.folder, info.file);
     var get_photo = proc.spawn(GET_PHOTO, ['--thumbnail', '64', '--thumbnail', '256', '--timezone', import_source.time_zone, fullpath]);
     
     var imageDoc = "";
@@ -89,9 +111,12 @@ var import_queue = new Serializer(function (fullpath, finish) {
             finish();
             return;
         }
+        imageDoc = JSON.parse(imageDoc);
+        imageDoc.identifiers || (imageDoc.identifiers = {});
+        imageDoc.identifiers.relative_path = {source:makeRef(import_source, ['name']), file:info.file};
         var docName = "/dev/testphoto-" + Math.random();
         var req = couchdb.request('PUT', docName, {'Connection': 'keep-alive'});
-        req.write(imageDoc);
+        req.write(JSON.stringify(imageDoc));
         req.end();
         req.on('response', function (resp) {
            console.log("Imported", fullpath, "to", docName);
@@ -100,10 +125,10 @@ var import_queue = new Serializer(function (fullpath, finish) {
     });
 });
 
-processFiles(import_source.path, function (fullpath) {
-    var extension = path.extname(fullpath).slice(1).toLowerCase();
+processFiles(import_source.path, null, function (folder, file) {
+    var extension = path.extname(file).slice(1).toLowerCase();
     if (!SUPPORTED_EXTENSIONS[extension]) {
         return;
     }
-    import_queue.add(fullpath);
+    import_queue.add({folder:folder, file:file});
 });
