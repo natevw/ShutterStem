@@ -84,7 +84,11 @@ var import_queue = new Serializer(function (fullpath, finish) {
     get_photo.stdout.on('data', function (data) {
         imageDoc += data.toString();
     });
-    get_photo.on('exit', function () {
+    get_photo.on('exit', function (exitCode) {
+        if (exitCode !== 0) {
+            finish();
+            return;
+        }
         var docName = "/dev/testphoto-" + Math.random();
         var req = couchdb.request('PUT', docName, {'Connection': 'keep-alive'});
         req.write(imageDoc);
