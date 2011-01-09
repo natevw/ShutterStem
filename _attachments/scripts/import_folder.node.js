@@ -1,7 +1,7 @@
 var REF_TYPE = "testtype-reference";
 var SOURCE_TYPE = "testtype-source";
 var IMAGE_TYPE = "testtype-image";
-var PHOTO_TYPE = "testtype-photo";
+var PHOTO_TYPE = "testtype-photo";      // plan to separate concept of image and photo
 
 
 var import_source = {
@@ -18,7 +18,28 @@ var GET_PHOTO = __dirname + '/getphoto-osx/build/Release/getphoto';
 
 var fs = require('fs'), path = require('path'), proc = require('child_process'), http = require('http');
 
-function Serializer(callback) {
+function Serial(){};
+Serial.any = function (array, test, finish) {
+    var i = 0, len = array.length, value;
+    function next() {
+        if (i < len) {
+            return test(array[i], function (retValue) {
+                i += 1;
+                value = retValue;
+                if (!value) {
+                    // avoid deep stack of "return next();" by queuing instead
+                    return process.nextTick(next);
+                } else {
+                    return finish(value);
+                }
+            });
+        } else {
+            return finish(value);
+        }
+    }
+    next();
+};
+Serial.izer = function (callback) {
     var queue = [];
     var tick = function () {
         process.nextTick(nextItem);
@@ -35,7 +56,7 @@ function Serializer(callback) {
         }
         queue.push(item);
     }
-}
+};
 
 function processFiles(base, subfolder, callback) {
     var folder = path.join(base, subfolder);
@@ -70,23 +91,26 @@ function processFiles(base, subfolder, callback) {
 
 
 var couchdb = require('http').createClient(5984, "localhost");
+couchdb.get = function (path, sendDoc) {
+    var req = couchdb.request('GET', path);
+    req.end();
+    req.on('response', function (resp) {
+        var doc = "";
+        resp.setEncoding('utf8');
+        resp.on('data', function (d) {
+            doc += d;
+        });
+        resp.on('end', function () {
+            sendDoc(JSON.parse(doc));
+        });
+    });
+}
 
 /*
-var uuids;
-var req = couchdb.request('GET', "/_uuids?count=1000", {'Connection': 'keep-alive'});
-req.end();
-req.on('response', function (resp) {
-    var uuidsDoc = "";
-    resp.setEncoding('utf8');
-    resp.on('data', function (d) {
-        uuidsDoc += d;
-    });
-    resp.on('end', function () {
-        uuids = JSON.parse(uuidsDoc).uuids;
-    });
+couchdb.get("/_uuids?count=1", function (result) {
+    console.log(JSON.stringify(result.uuids));
 });
 */
-
 
 function makeRef(doc, denormalize) {
     var reference = {};
@@ -98,9 +122,9 @@ function makeRef(doc, denormalize) {
     return reference;
 }
 
-var import_queue = new Serializer(function (info, finish) {
+var import_queue = new Serial.izer(function (info, finishInfo) {
     var fullpath = path.join(info.folder, info.file);
-    var get_photo = proc.spawn(GET_PHOTO, ['--thumbnail', '64', '--thumbnail', '256', '--timezone', import_source.time_zone, fullpath]);
+    var get_photo = proc.spawn(GET_PHOTO, ['--thumbnail', '64', '--thumbnail', '512', '--timezone', import_source.time_zone, fullpath]);
     
     var imageDoc = "";
     get_photo.stdout.on('data', function (data) {
@@ -108,19 +132,40 @@ var import_queue = new Serializer(function (info, finish) {
     });
     get_photo.on('exit', function (exitCode) {
         if (exitCode !== 0) {
-            finish();
-            return;
+            console.warn("Error processing", fullpath);
+            return finishInfo();
         }
         imageDoc = JSON.parse(imageDoc);
+        imageDoc[IMAGE_TYPE] = true;
         imageDoc.identifiers || (imageDoc.identifiers = {});
-        imageDoc.identifiers.relative_path = {source:makeRef(import_source, ['name']), file:info.file};
-        var docName = "/dev/testphoto-" + Math.random();
-        var req = couchdb.request('PUT', docName, {'Connection': 'keep-alive'});
-        req.write(JSON.stringify(imageDoc));
-        req.end();
-        req.on('response', function (resp) {
-           console.log("Imported", fullpath, "to", docName);
-           finish();
+        imageDoc.identifiers.relative_path = {source:makeRef(import_source, ['name']), path:info.file};
+        
+        Serial.any(Object.keys(imageDoc.identifiers), function (identifierName, finishIdentifier) {
+            // TODO: check if image with identifier already exists
+            var identifier = imageDoc.identifiers[identifierName];
+            var key;
+            if (identifierName === "relative_path") {
+                key = [identifier.source._id, identifier.path];
+            } else {
+                key = identifier;
+            }
+            couchdb.get("/dev/_design/shutterstem/_view/by_identifier?key=" + encodeURIComponent(JSON.stringify(key)), function (identifierDocs) {
+                return finishIdentifier(identifierDocs.rows.length ? true : false);
+            });
+        }, function (exists) {
+            if (exists) {
+                console.log("Skipping", fullpath);
+                return finishInfo();
+            }
+            
+            var docName = "/dev/testphoto-" + Math.random();
+            var req = couchdb.request('PUT', docName, {'Connection': 'keep-alive'});
+            req.write(JSON.stringify(imageDoc));
+            req.end();
+            req.on('response', function (resp) {
+               console.log("Imported", fullpath, "to", docName);
+               return finishInfo();
+            });
         });
     });
 });
