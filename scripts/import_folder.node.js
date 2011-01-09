@@ -100,7 +100,7 @@ function makeRef(doc, denormalize) {
 
 var import_queue = new Serializer(function (info, finish) {
     var fullpath = path.join(info.folder, info.file);
-    var get_photo = proc.spawn(GET_PHOTO, ['--thumbnail', '64', '--thumbnail', '256', '--timezone', import_source.time_zone, fullpath]);
+    var get_photo = proc.spawn(GET_PHOTO, ['--thumbnail', '64', '--thumbnail', '512', '--timezone', import_source.time_zone, fullpath]);
     
     var imageDoc = "";
     get_photo.stdout.on('data', function (data) {
