@@ -141,7 +141,6 @@ var import_queue = new Serial.izer(function (info, finishInfo) {
         imageDoc.identifiers.relative_path = {source:makeRef(import_source, ['name']), path:info.file};
         
         Serial.any(Object.keys(imageDoc.identifiers), function (identifierName, finishIdentifier) {
-            // TODO: check if image with identifier already exists
             var identifier = imageDoc.identifiers[identifierName];
             var key;
             if (identifierName === "relative_path") {
