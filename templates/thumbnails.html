@@ -3,9 +3,6 @@
     <head><title>ShutterStem</title>
     </head>
     <body>
-        <script>
-            location.hash || (location.hash = "origin");
-        </script>
         <noscript>
             <style>
                 .dynamic { display: none; }
@@ -13,11 +10,14 @@
         </noscript>
         
         <div id="padding_above" class="dynamic" style="height:{{pad_above}}px;"></div>
-        <div id="origin">
+        <div id="origin"></div>
         {{#photo}}
         {{>thumbnail}}
         {{/photo}}
-        </div>
         <div id="padding_below" class="dynamic" style="height:{{pad_below}}px;"></div>
+        
+         <script>
+            window.location.hash || (window.location.hash = "origin");
+        </script>
     </body>
 </html>
