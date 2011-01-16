@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+    <head><title>ShutterStem</title>
+    </head>
+    <body>
+        <script>
+            location.hash || (location.hash = "origin");
+        </script>
+        <noscript>
+            <style>
+                .dynamic { display: none; }
+            </style>
+        </noscript>
+        
+        <div id="padding_above" class="dynamic" style="height:{{pad_above}}px;"></div>
+        <div id="origin">
+        {{#photo}}
+        {{>thumbnail}}
+        {{/photo}}
+        </div>
+        <div id="padding_below" class="dynamic" style="height:{{pad_below}}px;"></div>
+        
+        <script>
+            // this causes extra flickering (at least in Safari) that #origin hash avoids
+            var paddingElement = document.getElementById('padding_above');
+            var pageTop = paddingElement.offsetHeight;
+            while (paddingElement) {
+                pageTop += paddingElement.offsetTop;
+                paddingElement = paddingElement.offsetParent;
+            }
+            //window.scrollTo(window.scrollX, pageTop);
+        </script>
+    </body>
+</html>
