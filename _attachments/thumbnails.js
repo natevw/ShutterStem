@@ -2,6 +2,9 @@ function Couch(url) {
     this.url = url;
 }
 Couch.prototype.urlFor = function (path, query) {
+    if (path.join) {
+        path = path.join("/");
+    }
     if (query) {
         path += "?" + Object.keys(query).map(function (key) {
             if (key[0] === '$') {
