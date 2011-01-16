@@ -19,16 +19,5 @@
         {{/photo}}
         </div>
         <div id="padding_below" class="dynamic" style="height:{{pad_below}}px;"></div>
-        
-        <script>
-            // this causes extra flickering (at least in Safari) that #origin hash avoids
-            var paddingElement = document.getElementById('padding_above');
-            var pageTop = paddingElement.offsetHeight;
-            while (paddingElement) {
-                pageTop += paddingElement.offsetTop;
-                paddingElement = paddingElement.offsetParent;
-            }
-            //window.scrollTo(window.scrollX, pageTop);
-        </script>
     </body>
 </html>
