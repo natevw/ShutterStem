@@ -1,6 +1,73 @@
 <!doctype html>
 <html>
-    <head><title>ShutterStem</title>
+    <head>
+    <meta charset="UTF-8">
+    
+    <title>ShutterStem</title>
+    
+    <script>
+        function Couch(url) {
+            this.url = url;
+        }
+        Couch.prototype.urlFor = function (path, query) {
+            if (path.join) {
+                path = path.join("/");
+            }
+            if (query) {
+                path += "?" + Object.keys(query).map(function (key) {
+                    if (key[0] === '$') {
+                        return encodeURIComponent(key.slice(1)) + "=" + encodeURIComponent(JSON.stringify(query[key]));
+                    } else {
+                        return encodeURIComponent(key) + "=" + encodeURIComponent(query[key]);
+                    }
+                }).join("&");
+            }
+            return this.url + "/" + path;
+        };
+        Couch.prototype.http = function (method, obj, path, query, callback) {
+            var req = new XMLHttpRequest();
+            req.open(method, this.urlFor(path, query));
+            req.setRequestHeader("Content-Type", "application/json");
+            req.send(JSON.stringify(obj));
+            req.onreadystatechange = function() {
+                if (req.readyState === req.DONE) {
+                    callback(req.status, JSON.parse(req.responseText));
+                }
+            }
+        };
+        Couch.prototype.get = function (path, query, callback) {
+            this.http("GET", null, path, query, function (status, result) {
+                callback((status === 200) ? result : null);
+            });
+        };
+        
+        {{=<% %>=}}
+        var Flatstache = {
+            _re3: new RegExp("{{{\\s*(\\w+)\\s*}}}", 'g'),
+            _re2: new RegExp("{{\\s*(\\w+)\\s*}}", 'g'),
+            _re1: new RegExp("&(?!\\w+;)|[\"'<>\\\\]", "g"),
+            _escapeHTML: function(s) {
+                return s.replace(Flatstache._re1, function(c) {
+                     switch(c) {
+                         case "&": return "&amp;";
+                         case "\\": return "&#92;";
+                         case "\"": return "&quot;";
+                         case "'": return "&#39;";
+                         case "<": return "&lt;";
+                         case ">": return "&gt;";
+                         default: return c;
+                     }
+                 });
+            }
+        };
+        Flatstache.to_html = function (template, data) {
+            return template
+                .replace(Flatstache._re3, function (m, key) { return data[key] || ""; })
+                .replace(Flatstache._re2, function (m, key) { return Flatstache._escapeHTML(data[key] || ""); });
+        };
+        <%={{ }}=%>
+    </script>
+    
     </head>
     <body>
         <noscript>
@@ -11,13 +78,26 @@
         
         <div id="padding_above" class="dynamic" style="height:{{pad_above}}px;"></div>
         <div id="origin"></div>
-        {{#photo}}
+        {{#image}}
         {{>thumbnail}}
-        {{/photo}}
+        {{/image}}
         <div id="padding_below" class="dynamic" style="height:{{pad_below}}px;"></div>
         
-         <script>
+        <script>
             document.location.hash || (document.location.hash = "origin");
+        </script>
+        
+        
+        <!-- automatic image loading -->
+        <div id="imageInfo" data-first="{{ first_image }}" data-last="{{ last_image }}" data-template="{{ thumbnail_partial }}"></div>
+        <script>
+            var infoDiv = document.getElementById('imageInfo');
+            var firstImageRow = JSON.parse(infoDiv.getAttribute('data-first'));
+            var lastImageRow = JSON.parse(infoDiv.getAttribute('data-last'));
+            var thumbnailTemplate = infoDiv.getAttribute('data-template');
+            
+            var db = new Couch("http://localhost:5984/dev");
+            
         </script>
     </body>
 </html>
