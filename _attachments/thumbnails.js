@@ -33,6 +33,21 @@ Couch.prototype.get = function (path, query, callback) {
     });
 };
 
+
+function HalidePlaten(sourceState, container) {
+    this.sourceState = sourceState;   // db, view, start/endkey?
+    this.container = container;
+}
+HalidePlaten.prototype.update = function () {
+    // see http://www.w3.org/TR/cssom-view/
+    
+    // container.height = (source.length * frame.size) / container.width;
+    // source.offset = (container.top / frame.size) * (container.width / frame.size);
+};
+
+
+
+
 var db = new Couch("http://localhost:5984/dev");
 
 var loading = false;
