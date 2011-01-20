@@ -40,64 +40,16 @@
                 callback((status === 200) ? result : null);
             });
         };
-        
-        {{=<% %>=}}
-        var Flatstache = {
-            _re3: new RegExp("{{{\\s*(\\w+)\\s*}}}", 'g'),
-            _re2: new RegExp("{{\\s*(\\w+)\\s*}}", 'g'),
-            _re1: new RegExp("&(?!\\w+;)|[\"'<>\\\\]", "g"),
-            _escapeHTML: function(s) {
-                return s.replace(Flatstache._re1, function(c) {
-                     switch(c) {
-                         case "&": return "&amp;";
-                         case "\\": return "&#92;";
-                         case "\"": return "&quot;";
-                         case "'": return "&#39;";
-                         case "<": return "&lt;";
-                         case ">": return "&gt;";
-                         default: return c;
-                     }
-                 });
-            }
-        };
-        Flatstache.to_html = function (template, data) {
-            return template
-                .replace(Flatstache._re3, function (m, key) { return data[key] || ""; })
-                .replace(Flatstache._re2, function (m, key) { return Flatstache._escapeHTML(data[key] || ""); });
-        };
-        <%={{ }}=%>
     </script>
-    
     </head>
+    
     <body>
-        <noscript>
-            <style>
-                .dynamic { display: none; }
-            </style>
-        </noscript>
-        
-        <div id="padding_above" class="dynamic" style="height:{{pad_above}}px;"></div>
-        <div id="origin"></div>
         {{#image}}
         {{>thumbnail}}
         {{/image}}
-        <div id="padding_below" class="dynamic" style="height:{{pad_below}}px;"></div>
         
         <script>
-            document.location.hash || (document.location.hash = "origin");
-        </script>
-        
-        
-        <!-- automatic image loading -->
-        <div id="imageInfo" data-first="{{ first_image }}" data-last="{{ last_image }}" data-template="{{ thumbnail_partial }}"></div>
-        <script>
-            var infoDiv = document.getElementById('imageInfo');
-            var firstImageRow = JSON.parse(infoDiv.getAttribute('data-first'));
-            var lastImageRow = JSON.parse(infoDiv.getAttribute('data-last'));
-            var thumbnailTemplate = infoDiv.getAttribute('data-template');
-            
             var db = new Couch("http://localhost:5984/dev");
-            
         </script>
     </body>
 </html>
