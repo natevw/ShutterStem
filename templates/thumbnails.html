@@ -85,12 +85,8 @@
         <script>
             var db = new Couch("http://localhost:5984/dev");
             
-            var current_set = {
-                "testphoto-0.5911943938117474": true,
-                "testphoto-0.04902996099554002": true,
-                "testphoto-0.21655725874006748": true,
-                "testphoto-0.8610267632175237": true
-            };
+            // WebKit (and others?) do not structured clone.... https://bugs.webkit.org/show_bug.cgi?id=41645
+            var current_set = JSON.parse(localStorage['current_set'] || "{}");
             var images = document.querySelectorAll(".image");
             Array.prototype.forEach.call(images, function (image) {
                 if (!image.classList) {
@@ -107,8 +103,26 @@
                     } else {
                         delete current_set[this.id];
                     }
+                    localStorage['current_set'] = JSON.stringify(current_set);
                 }, false);
             });
+            
+            addEventListener("storage", function (e) {
+                if (e.key !== 'current_set') {
+                    return;
+                }
+                current_set = JSON.parse(e.newValue);
+                
+                var images = document.querySelectorAll(".image");
+                Array.prototype.forEach.call(images, function (image) {
+                    if (image.id in current_set) {
+                        image.classList.add("selected");
+                    } else {
+                        image.classList.remove("selected");
+                    }
+                });
+            }, false);
+            
         </script>
     </body>
 </html>
