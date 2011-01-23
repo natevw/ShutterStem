@@ -7,8 +7,8 @@
     
     <style>
     body { background: black; }
-    .frame { width: 512px; height: 512px; margin: 32px; float: left; }
-    .image { border: 6px solid white; }
+    .frame { width: 256px; height: 256px; margin: 32px 8px; float: left; }
+    .image { max-width: 256px; max-height: 256px; border: 6px solid white; }
     .selected { border: 6px solid blue; }
     </style>
     
@@ -108,7 +108,9 @@
             });
             
             addEventListener("storage", function (e) {
-                if (e.key !== 'current_set') {
+                if (!e.key) {
+                    e.newValue = "{}";
+                } else if (e.key !== 'current_set') {
                     return;
                 }
                 current_set = JSON.parse(e.newValue);

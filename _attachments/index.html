@@ -1,7 +1,43 @@
+<!doctype html>
 <html>
-<head><title>ShutterStem</title>
-<script src="thumbnails.js"></script>
-</head>
-<body>
-</body>
+    <head>
+        <meta charset="utf-8">
+        <title>ShutterStem</title>
+        <style>
+            body { background: black; }
+            img { margin: 8px; border: 2px solid white; }
+        </style>
+    </head>
+    <body>
+    <div id="thumbnails"></div>
+    <iframe src="_list/thumbnails/by_date?reduce=false&descending=true&limit=10" style="width: 100%; height: 100%;"></iframe>
+    
+    <script>
+        var thumbnails = document.getElementById("thumbnails");
+        var current_set = JSON.parse(localStorage['current_set'] || "{}");
+        
+        function update() {
+            while (thumbnails.childNodes.length) {
+                thumbnails.removeChild(thumbnails.firstChild);
+            }
+            Object.keys(current_set).forEach(function (image_id) {
+                var image = new Image();
+                image.id = image_id;
+                image.src = "../../" + image_id + "/thumbnail/64.jpg";
+                thumbnails.appendChild(image);
+            });
+        }
+        update();
+        
+        addEventListener("storage", function (e) {
+            if (!e.key) {
+                e.newValue = "{}";
+            } else if (e.key !== 'current_set') {
+                return;
+            }
+            current_set = JSON.parse(e.newValue);
+            update();
+        });
+    </script>
+    </body>
 </html>
