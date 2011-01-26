@@ -26,6 +26,7 @@
                 display: block; -webkit-box-flex: 1.0;
             }
             
+            .basket { display: none; }
             .basket h1 { margin: 0.1em; font-size: 100%; }
             .basket ul { margin: 0em; padding: 0em; }
             .basket li { display: block; float: left; margin: 0em 0.25em; cursor: pointer; text-decoration: underline; }
@@ -33,10 +34,13 @@
             .basket .remove { display: none; }
             .basket.displayed .remove { display: block; }
         </style>
+        <script src="couch.js"></script>
+        <script src="flatstache.js"></script>
     </head>
     
     <body>
         <div id="baskets">
+            <a href id="add_basket">Add basket</a>
             <section class="basket">
                 <!-- menu/commands? -->
                 <h1>Current basket</h1>
@@ -52,7 +56,17 @@
             <!-- it sounds like iOS 4.2 broke iframe scrolling:
              http://stackoverflow.com/questions/4599153/iframes-and-the-safari-on-the-ipad-how-can-the-user-scroll-the-content
              http://stackoverflow.com/questions/4259848/ios-4-x-uiwebview-iframe-scrolling - rdar://problem/8904584 -->
-            <iframe src="_list/thumbnails/by_date?reduce=false&descending=true&limit=10"></iframe>
+            <iframe src="http://localhost:5984/dev/_design/shutterstem/_list/thumbnails/by_date?reduce=false&descending=true&limit=10"></iframe>
         </div>
+        
+        <script>
+            var db = new Couch("http://localhost:5984/dev")
+            document.getElementById('add_basket').addEventListener('click', function (e) {
+                e.preventDefault();
+                db.get("../_uuids", null, function (result) {
+                    console.log(result.uuids[0]);
+                });
+            }, false);
+        </script>
     </body>
 </html>
