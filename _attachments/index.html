@@ -26,7 +26,7 @@
                 display: block; -webkit-box-flex: 1.0;
             }
             
-            .basket { display: none; }
+            .basket { margin: 1em 0em; }
             .basket h1 { margin: 0.1em; font-size: 100%; }
             .basket ul { margin: 0em; padding: 0em; }
             .basket li { display: block; float: left; margin: 0em 0.25em; cursor: pointer; text-decoration: underline; }
@@ -36,14 +36,10 @@
         </style>
         <script src="couch.js"></script>
         <script src="flatstache.js"></script>
-    </head>
-    
-    <body>
-        <div id="baskets">
-            <a href id="add_basket">Add basket</a>
-            <section class="basket">
+        <script id="basket_template" type="text/x-flat">
+            <section id="{{ id }}" class="basket">
                 <!-- menu/commands? -->
-                <h1>Current basket</h1>
+                <h1>{{ value }}</h1>
                 <ul>
                     <li class="view">View
                     <li class="rename">Rename
@@ -51,6 +47,12 @@
                     <li class="remove">Remove selection
                 </ul>
             </section>
+        </script>
+    </head>
+    
+    <body>
+        <div id="baskets">
+            <a href id="add_basket">Add basket</a>
         </div>
         <div id="thumbnails">
             <!-- it sounds like iOS 4.2 broke iframe scrolling:
@@ -60,7 +62,17 @@
         </div>
         
         <script>
-            var db = new Couch("http://localhost:5984/dev")
+            var db = new Couch("http://localhost:5984/dev");
+            db.get("_design/shutterstem/_view/baskets", null, function (response) {
+                var baskets = document.getElementById('baskets');
+                var template = document.getElementById('basket_template').innerText;
+                response.rows.forEach(function (basketRow) {
+                    var tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = Flatstache.to_html(template, basketRow);
+                    baskets.appendChild(tempDiv.children[0]);       // tempDiv.firstChild not set here in WebKit (?!)
+                });
+            });
+            
             document.getElementById('add_basket').addEventListener('click', function (e) {
                 e.preventDefault();
                 db.get("../_uuids", null, function (result) {
