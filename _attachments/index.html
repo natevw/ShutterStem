@@ -14,8 +14,10 @@
                 display: -webkit-box; -webkit-box-align: stretch;
             }
             #baskets {
-                max-width: 150px;
+                max-height: 95%;
+                width: 125px;
                 border: 1px dashed red; padding: 20px;
+                overflow: auto;
             }
             #thumbnails {
                 -webkit-box-flex: 1.0;
@@ -26,10 +28,10 @@
                 display: block; -webkit-box-flex: 1.0;
             }
             
-            .basket { margin: 1em 0em; }
+            .basket { clear: both; margin: 1em 0em; }
             .basket h1 { margin: 0.1em; font-size: 100%; }
             .basket ul { margin: 0em; padding: 0em; }
-            .basket li { display: block; float: left; margin: 0em 0.25em; cursor: pointer; text-decoration: underline; }
+            .basket li { margin: 0em 0.25em; cursor: pointer; text-decoration: underline; }
             .basket.displayed .add { display: none; }
             .basket .remove { display: none; }
             .basket.displayed .remove { display: block; }
@@ -63,20 +65,37 @@
         
         <script>
             var db = new Couch("http://localhost:5984/dev");
-            db.get("_design/shutterstem/_view/baskets", null, function (response) {
-                var baskets = document.getElementById('baskets');
-                var template = document.getElementById('basket_template').innerText;
+            
+            var baskets = document.getElementById('baskets');
+            var basket_template = document.getElementById('basket_template').innerText;
+            db.get("_design/shutterstem/_view/baskets", {descending:true}, function (response) {
                 response.rows.forEach(function (basketRow) {
                     var tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = Flatstache.to_html(template, basketRow);
-                    baskets.appendChild(tempDiv.children[0]);       // tempDiv.firstChild not set here in WebKit (?!)
+                    tempDiv.innerHTML = Flatstache.to_html(basket_template, basketRow);
+                    baskets.appendChild(tempDiv.firstElementChild);
                 });
             });
-            
             document.getElementById('add_basket').addEventListener('click', function (e) {
                 e.preventDefault();
-                db.get("../_uuids", null, function (result) {
-                    console.log(result.uuids[0]);
+                
+                var thumbnailDoc = document.getElementById('thumbnails').firstElementChild.contentDocument;
+                var selectedPhotoElements = thumbnailDoc.querySelectorAll(".frame .selected");
+                var selectedPhotos = Array.prototype.map.call(selectedPhotoElements, function (el) {
+                    return el.id;
+                });
+                
+                var basketId = "testbasket-" + Math.random();
+                var basket = {
+                    "testtype-basket": true,
+                    name: "New basket",
+                    photos: selectedPhotos,
+                    created: (new Date).toISOString()
+                };
+                
+                db.http("PUT", basket, basketId, null, function (status, response) {
+                    var tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = Flatstache.to_html(basket_template, {id: basketId, value: basket.name});
+                    baskets.insertBefore(tempDiv.firstElementChild, document.getElementById('add_basket').nextSibling);
                 });
             }, false);
         </script>
