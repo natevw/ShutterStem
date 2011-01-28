@@ -1,5 +1,5 @@
 function Couch(url) {
-    this.url = url;
+    this.url = url || Couch.guessDB();
 }
 Couch.prototype.urlFor = function (path, query) {
     if (path.join) {
@@ -18,17 +18,58 @@ Couch.prototype.urlFor = function (path, query) {
 };
 Couch.prototype.http = function (method, obj, path, query, callback) {
     var req = new XMLHttpRequest();
-    req.open(method, this.urlFor(path, query));
+    req.open(method, this.urlFor(path, query), Boolean(callback));
     req.setRequestHeader("Content-Type", "application/json");
     req.send(JSON.stringify(obj));
-    req.onreadystatechange = function() {
-        if (req.readyState === req.DONE) {
-            callback(req.status, JSON.parse(req.responseText));
+    if (callback) {
+        req.onreadystatechange = function() {
+            if (req.readyState === req.DONE) {
+                callback(req.status, JSON.parse(req.responseText));
+            }
         }
+    } else {
+        req.response = JSON.parse(req.responseText);
     }
+    return req;
 };
 Couch.prototype.get = function (path, query, callback) {
     this.http("GET", null, path, query, function (status, result) {
         callback((status === 200) ? result : null);
     });
+};
+
+Couch.prototype.read = function (id) {
+    var req = this.http("GET", null, id);
+    if (req.status !== 200) {
+        throw Error(req.statusText);
+    }
+    return req.response;
+}
+Couch.prototype.write = function (doc) {
+    var req = this.http("PUT", doc, doc._id);
+    if (req.status !== 201) {
+        throw Error(req.statusText);
+    }
+}
+
+Couch.guessDB = function () {
+    var x;
+    if (location.protocol === "file:") {
+        return "http://localhost:5984/dev";
+    } else if ((x = location.href.indexOf("/_design")) !== -1) {
+        return location.href.slice(0, x);
+    } else {
+        return "../..";
+    }
+}
+
+Couch.makeRef = function (doc, denormalize) {
+    var reference = {};
+    var REF_TYPE = "testtype-reference";
+    reference[REF_TYPE] = true;
+    reference._id = doc._id;
+    if (denormalize) denormalize.forEach(function (field) {
+        reference[field] = doc[field];
+    }), (reference._rev = doc._rev);
+    return reference;
 };
