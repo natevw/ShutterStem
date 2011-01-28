@@ -106,6 +106,7 @@
                     }
                     var displayed = basket.classList.toggle("displayed");
                     thumbnails.innerHTML = "";
+                    selection = {};
                     if (displayed) {
                         db.get(basketRow.id, null, function (doc) {
                             doc.photos.forEach(addThumbnail);
