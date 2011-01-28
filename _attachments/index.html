@@ -125,6 +125,7 @@
                         return;
                     }
                     basketDoc.name = newName;
+                    basketDoc.modified = (new Date).toISOString();
                     db.write(basketDoc);
                     basket.querySelector("h1").innerText = newName;
                     baskets.insertBefore(basket, document.getElementById('add_basket').nextElementSibling);
