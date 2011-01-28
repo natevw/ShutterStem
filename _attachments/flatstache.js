@@ -16,5 +16,10 @@ var Flatstache = (function(){
             .replace(_re3, function (m, key) { return data[key] || ""; })
             .replace(_re2, function (m, key) { return _escapeHTML(data[key] || ""); });
     };
+    pub.elementify = function (templateId, data) {
+        var tmpDiv = document.createElement('div');
+        tmpDiv.innerHTML = pub.to_html(document.getElementById(templateId).innerText, data);
+        return tmpDiv.firstElementChild;
+    };
     return pub;
 })();
