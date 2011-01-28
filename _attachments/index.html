@@ -28,16 +28,17 @@
                 width: 256px; height: 256px; margin: 32px 8px; float: left;
                 display: -webkit-box; -webkit-box-align: center; -webkit-box-pack: center;
             }
-            .image { max-width: 256px; max-height: 256px; border: 6px solid white; }
+            .image { max-width: 256px; max-height: 256px; border: 6px solid white; cursor: pointer; }
             .selected { border: 6px solid blue; }
             
             .basket { clear: both; margin: 1em 0em; }
-            .basket h1 { margin: 0.1em; font-size: 100%; }
+            .basket h1 { margin: 0.1em; font-size: 110%; font-weight: normal; cursor: pointer; }
+            .basket.displayed h1 { font-weight: bold; color: blue; }
             .basket ul { margin: 0em; padding: 0em; }
             .basket li { margin: 0em 0.25em; cursor: pointer; text-decoration: underline; }
             .basket.displayed .add { display: none; }
             .basket .remove { display: none; }
-            .basket.displayed .remove { display: block; }
+            .basket.displayed .remove { display: list-item; }
         </style>
         <script src="couch.js"></script>
         <script src="flatstache.js"></script>
@@ -47,7 +48,6 @@
                 <!-- menu/commands? -->
                 <h1>{{ value }}</h1>
                 <ul>
-                    <li class="view">View
                     <li class="rename">Rename
                     <li class="add">Add selection
                     <li class="remove">Remove selection
@@ -66,53 +66,124 @@
         <div id="thumbnails"></div>
         
         <script>
-            var db = new Couch("http://stravinsky.local:5984/dev");
+            var db = new Couch();
+            var selection = {};
             
             var thumbnails = document.getElementById('thumbnails');
-            var selection = {};
-            db.get("_design/shutterstem/_view/by_date", {descending:true, reduce:false, limit:25}, function (response) {
-                response.rows.forEach(function (imageRow) {
-                    imageRow.doc_url = db.urlFor(imageRow.id);
-                    var frame = Flatstache.elementify('thumbnail_template', imageRow);
-                    var image = frame.querySelector(".image");
-                    if (!image.classList) {
-                        image.classList = new ClassList(image);
+            function addThumbnail(imageRow) {
+                imageRow.id || (imageRow.id = imageRow._id);
+                imageRow.doc_url = db.urlFor(imageRow.id);
+                var frame = Flatstache.elementify('thumbnail_template', imageRow);
+                var image = frame.querySelector(".image");
+                if (!image.classList) {
+                    image.classList = new ClassList(image);
+                }
+                image.addEventListener("click", function () {
+                    var selected = this.classList.toggle("selected");
+                    if (selected) {
+                        selection[this.id] = true;
+                    } else {
+                        delete selection[this.id];
                     }
-                    image.addEventListener("click", function () {
-                        var selected = this.classList.toggle("selected");
-                        if (selected) {
-                            selection[this.id] = true;
-                        } else {
-                            delete selection[this.id];
-                        }
-                    }, false);
-                    thumbnails.appendChild(frame);
-                });
+                }, false);
+                thumbnails.appendChild(frame);
+            }
+            db.get("_design/shutterstem/_view/by_date", {descending:true, reduce:false, limit:25}, function (response) {
+                response.rows.forEach(addThumbnail);
             });
             
-            
             var baskets = document.getElementById('baskets');
-            db.get("_design/shutterstem/_view/baskets", {descending:true}, function (response) {
-                response.rows.forEach(function (basketRow) {
-                    var basket = Flatstache.elementify('basket_template', basketRow);
+            function addBasket(basketRow, i) {
+                var basket = Flatstache.elementify('basket_template', basketRow);
+                if (!basket.classList) {
+                    basket.classList = new ClassList(basket);
+                }
+                
+                basket.querySelector("h1").addEventListener("click", function () {
+                    var currentBasket = baskets.querySelector(".displayed");
+                    if (currentBasket && currentBasket !== basket) {
+                        currentBasket.classList.remove("displayed");
+                    }
+                    var displayed = basket.classList.toggle("displayed");
+                    thumbnails.innerHTML = "";
+                    if (displayed) {
+                        db.get(basketRow.id, null, function (doc) {
+                            doc.photos.forEach(addThumbnail);
+                        });
+                    } else {
+                        db.get("_design/shutterstem/_view/by_date", {descending:true, reduce:false, limit:25}, function (response) {
+                            response.rows.forEach(addThumbnail);
+                        });
+                    }
+                }, false);
+                
+                basket.querySelector(".rename").addEventListener("click", function () {
+                    var basketDoc = db.read(basketRow.id);
+                    var newName = prompt("Name this basket:", basketDoc.name);
+                    if (!newName) {
+                        return;
+                    }
+                    basketDoc.name = newName;
+                    db.write(basketDoc);
+                    basket.querySelector("h1").innerText = newName;
+                    baskets.insertBefore(basket, document.getElementById('add_basket').nextElementSibling);
+                }, false);
+                
+                basket.querySelector(".add").addEventListener("click", function () {
+                    var basketDoc = db.read(basketRow.id);
+                    var currentPhotos = {};
+                    basketDoc.photos.forEach(function (photo) { currentPhotos[photo._id] = true; });
+                    Object.keys(selection).forEach(function (photoId) {
+                        if (photoId in currentPhotos) {
+                            return;
+                        }
+                        var image = document.getElementById(photoId);
+                        image.classList.remove("selected");
+                        basketDoc.photos.push(Couch.makeRef({_id:photoId}));
+                    });
+                    basketDoc.modified = (new Date).toISOString();
+                    db.write(basketDoc);
+                    baskets.insertBefore(basket, document.getElementById('add_basket').nextElementSibling);
+                    selection = {};
+                }, false);
+                
+                basket.querySelector(".remove").addEventListener("click", function () {
+                    var basketDoc = db.read(basketRow.id);
+                    basketDoc.photos = basketDoc.photos.filter(function (photo) {
+                        if (!selection[photo._id]) {
+                            return true;
+                        }
+                        var frame = document.getElementById(photo._id).parentNode;
+                        frame.parentNode.removeChild(frame);
+                        return false;
+                    });
+                    basketDoc.modified = (new Date).toISOString();
+                    db.write(basketDoc);
+                    baskets.insertBefore(basket, document.getElementById('add_basket').nextElementSibling);
+                    selection = {};
+                }, false);
+                
+                if (i !== 'top') {
                     baskets.appendChild(basket);
-                });
+                } else {
+                    baskets.insertBefore(basket, document.getElementById('add_basket').nextElementSibling);
+                }
+            }
+            db.get("_design/shutterstem/_view/baskets", {descending:true}, function (response) {
+                response.rows.forEach(addBasket);
             });
             document.getElementById('add_basket').addEventListener('click', function (e) {
                 e.preventDefault();
                 
-                var basketId = "testbasket-" + Math.random();
                 var basket = {
+                    _id: "testbasket-" + Math.random(),
                     "testtype-basket": true,
-                    name: "New basket",
-                    photos: Object.keys(selection),
+                    name: "Basket",
+                    photos: Object.keys(selection).map(function (id) { return Couch.makeRef({_id:id}); }),
                     created: (new Date).toISOString()
                 };
-                
-                db.http("PUT", basket, basketId, null, function (status, response) {
-                    var b = Flatstache.elementify('basket_template', {id:basketId, value:basket.name});
-                    baskets.insertBefore(b, document.getElementById('add_basket').nextSibling);
-                });
+                db.write(basket);
+                addBasket({id:basket._id, value:basket.name}, 'top');
             }, false);
         </script>
     </body>
