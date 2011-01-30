@@ -2,7 +2,7 @@
 <html>
     <head>
     <meta charset="UTF-8">
-    <title>ShutterStem - {{ name }} import utility</title>
+    <title>ShutterStem - Import {{ name }}</title>
     
     <style>
         ruby { display: inline-block; position: relative; }
@@ -10,6 +10,9 @@
         ruby:hover { background: rgba(100%,100%,0%,0.25);  }
         ruby:hover rt { visibility: visible; }
         #config { display: none; }
+        
+        .error { display: none; font-family: monospace; font-size: 150%; }
+        .error h2 { color: red; }
         
         #recent_photos img { margin: 10px; border-style: solid; border-width: 2px; }
         #recent_photos img.found { border-color: green; }
@@ -24,29 +27,67 @@
     <body>
         <h1>Import {{ name }}</h1>
         
-        Open this document after moving it into the "{{ name }}" folder to import its new images into
+        <noscript style="display: block; font-size: 200%; color: red; margin-bottom: 100em;">JavaScript must be enabled.</noscript>
+        
+        <div id="wrong_location" class="error">
+            <h2>This document is in the wrong place.</h2>
+            You must save this page as plain HTML source,
+            to the folder containing "{{ name }}",
+            on the computer hosting your ShutterStem database,
+            for import to work.
+        </div>
+        
+        <div id="no_database" class="error">
+            <h2>Could not connect to this computer's database.</h2>
+            You must save this page as plain HTML source,
+            to the folder containing "{{ name }}",
+            on the computer hosting your ShutterStem database,
+            for import to work.
+        </div>
+        
+        Open this document from the "{{ name }}" folder to import new images into
         <ruby>this computer's ShutterStem database<rp> (<rt><a href="{{ database_futon_url }}">{{ database_url }}</a></rt><rp>)</ruby>.
         
-        <h2>Previously imported images from this source:</h2>
+        <h2>Some previously imported images from this source:</h2>
         <div id="recent_photos"></div>
-        (Images outlined in solid green have been found locally.
-        A dashed red border indicates no image was found within <var class="local_path">this document's folder</var>.
-        
+        Images outlined in solid green have been found locally.
+        A dashed red border indicates no original image was found within <var class="local_path">this document's folder</var>.
+        If you know these original images are on this computer, close this document and make sure it is saved in the correct folder.
         
         <div id="import_status"></div>
         
         <div id="config" data-database_url="{{ database_url }}" data-import_id="{{ _id }}"></div>
         <script>
+            function fail(message_id, error_description) {
+                var title = document.querySelector("h1");
+                var message = document.getElementById(message_id);
+                document.body.innerHTML = "";
+                title.innerHTML = "<span style='color:red; font-family: monospace;'>[Can't]</span> "+ title.innerHTML;
+                message.style.display = "block";
+                document.body.appendChild(title);
+                document.body.appendChild(message);
+                throw Error(error_description)
+            }
+            if (0 && document.location.scheme !== "file") {
+                fail('wrong_location', "HTML source must be run from correct folder.");
+            } else if (!window['Couch']) {
+                fail('no_database', "Failed to load required helper script from local server.");
+            }
+            
+            var db = new Couch(database_url);
+            var ddoc;
+            try { ddoc = db.read("_design/shutterstem"); } catch (e) {
+                fail('no_database', e.message);
+            }
+            
             var config = document.getElementById('config');
             var database_url = config.getAttribute('data-database_url');
             var import_id = config.getAttribute('data-import_id');
             
-            var folder = document.location.pathname;
+            var folder = document.location.pathname.split("/").slice(0,-1).join("/");   // alt: pathname.replace(/\/[^\/]*$/g, "")
             Array.prototype.forEach.call(document.querySelectorAll(".local_path"), function (el) {
                 el.innerText = folder;
             });
-            
-            var db = new Couch(database_url);
             
             var recent_photos = document.getElementById('recent_photos');
             var d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -58,7 +99,7 @@
                     }
                     
                     var importInfo = row.doc.identifiers.relative_path;
-                    if (1 || importInfo && importInfo.source._id == import_id) {
+                    if (importInfo && importInfo.source._id == import_id) {
                         var img = new Image();
                         if (!img.classList) {
                             img.classList = new ClassList(img);
