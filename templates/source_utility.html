@@ -50,9 +50,11 @@
         
         <h2>Some previously imported images from this source:</h2>
         <div id="recent_photos"></div>
+        <span id="recent_photo_legend">
         Images outlined in solid green have been found locally.
         A dashed red border indicates no original image was found within <var class="local_path">this document's folder</var>.
         If you know these original images are on this computer, close this document and make sure it is saved in the correct folder.
+        </span>
         
         <div id="import_status"></div>
         
@@ -122,7 +124,8 @@
                 });
                 
                 if (!recent_photos.childElementCount) {
-                    recent_photos.innerText = "No photos taken in the last 30 days have been imported from this source.";
+                    recent_photos.innerHTML = "No photos taken in the last 30 days have been imported from <var class='local_path'>" + folder + "</var>";
+                    document.getElementById('recent_photo_legend').style.display = "none";
                 }
             });
             
