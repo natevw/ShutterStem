@@ -19,12 +19,66 @@
         </style>
         <script src="couch.js"></script>
         <script src="flatstache.js"></script>
+        <script id="source_template" type="text/x-flat">
+            <section id="{{ id }}" class="source">
+                <h1>{{ value }}</h1>
+                <ul>
+                    <li class="rename">Rename
+                    <li class="download"><a href="{{ utility_url }}">Download import utility</a>
+                </ul>
+            </section>
+        </script>
     </head>
     <body>
         <h1>ShutterStem Mission Control</h1>
         
         <div id="sources">
-            <a href>Add import source</a>
+            <a id="add_source" href>Add import source</a>
         </div>
+        
+        <script>
+            var db = new Couch();
+            var sources = document.getElementById('sources');
+            function addSource(row, i) {
+                row.utility_url = db.urlFor("_design/shutterstem/_show/source_utility/" + row.id);
+                var el = Flatstache.elementify('source_template', row);
+                el.querySelector(".rename").addEventListener("click", function () {
+                    var doc = db.read(row.id);
+                    var newName = prompt("Change the name of this import source to:", doc.name);
+                    if (!newName) {
+                        return;
+                    }
+                    doc.name = newName;
+                    db.write(doc);
+                    el.querySelector("h1").innerText = newName;
+                }, false);
+                
+                if (i !== 'top') {
+                    sources.appendChild(el);
+                } else {
+                    sources.insertBefore(el, document.getElementById('add_source').nextElementSibling);
+                }
+            }
+            db.get("_design/shutterstem/_view/import_sources", {descending:true}, function (response) {
+                response.rows.forEach(addSource);
+            });
+            document.getElementById('add_source').addEventListener('click', function (e) {
+                e.preventDefault();
+                
+                var name = prompt("Make a new import source named:", "Pictures folder");
+                if (!name) {
+                    return;
+                }
+                
+                var doc = {
+                    _id: "testsource-" + Math.random(),
+                    "testtype-import_source": true,
+                    name: name,
+                    created: (new Date).toISOString()
+                };
+                db.write(doc);
+                addSource({id:doc._id, value:doc.name}, 'top');
+            }, false);
+        </script>
     </body>
 </html>

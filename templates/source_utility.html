@@ -1,0 +1,91 @@
+<!doctype html>
+<html>
+    <head>
+    <meta charset="UTF-8">
+    <title>ShutterStem - {{ name }} import utility</title>
+    
+    <style>
+        ruby { display: inline-block; position: relative; }
+        rt { display: block; visibility: hidden; position: absolute; top: 100%; right: 0px; }
+        ruby:hover { background: rgba(100%,100%,0%,0.25);  }
+        ruby:hover rt { visibility: visible; }
+        #config { display: none; }
+        
+        #recent_photos img { margin: 10px; border-style: solid; border-width: 2px; }
+        #recent_photos img.found { border-color: green; }
+        #recent_photos img.finding { border-style: dotted; border-color: yellow; }
+        #recent_photos img.notfound { border-style: dashed; border-color: red; padding: 1px; }
+        
+    </style>
+    <script src="{{ database_url }}/_design/shutterstem/couch.js"></script>
+    <script src="{{ database_url }}/_design/shutterstem/classlist.js"></script>
+    </head>
+    
+    <body>
+        <h1>Import {{ name }}</h1>
+        
+        Open this document after moving it into the "{{ name }}" folder to import its new images into
+        <ruby>this computer's ShutterStem database<rp> (<rt><a href="{{ database_futon_url }}">{{ database_url }}</a></rt><rp>)</ruby>.
+        
+        <h2>Previously imported images from this source:</h2>
+        <div id="recent_photos"></div>
+        (Images outlined in solid green have been found locally.
+        A dashed red border indicates no image was found within <var class="local_path">this document's folder</var>.
+        
+        
+        <div id="import_status"></div>
+        
+        <div id="config" data-database_url="{{ database_url }}" data-import_id="{{ _id }}"></div>
+        <script>
+            var config = document.getElementById('config');
+            var database_url = config.getAttribute('data-database_url');
+            var import_id = config.getAttribute('data-import_id');
+            
+            var folder = document.location.pathname;
+            Array.prototype.forEach.call(document.querySelectorAll(".local_path"), function (el) {
+                el.innerText = folder;
+            });
+            
+            var db = new Couch(database_url);
+            
+            var recent_photos = document.getElementById('recent_photos');
+            var d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+            var cutoffKey = [d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDay()];
+            db.get("_design/shutterstem/_view/by_date", {descending:true, reduce:false, $endkey:cutoffKey, include_docs:true}, function (response) {
+                response.rows.forEach(function (row) {
+                    if (recent_photos.childElementCount == 10) {
+                        return;
+                    }
+                    
+                    var importInfo = row.doc.identifiers.relative_path;
+                    if (1 || importInfo && importInfo.source._id == import_id) {
+                        var img = new Image();
+                        if (!img.classList) {
+                            img.classList = new ClassList(img);
+                        }
+                        img.classList.add("finding");
+                        img.src = db.urlFor([row.id, "thumbnail/64.jpg"]);
+                        recent_photos.appendChild(img);
+                        
+                        var localImg = new Image();
+                        localImg.src = importInfo.path;
+                        localImg.onload = function () {
+                            img.classList.remove("finding");
+                            img.classList.add("found");
+                        };
+                        localImg.onerror = function () {
+                            img.classList.remove("finding");
+                            img.classList.add("notfound");
+                        };
+                    }
+                });
+                
+                if (!recent_photos.childElementCount) {
+                    recent_photos.innerText = "No photos taken in the last 30 days have been imported from this source.";
+                }
+            });
+            
+            
+        </script>
+    </body>
+</html>

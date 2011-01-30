@@ -12,7 +12,7 @@ process.stdin.on('data', function (chunk) {
     lineBuffer = lines.pop();
     lines.forEach(function (line) {
         var request = JSON.parse(line);
-        process.stdout.write(JSON.stringify({code: 200, headers:{'content-type':'text/html'}, body:"<h1>Hello World!</h1>\n<pre>\n" + JSON.stringify(request, null, 4) + "</pre>"}) + '\n');
+        process.stdout.write(JSON.stringify({body:"<h1>Hello World!</h1>\n<pre>\n" + JSON.stringify(request, null, 4) + "</pre>"}) + '\n');
         process.stdout.flush();
     });
 });
