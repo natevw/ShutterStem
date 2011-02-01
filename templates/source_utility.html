@@ -3,6 +3,7 @@
     <head>
     <meta charset="UTF-8">
     <title>ShutterStem - Import {{ name }}</title>
+    <!-- SHUTTERSTEM-TOKEN({{ csrf_token }})TOKEN-SHUTTERSTEM -->
     
     <style>
         ruby { display: inline-block; position: relative; }
@@ -58,7 +59,7 @@
         
         <div id="import_status"></div>
         
-        <div id="config" data-database_url="{{ database_url }}" data-import_id="{{ _id }}"></div>
+        <div id="config" data-database_url="{{ database_url }}" data-import_id="{{ _id }}" data-csrf_token="{{ csrf_token }}"></div>
         <script>
             function fail(message_id, error_description) {
                 var title = document.querySelector("h1");
@@ -91,6 +92,7 @@
                 el.innerText = folder;
             });
             
+            // TODO: just store list of "last_imported_ids" in import source document
             var recent_photos = document.getElementById('recent_photos');
             var d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
             var cutoffKey = [d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDay()];
