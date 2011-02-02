@@ -20,6 +20,7 @@
         #recent_photos img.finding { border-style: dotted; border-color: yellow; }
         #recent_photos img.notfound { border-style: dashed; border-color: red; padding: 1px; }
         
+        #import_status { border-style: none; width: 100%; height: 250px; margin: 0px -8px; padding: 0px; }
     </style>
     <script src="{{ database_url }}/_design/shutterstem/couch.js"></script>
     <script src="{{ database_url }}/_design/shutterstem/classlist.js"></script>
@@ -52,12 +53,12 @@
         <h2>Some previously imported images from this source:</h2>
         <div id="recent_photos"></div>
         <span id="recent_photo_legend">
-        Images outlined in solid green have been found locally.
-        A dashed red border indicates no original image was found within <var class="local_path">this document's folder</var>.
-        If you know these original images are on this computer, close this document and make sure it is saved in the correct folder.
+        Images outlined in solid green have been found within <var class="local_path">this document's folder</var>.
+        A dashed red border indicates no local copy of the original image was found in the folder you have chosen.
+        If you thought these original images were on this computer, please close this document and make sure it is saved in the correct folder.
         </span>
         
-        <div id="import_status"></div>
+        <iframe id="import_status"></iframe>
         
         <div id="config" data-database_url="{{ database_url }}" data-import_id="{{ _id }}" data-csrf_token="{{ csrf_token }}"></div>
         <script>
@@ -77,20 +78,25 @@
                 fail('no_database', "Failed to load required helper script from local server.");
             }
             
+            var config = document.getElementById('config');
+            var database_url = config.getAttribute('data-database_url');
+            var import_id = config.getAttribute('data-import_id');
+            var csrf_token = config.getAttribute('data-csrf_token');
+            
             var db = new Couch(database_url);
             var ddoc;
             try { ddoc = db.read("_design/shutterstem"); } catch (e) {
                 fail('no_database', e.message);
             }
             
-            var config = document.getElementById('config');
-            var database_url = config.getAttribute('data-database_url');
-            var import_id = config.getAttribute('data-import_id');
-            
-            var folder = document.location.pathname.split("/").slice(0,-1).join("/");   // alt: pathname.replace(/\/[^\/]*$/g, "")
+            var utility_path = document.location.pathname;
+            var folder = utility_path.split("/").slice(0,-1).join("/");   // alt: pathname.replace(/\/[^\/]*$/g, "")
             Array.prototype.forEach.call(document.querySelectorAll(".local_path"), function (el) {
                 el.innerText = folder;
             });
+            
+            var status_url = db.urlFor(["/_design/shutterstem/_show/import_status/", import_id], {utility:utility_path, token:csrf_token});
+            document.getElementById('import_status').src = status_url;
             
             // TODO: just store list of "last_imported_ids" in import source document
             var recent_photos = document.getElementById('recent_photos');

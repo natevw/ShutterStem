@@ -1,0 +1,45 @@
+<!doctype html>
+<html>
+    <head>
+    <meta charset="UTF-8">
+    <title>ShutterStem - Importing {{ name }}</title>
+    
+    <style>
+        #config { display: none; }
+        .error { display: none; font-family: monospace; font-size: 150%; }
+        .error h2 { color: red; }
+        
+        #new_photos img { margin: 10px; border-style: solid; border-width: 2px; }
+        #new_photos img.pending { border-style: dotted; border-color: yellow; }
+        #new_photos img.imported { border-color: green; }
+    </style>
+    <script src="{{ database_url }}/_design/shutterstem/couch.js"></script>
+    <script src="{{ database_url }}/_design/shutterstem/classlist.js"></script>
+    </head>
+    
+    <body>
+        <h2>Some new images found for this source:</h2>
+        <div id="new_photos"></div>
+        <a href="#" id="import">Import</a>
+        
+        <div id="config"
+            data-database_url="{{ database_url }}"
+            data-import_id="{{ _id }}"
+            data-utility_path="{{ utility_path }}"
+            data-csrf_token="{{ csrf_token }}"></div>
+        <script>
+            var config = document.getElementById('config');
+            var database_url = config.getAttribute('data-database_url');
+            var import_id = config.getAttribute('data-import_id');
+            var utility_path = config.getAttribute('data-utility_path');
+            var csrf_token = config.getAttribute('data-csrf_token');
+            
+            var db = new Couch(database_url);
+            
+            var new_photos = document.getElementById("new_photos");
+            db.http("POST", null, ['_import', import_id, 'folder'], {utility:utility_path, token:csrf_token}, function (status, response) {
+                new_photos.innerText = JSON.stringify(response, null, 4);
+            });
+        </script>
+    </body>
+</html>
