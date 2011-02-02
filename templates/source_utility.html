@@ -20,7 +20,7 @@
         #recent_photos img.finding { border-style: dotted; border-color: yellow; }
         #recent_photos img.notfound { border-style: dashed; border-color: red; padding: 1px; }
         
-        #import_status { border-style: none; width: 100%; height: 250px; margin: 0px -8px; padding: 0px; }
+        #import_status { border-style: none; display: block; width: 100%; height: 200px; margin: 0px -8px; padding: 0px; }
     </style>
     <script src="{{ database_url }}/_design/shutterstem/couch.js"></script>
     <script src="{{ database_url }}/_design/shutterstem/classlist.js"></script>
@@ -47,7 +47,7 @@
             for import to work.
         </div>
         
-        Open this document from the "{{ name }}" folder to import new images into
+        Open this document from inside the "{{ name }}" folder to import new images into
         <ruby>this computer's ShutterStem database<rp> (<rt><a href="{{ database_futon_url }}">{{ database_url }}</a></rt><rp>)</ruby>.
         
         <h2>Some previously imported images from this source:</h2>
