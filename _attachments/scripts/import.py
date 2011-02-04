@@ -78,13 +78,13 @@ class Importer(object):
             self._done = True
         
         self._find_files = Thread(target=find_files)
-        self._find_files.run()
+        self._find_files.start()
         self._get_file_docs = Thread(target=get_file_docs)
-        self._get_file_docs.run()
+        self._get_file_docs.start()
         self._upload_docs = Thread(target=upload_docs)
     
     def begin(self):
-        self._upload_docs.run()
+        self._upload_docs.start()
     
     def cancel(self, remove=True):
         self._cancelled = True
@@ -102,7 +102,7 @@ class Importer(object):
                 if not doc_id:
                     break
                 delete_doc(doc_id)      # TODO: implement delete_doc
-        Thread(target=delete_docs).run()
+        Thread(target=delete_docs).start()
     
     def status(self):
         if self._cancelled:
