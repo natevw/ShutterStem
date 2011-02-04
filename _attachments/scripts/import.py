@@ -31,39 +31,51 @@ import uuid
 class Importer(object):
     def __init__(self, db_url, source_id, folder):
         self._cancelled = False
+        self._done = False
         self._files = Queue()
         self._image_docs = Queue(maxsize=32)
-        self._imported_ids = []
+        self._imported_ids = Queue()
         
         def find_new_files():
             for (dirpath, dirnames, filenames) in os.walk(folder):
                 for filename in filenames:
+                    if self._cancelled:
+                        break
                     if filename[0] == '.':
                         continue
                     
                     full_path = os.path.join(dirpath, filename)
                     rel_path = os.path.relpath(full_path, folder)
                     identifiers = {'relative_path':{'source':{'_id':source_id}, 'path':rel_path}}
-                    if not image_with_identifiers(identifiers):     # TODO: image_with_identifiers
+                    if not image_with_identifiers(identifiers):     # TODO: implement image_with_identifiers
                         self._files.put(full_path)
                 
                 if self._cancelled:
                     break
+            self._files.put(None)
+                
         
         def get_file_docs():
             while not self._cancelled:
                 file = self._files.get()
+                if not file:
+                    break
                 doc = doc_for_file(file)        # TODO: implement doc_for_file, image_with_identifiers
                 if doc and not image_with_identifiers(doc['identifiers']):  
                     self._image_docs.put(doc)
                 self._files.task_done()
+            self._image_docs.put(None)
         
         def upload_docs():
             while not self._cancelled:
                 doc = self._image_docs.get()
+                if not doc:
+                    break
                 doc_id = write_new_doc(doc)     # TODO: implement write_new_doc
-                self._imported_ids.append(doc_id)
+                self._imported_ids.put(doc_id)
                 self._image_docs.task_done()
+            self._imported_ids.put(None)
+            self._done = True
         
         self._find_files = Thread(target=find_files)
         self._find_files.run()
@@ -85,14 +97,29 @@ class Importer(object):
             self._upload_docs.join()
         
         def delete_docs():
-            while self._imported_ids:
+            while True:
                 doc_id = self._imported_ids.pop()
-                delete_doc(doc_id)      # TODO: implement write_new_doc
+                if not doc_id:
+                    break
+                delete_doc(doc_id)      # TODO: implement delete_doc
         Thread(target=delete_docs).run()
     
     def status(self):
-        to_implement
-        return {'imported':0, 'remaining':42, 'verb':['wait+scan', 'wait', 'import+scan', 'import', 'cancel'][0]}
+        if self._cancelled:
+            verb = 'cancel'
+        elif self._done:
+            verb = 'done'
+        elif self._upload_docs.is_alive():
+            verb = 'import+scan' if self._find_files.is_alive() else 'import'
+        else:
+            verb = 'wait+scan' if self._find_files.is_alive() else 'wait'
+        
+        return {
+            'imported': self._imported_ids.qsize(),
+            'remaining': self._files.qsize(),
+            'verb': verb,
+            # TODO: self._image_docs preview
+        }
 
 
 class ImportManager(CouchExternal):
@@ -118,8 +145,8 @@ class ImportManager(CouchExternal):
         info = self.imports[source_id] = {}
         info['token'] = uuid.uuid4().hex
         info['folder'] = os.path.dirname(helper)
+        info['importer'] = Importer(None, source_id, info['folder'])
         
-        # TODO: start import of requested folder in background
         return {'code':202, 'json':{'ok':True, 'message':"Import of '%s' may now start." % info['folder'], 'token':info['token']}}
     
     def process(self, req):
@@ -130,8 +157,12 @@ class ImportManager(CouchExternal):
                 sleep(2.5)    # slow down malicious local scanning
                 return {'code':400, 'json':{'error':True, 'reason':"Bad request"}}
         
-        if req['method'] == 'GET':
-            # TODO: return status info (w/long polling?)
+        elif req['method'] == 'POST' and req['path'][3] == "cancel":
+            # TODO: cancel if request has valid token
+            pass
+        
+        elif req['method'] == 'GET':
+            # TODO: return status info
             pass
         
         return {'body': "<h1>Hello World!</h1>\n<pre>%s</pre>" % json.dumps(req, indent=4)}
