@@ -78,10 +78,13 @@ class Importer(object):
             self._done = True
         
         self._find_files = Thread(target=find_files)
+        self._find_files.daemon = True
         self._find_files.start()
         self._get_file_docs = Thread(target=get_file_docs)
+        self._get_file_docs.daemon = True
         self._get_file_docs.start()
         self._upload_docs = Thread(target=upload_docs)
+        self._upload_docs.daemon = True
     
     def begin(self):
         self._upload_docs.start()
