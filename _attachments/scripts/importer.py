@@ -1,25 +1,8 @@
 #! /usr/bin/python
 from __future__ import with_statement   # needed under Python 2.5 (Leopard default)
 
-# see http://wiki.apache.org/couchdb/ExternalProcesses for configuration instructions
-class CouchExternal(object):
-    def run(self):
-        import sys
-        import json
-        
-        line = sys.stdin.readline()
-        while line:
-            try:
-                response = self.process(json.loads(line))
-            except Exception:
-                response = {'code':500, 'json':{'error':True, 'reason':"Internal error processing request"}}
-            sys.stdout.write("%s\n" % json.dumps(response))
-            sys.stdout.flush()
-            line = sys.stdin.readline()
-    
-    def process(self, req):
-        return {'json':{'ok':True}}
 
+import couch
 
 from time import sleep
 import os
@@ -126,7 +109,7 @@ class Importer(object):
         }
 
 
-class ImportManager(CouchExternal):
+class ImportManager(couch.External):
     def __init__(self):
         self.imports = {}
     
