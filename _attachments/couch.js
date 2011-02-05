@@ -50,6 +50,7 @@ Couch.prototype.write = function (doc) {
     if (req.status !== 201) {
         throw Error(req.statusText);
     }
+    doc._rev = req.response.rev;
 }
 
 Couch.guessDB = function () {

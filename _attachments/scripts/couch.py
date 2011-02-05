@@ -41,10 +41,18 @@ class Database(object):
             raise IOError(status, result['error'], id)
         return result
     
+    def delete(self, doc):
+        status, result = self.http('DELETE', None, doc['_id'], {'rev':doc['_rev']})
+        if status != 200:
+            raise IOError(status, result['error'], id)
+        doc['_deleted'] = True
+        doc['_rev'] = result['rev']
+    
     def write(self, doc):
         status, result = self.http('PUT', doc, doc['_id'])
         if status != 201:
             raise IOError(status, result['error'], doc['_id'])
+        doc['_rev'] = result['rev']
 
 
 # see http://wiki.apache.org/couchdb/ExternalProcesses for configuration instructions
