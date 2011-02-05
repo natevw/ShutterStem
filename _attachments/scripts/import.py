@@ -152,6 +152,22 @@ class ImportManager(CouchExternal):
         
         return {'code':202, 'json':{'ok':True, 'message':"Import of '%s' may now start." % info['folder'], 'token':info['token']}}
     
+    def process_cancel(self, req):
+        source_id = req['path'][2]
+        token = req['query'].get('token', None)
+        if not token or not source_id:
+            return {'code':400, 'json':{'error':True, 'reason':"Required parameter(s) missing"}}
+        
+        if source_id not in self.imports:
+            return {'code':404, 'json':{'error':True, 'reason':"No import is in progress for this source"}}
+        
+        info = self.imports[source_id]
+        if token != info['token']:
+            raise Exception()
+        
+        info['importer'].cancel()
+        return {'code':202, 'json':{'ok':True, 'message':"Import is cancelling"}}
+        
     def process(self, req):
         if req['method'] == 'POST' and req['path'][3] == "folder":
             try:
@@ -161,14 +177,22 @@ class ImportManager(CouchExternal):
                 return {'code':400, 'json':{'error':True, 'reason':"Bad request"}}
         
         elif req['method'] == 'POST' and req['path'][3] == "cancel":
-            # TODO: cancel if request has valid token
-            pass
+            try:
+                return self.process_folder(req)
+            except Exception:
+                sleep(0.5)
+                return {'code':400, 'json':{'error':True, 'reason':"Bad request"}}
         
+        #return {'body': "<h1>Hello World!</h1>\n<pre>%s</pre>" % json.dumps(req, indent=4)}
         elif req['method'] == 'GET':
-            # TODO: return status info
-            pass
+            source_id = req['path'][2]
+            if source_id not in self.imports:
+                return {'code':404, 'json':{'error':True, 'reason':"No import is in progress for this source"}}
+            
+            status = self.imports[source_id].status()
+            return {'json':status}
         
-        return {'body': "<h1>Hello World!</h1>\n<pre>%s</pre>" % json.dumps(req, indent=4)}
+        return {'code':400, 'json':{'error':True, 'reason':"Bad request"}}
         
 
 if __name__ == "__main__":
