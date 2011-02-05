@@ -1,4 +1,5 @@
 .couchapprc
 *.pbxuser
 *.mode1v3
+*.pyc
 build/

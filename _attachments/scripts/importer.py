@@ -26,14 +26,15 @@ import os
 import json
 import uuid
 
-
+from threading import Thread
+from Queue import Queue
 
 class Importer(object):
     def __init__(self, db_url, source_id, folder):
         self._cancelled = False
         self._done = False
         self._files = Queue()
-        self._image_docs = Queue(maxsize=32)
+        self._image_docs = Queue(maxsize=30)
         self._imported_ids = Queue()
         
         def find_new_files():
@@ -77,7 +78,7 @@ class Importer(object):
             self._imported_ids.put(None)
             self._done = True
         
-        self._find_files = Thread(target=find_files)
+        self._find_files = Thread(target=find_new_files)
         self._find_files.daemon = True
         self._find_files.start()
         self._get_file_docs = Thread(target=get_file_docs)
@@ -118,8 +119,8 @@ class Importer(object):
             verb = 'wait+scan' if self._find_files.is_alive() else 'wait'
         
         return {
-            'imported': self._imported_ids.qsize(),
-            'remaining': self._files.qsize(),
+            'imported': self._imported_ids.qsize() - 1 if verb == 'done' else 0,
+            'remaining': self._files.qsize() + self._image_docs.qsize() - 1 if (verb == 'import' or verb == 'wait') else 0,
             'verb': verb,
             # TODO: self._image_docs preview
         }
