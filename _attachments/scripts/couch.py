@@ -35,16 +35,16 @@ class Database(object):
         status, result = self.http('GET', None, path, query)
         return result if status == 200 else None
     
-    def read(self, id):
-        status, result = self.http('GET', None, id)
+    def read(self, doc_id):
+        status, result = self.http('GET', None, doc_id)
         if status != 200:
-            raise IOError(status, result['error'], id)
+            raise IOError(status, result['error'], doc_id)
         return result
     
     def delete(self, doc):
         status, result = self.http('DELETE', None, doc['_id'], {'rev':doc['_rev']})
         if status != 200:
-            raise IOError(status, result['error'], id)
+            raise IOError(status, result['error'], doc['_id'])
         doc['_deleted'] = True
         doc['_rev'] = result['rev']
     
