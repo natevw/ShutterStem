@@ -69,7 +69,7 @@
                 if (status == 409) {
                     // no token, can't perform actions
                     // TODO: look into security implications of storing token in localStorage
-                    //return;
+                    return;
                 }
                 
                 var csrf_token2 = response.token;
