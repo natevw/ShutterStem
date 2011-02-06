@@ -38,7 +38,17 @@
             
             var new_photos = document.getElementById("new_photos");
             db.http("POST", null, ['_import', import_id, 'folder'], {utility:utility_path, token:csrf_token}, function (status, response) {
-                new_photos.innerText = JSON.stringify(response, null, 4);
+                // check for import started (or already in progress)
+                if (status != 202 && status != 409) {
+                    new_photos.innerText = JSON.stringify(response, null, 4);
+                    return;
+                }
+                
+                var timer = setInterval(function () {
+                    response = db.get(['_import', import_id]);
+                    new_photos.innerText = JSON.stringify(response, null, 4);
+                }, 1000);
+                gTimer = timer;
             });
         </script>
     </body>

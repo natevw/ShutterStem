@@ -33,9 +33,14 @@ Couch.prototype.http = function (method, obj, path, query, callback) {
     return req;
 };
 Couch.prototype.get = function (path, query, callback) {
-    this.http("GET", null, path, query, function (status, result) {
-        callback((status === 200) ? result : null);
-    });
+    if (callback) {
+        this.http("GET", null, path, query, function (status, result) {
+            callback((status === 200) ? result : null);
+        });
+    } else {
+        var req = this.http("GET", null, path, query);
+        return (req.status === 200) ? req.response : null;
+    }
 };
 
 Couch.prototype.read = function (id) {
