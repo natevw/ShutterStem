@@ -12,6 +12,11 @@
         #new_photos img { margin: 10px; border-style: solid; border-width: 2px; }
         #new_photos img.pending { border-style: dotted; border-color: yellow; }
         #new_photos img.imported { border-color: green; }
+        
+        #import { font-size: 200%; color: green; }
+        #cancel { font-size: 90%; color: gray; }
+        #import, #cancel { visibility: hidden; }
+        #import.enabled, #cancel.enabled { visibility: visible; }
     </style>
     <script src="{{ database_url }}/_design/shutterstem/couch.js"></script>
     <script src="{{ database_url }}/_design/shutterstem/classlist.js"></script>
@@ -20,7 +25,8 @@
     <body>
         <h2>Some new images found for this source:</h2>
         <div id="new_photos"></div>
-        <a href="#" id="import">Import</a>
+        <a href id="import">Start Import</a>
+        <a href id="cancel">Cancel</a>
         
         <div id="config"
             data-database_url="{{ database_url }}"
@@ -44,12 +50,56 @@
                     return;
                 }
                 
-                var timer = setInterval(function () {
-                    response = db.get(['_import', import_id]);
-                    new_photos.innerText = JSON.stringify(response, null, 4);
-                }, 1000);
-                gTimer = timer;
+                function updateStatus() {
+                    //new_photos.innerText = JSON.stringify(response, null, 4);
+                    var response = db.get(['_import', import_id]);
+                    new_photos.innerHTML = "";
+                    response.recent.forEach(function (image_doc) {
+                        var img = new Image();
+                        img.width = img.height = 64;
+                        img.alt = image_doc.path;
+                        //var thumb = image_doc._attachments['thumbnail/64.jpg'];
+                        //img.src = "data:" + thumb.type + "base64," + thumb.data;
+                        new_photos.appendChild(img);
+                    });
+                } 
+                var timer = setInterval(updateStatus, 2500);
+                updateStatus();
+                
+                if (status == 409) {
+                    // no token, can't perform actions
+                    // TODO: look into security implications of storing token in localStorage
+                    //return;
+                }
+                
+                var csrf_token2 = response.token;
+                var import_button = document.getElementById("import");
+                import_button.className = "enabled";
+                import_button.addEventListener("click", function (e) {
+                    e.preventDefault();
+
+                    db.http("POST", null, ['_import', import_id, 'begin'], {token:csrf_token2}, function (status, response) {
+                        if (status == 202) {
+                            import_button.className = "";
+                        }
+                    });
+                }, false);
+                
+                var cancel_button = document.getElementById("cancel");
+                cancel_button.className = "enabled";
+                cancel_button.addEventListener("click", function (e) {
+                    e.preventDefault();
+
+                    db.http("POST", null, ['_import', import_id, 'cancel'], {token:csrf_token2}, function (status, response) {
+                        if (status == 202) {
+                            cancel_button.className = "";
+                        }
+                    });
+                }, false);
             });
+            
+            
+            
         </script>
     </body>
 </html>
