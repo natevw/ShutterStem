@@ -33,8 +33,8 @@ class Importer(object):
     
     def __init__(self, db_url, source_id, folder):
         self._db = couch.Database(db_url)
-        self._DDOC = '_design/shutterstem'
         self._source = self._db.read(source_id)
+        self._DDOC = '_design/shutterstem'
         
         self._cancelled = False
         self._done = False
@@ -121,10 +121,10 @@ class Importer(object):
     def cancel(self, remove=True):
         self._cancelled = True
         
-        if not self._upload_docs.is_alive():
-            self._imported_refs.put(None)
-        else:
+        if self._upload_docs.is_alive():
             self._image_docs.put(None)
+        else:
+            self._imported_refs.put(None)
         
         if remove:
             self._delete_docs.start()
@@ -164,7 +164,7 @@ class ImportManager(couch.External):
         source_id = req['path'][2]
         token = req['query'].get('token', None)
         helper = req['query'].get('utility', None)
-        if not token or not helper or not source_id:
+        if not source_id or not token or not helper:
             return {'code':400, 'json':{'error':True, 'reason':"Required parameter(s) missing"}}
         
         # check that the request is not forged
@@ -177,16 +177,18 @@ class ImportManager(couch.External):
             return {'code':409, 'json':{'error':True, 'reason':"An import is already in progress for this source"}}
         
         info = self.imports[source_id] = {}
+        db_url = "http://%s/%s" % (req['headers']['Host'], req['info']['db_name'])
+        folder = os.path.dirname(helper)
+        info['importer'] = Importer(db_url, source_id, folder)
         info['token'] = uuid.uuid4().hex
-        info['folder'] = os.path.dirname(helper)
-        info['importer'] = Importer(None, source_id, info['folder'])
         
-        return {'code':202, 'json':{'ok':True, 'message':"Import of '%s' may now start." % info['folder'], 'token':info['token']}}
+        return {'code':202, 'json':{'ok':True, 'message':"Import of '%s' may now start." % folder, 'token':info['token']}}
     
-    def process_cancel(self, req):
+    def process_action(self, req):
+        action = req['path'][3]
         source_id = req['path'][2]
         token = req['query'].get('token', None)
-        if not token or not source_id:
+        if not action or not source_id or not token:
             return {'code':400, 'json':{'error':True, 'reason':"Required parameter(s) missing"}}
         
         if source_id not in self.imports:
@@ -196,9 +198,16 @@ class ImportManager(couch.External):
         if token != info['token']:
             raise Exception()
         
-        info['importer'].cancel()
-        return {'code':202, 'json':{'ok':True, 'message':"Import is cancelling"}}
+        if action == 'begin':
+            info['importer'].begin()
+            return {'code':202, 'json':{'ok':True, 'message':"Import will proceed"}}
+        elif action == 'cancel':
+            info['importer'].cancel()
+            return {'code':202, 'json':{'ok':True, 'message':"Import is cancelling"}}
         
+        return {'code':400, 'json':{'error':True, 'reason':"Unknown action"}}
+    
+    
     def process(self, req):
         if req['method'] == 'POST' and req['path'][3] == "folder":
             try:
@@ -207,20 +216,21 @@ class ImportManager(couch.External):
                 sleep(2.5)    # slow down malicious local scanning
                 return {'code':400, 'json':{'error':True, 'reason':"Bad request"}}
         
-        elif req['method'] == 'POST' and req['path'][3] == "cancel":
+        elif req['method'] == 'POST' and req['path'][3] in ("begin", "cancel"):
             try:
-                return self.process_folder(req)
+                return self.process_action(req)
             except Exception:
                 sleep(0.5)
                 return {'code':400, 'json':{'error':True, 'reason':"Bad request"}}
         
-        #return {'body': "<h1>Hello World!</h1>\n<pre>%s</pre>" % json.dumps(req, indent=4)}
+        #elif True:
+        #    return {'body': "<h1>Hello World!</h1>\n<pre>%s</pre>" % json.dumps(req, indent=4)}
         elif req['method'] == 'GET':
             source_id = req['path'][2]
             if source_id not in self.imports:
-                return {'code':404, 'json':{'error':True, 'reason':"No import is in progress for this source"}}
+                return {'code':404, 'json':{'error':True, 'reason':"No import is in progress for '%s'." % source_id}}
             
-            status = self.imports[source_id].status()
+            status = self.imports[source_id]['importer'].status()
             return {'json':status}
         
         return {'code':400, 'json':{'error':True, 'reason':"Bad request"}}
