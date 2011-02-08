@@ -8,10 +8,14 @@ from time import sleep
 import os
 import json
 import uuid
+import hashlib
+import subprocess
 
 from threading import Thread
 from Queue import Queue, Full as QueueFull
 from collections import deque
+
+GET_PHOTO = os.path.dirname(os.path.abspath(__file__)) + '/getphoto-osx/build/Release/getphoto';
 
 class Importer(object):
     def _find_image(self, identifiers):
@@ -27,9 +31,33 @@ class Importer(object):
     
     def _image_doc(self, folder, path):
         full_path = os.path.join(folder, path)
-        # TODO: md5, metadata, thumbnails...
-        sleep(0.1)
-        return {'_id':"testfakeimage-%s" % uuid.uuid4().hex, 'path':path, 'identifiers':{}}
+        
+        get_photo = [GET_PHOTO, '--thumbnail', '64', '--thumbnail', '512', '--timezone', self._source['time_zone'], full_path]
+        p = subprocess.Popen(get_photo, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = p.communicate()
+        #with open("/Users/nathan/Desktop/log.txt", 'w') as f:
+        #    f.write(out + '\n')
+        #    f.write(err + '\n\n')
+        
+        if p.returncode:
+            return
+        
+        doc = json.loads(out)
+        doc['_id'] = "testfakeimage-%s" % uuid.uuid4().hex
+        
+        idents = doc.setdefault('identifiers', {})
+        idents['relative_path'] = {'source':couch.make_ref(self._source), 'path':path}
+        with open(full_path, 'rb') as f:
+            digester = hashlib.md5()
+            while True:
+                buff = f.read(524288)
+                if not buff:
+                    break
+                digester.update(buff)
+            digest = digester.hexdigest()
+        idents['md5'] = digest
+        
+        return doc
     
     def __init__(self, db_url, source_id, folder):
         self._db = couch.Database(db_url)

@@ -5,6 +5,8 @@ import json
 import httplib
 import urllib, urlparse
 
+REF_TYPE = "testtype-reference"
+
 
 class Database(object):
     def __init__(self, url):
@@ -53,6 +55,17 @@ class Database(object):
         if status != 201:
             raise IOError(status, result['error'], doc['_id'])
         doc['_rev'] = result['rev']
+    
+def make_ref(doc, denormalize=None):
+    reference = {}
+    reference[REF_TYPE] = True
+    reference['_id'] = doc['_id']
+    if denormalize is not None:
+        for field in denormalize:
+            reference[field] = doc[field]
+        reference['_rev'] = doc['_rev']
+    return reference
+
 
 
 # see http://wiki.apache.org/couchdb/ExternalProcesses for configuration instructions

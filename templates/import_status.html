@@ -56,10 +56,10 @@
                     new_photos.innerHTML = "";
                     response.recent.forEach(function (image_doc) {
                         var img = new Image();
-                        img.width = img.height = 64;
+                        //img.width = img.height = 64;
                         img.alt = image_doc.path;
-                        //var thumb = image_doc._attachments['thumbnail/64.jpg'];
-                        //img.src = "data:" + thumb.type + "base64," + thumb.data;
+                        var thumb = image_doc._attachments['thumbnail/64.jpg'];
+                        img.src = "data:" + thumb.content_type + ";base64," + thumb.data;
                         new_photos.appendChild(img);
                     });
                 } 
