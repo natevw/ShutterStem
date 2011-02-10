@@ -55,7 +55,9 @@
                 function performAction(e) {
                     e.preventDefault();
                     this.className = "";
-                    db.http("POST", null, ['_import', import_id, this.id], null, function (status, response) {});
+                    db.http("POST", null, ['_import', import_id, this.id], null, function (status, response) {
+                        updateStatus();
+                    });
                 }
                 
                 var import_button = document.getElementById("import");
@@ -68,6 +70,11 @@
                 function updateStatus() {
                     //new_photos.innerText = JSON.stringify(response, null, 4);
                     var response = db.get(['_import', import_id]);
+                    if (!response) {
+                        import_button.className = "";
+                        cancel_button.className = "";
+                        finish_button.className = "";
+                    }
                     
                     if (response.verb.indexOf('wait') != -1) {
                         import_button.className = "enabled";
