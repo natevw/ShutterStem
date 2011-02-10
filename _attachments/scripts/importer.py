@@ -44,6 +44,7 @@ class Importer(object):
         
         doc = json.loads(out)
         doc['_id'] = "testfakeimage-%s" % uuid.uuid4().hex
+        doc[self._IMAGE_TYPE] = True
         
         idents = doc.setdefault('identifiers', {})
         idents['relative_path'] = {'source':couch.make_ref(self._source), 'path':path}
@@ -63,6 +64,7 @@ class Importer(object):
         self._db = couch.Database(db_url)
         self._source = self._db.read(source_id)
         self._DDOC = '_design/shutterstem'
+        self._IMAGE_TYPE = 'testtype-image';
         
         self._cancelled = False
         self._done = False
@@ -237,7 +239,7 @@ class ImportManager(couch.External):
             return {'code':202, 'json':{'ok':True, 'message':"Import is cancelling"}}
         elif action == 'finish':
             info['importer'].finish()
-            del info['importer']
+            del self.imports[source_id]
             return {'code':200, 'json':{'ok':True, 'message':"Import finished"}}
         
         return {'code':400, 'json':{'error':True, 'reason':"Unknown action"}}
