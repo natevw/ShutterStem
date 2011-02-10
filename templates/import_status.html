@@ -15,8 +15,9 @@
         
         #import { font-size: 200%; color: green; }
         #cancel { font-size: 90%; color: gray; }
-        #import, #cancel { visibility: hidden; }
-        #import.enabled, #cancel.enabled { visibility: visible; }
+        #finish { font-size: 100%; color: blue; }
+        #import, #cancel, #finish { visibility: hidden; }
+        #import.enabled, #cancel.enabled, #finish.enabled { visibility: visible; }
     </style>
     <script src="{{ database_url }}/_design/shutterstem/couch.js"></script>
     <script src="{{ database_url }}/_design/shutterstem/classlist.js"></script>
@@ -27,6 +28,7 @@
         <div id="new_photos"></div>
         <a href id="import">Start Import</a>
         <a href id="cancel">Cancel</a>
+        <a href id="finish">Finish</a>
         
         <div id="config"
             data-database_url="{{ database_url }}"
@@ -50,9 +52,41 @@
                     return;
                 }
                 
+                function performAction(e) {
+                    e.preventDefault();
+                    this.className = "";
+                    db.http("POST", null, ['_import', import_id, this.id], null, function (status, response) {});
+                }
+                
+                var import_button = document.getElementById("import");
+                var cancel_button = document.getElementById("cancel");
+                var finish_button = document.getElementById("finish");
+                import_button.addEventListener("click", performAction, false);
+                cancel_button.addEventListener("click", performAction, false);
+                finish_button.addEventListener("click", performAction, false);
+                
                 function updateStatus() {
                     //new_photos.innerText = JSON.stringify(response, null, 4);
                     var response = db.get(['_import', import_id]);
+                    
+                    if (response.verb.indexOf('wait') != -1) {
+                        import_button.className = "enabled";
+                    } else {
+                        import_button.className = "";
+                    }
+                    
+                    if (response.verb != 'cancel') {
+                        cancel_button.className = "enabled";
+                    } else {
+                        cancel_button.className = "";
+                    }
+                    
+                    if (!response.active) {
+                        finish_button.className = "enabled";
+                    } else {
+                        finish_button.className = "";
+                    }
+                    
                     new_photos.innerHTML = "";
                     response.recent.forEach(function (image_doc) {
                         var img = new Image();
@@ -65,30 +99,6 @@
                 } 
                 var timer = setInterval(updateStatus, 2500);
                 updateStatus();
-                
-                var import_button = document.getElementById("import");
-                import_button.className = "enabled";
-                import_button.addEventListener("click", function (e) {
-                    e.preventDefault();
-
-                    db.http("POST", null, ['_import', import_id, 'begin'], null, function (status, response) {
-                        if (status == 202) {
-                            import_button.className = "";
-                        }
-                    });
-                }, false);
-                
-                var cancel_button = document.getElementById("cancel");
-                cancel_button.className = "enabled";
-                cancel_button.addEventListener("click", function (e) {
-                    e.preventDefault();
-
-                    db.http("POST", null, ['_import', import_id, 'cancel'], null, function (status, response) {
-                        if (status == 202) {
-                            cancel_button.className = "";
-                        }
-                    });
-                }, false);
             });
             
             

@@ -157,8 +157,15 @@ class Importer(object):
         if remove:
             self._delete_docs.start()
     
+    def _is_active(self):
+        return any(t.is_alive() for t in (self._find_files, self._get_file_docs, self._upload_docs, self._delete_docs))
+    
+    def finish(self):
+        if self._is_active():
+            raise AssertionError("Import still active")
+    
     def status(self):
-        active = any(t.is_alive() for t in (self._find_files, self._get_file_docs, self._upload_docs, self._delete_docs))
+        active = self._is_active()
         imported = self._imported_refs.qsize()
         remaining = self._files.qsize() + self._image_docs.qsize()
         
@@ -222,12 +229,16 @@ class ImportManager(couch.External):
         
         info = self.imports[source_id]
         
-        if action == 'begin':
+        if action == 'import':
             info['importer'].begin()
             return {'code':202, 'json':{'ok':True, 'message':"Import will proceed"}}
         elif action == 'cancel':
             info['importer'].cancel()
             return {'code':202, 'json':{'ok':True, 'message':"Import is cancelling"}}
+        elif action == 'finish':
+            info['importer'].finish()
+            del info['importer']
+            return {'code':200, 'json':{'ok':True, 'message':"Import finished"}}
         
         return {'code':400, 'json':{'error':True, 'reason':"Unknown action"}}
     
@@ -240,7 +251,7 @@ class ImportManager(couch.External):
                 sleep(2.5)    # slow down malicious local scanning
                 return {'code':400, 'json':{'error':True, 'reason':"Bad request"}}
         
-        elif req['method'] == 'POST' and req['path'][3] in ("begin", "cancel"):
+        elif req['method'] == 'POST' and req['path'][3] in ('import', 'cancel', 'finish'):
             try:
                 return self.process_action(req)
             except Exception:
