@@ -100,7 +100,6 @@ class Importer(object):
                 path = os.path.relpath(file, folder)
                 doc = self._image_doc(folder, path)
                 if doc and not self._find_image(doc['identifiers']):
-                    self._recent_image_docs.appendleft(doc)
                     while not self._cancelled:
                         try:
                             self._image_docs.put(doc, True, 0.5)
@@ -108,6 +107,10 @@ class Importer(object):
                             pass
                         else:
                             break
+                    
+                    doc = json.loads(json.dumps(doc))
+                    del doc['_attachments']['thumbnail/512.jpg']
+                    self._recent_image_docs.appendleft(doc)
             
             while not self._cancelled:
                 try:
