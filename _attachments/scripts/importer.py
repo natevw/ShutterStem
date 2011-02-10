@@ -208,23 +208,19 @@ class ImportManager(couch.External):
         db_url = "http://%s/%s" % (req['headers']['Host'], req['info']['db_name'])
         folder = os.path.dirname(helper)
         info['importer'] = Importer(db_url, source_id, folder)
-        info['token'] = uuid.uuid4().hex
         
-        return {'code':202, 'json':{'ok':True, 'message':"Import of '%s' may now start." % folder, 'token':info['token']}}
+        return {'code':202, 'json':{'ok':True, 'message':"Import of '%s' may now start." % folder}}
     
     def process_action(self, req):
         action = req['path'][3]
         source_id = req['path'][2]
-        token = req['query'].get('token', None)
-        if not action or not source_id or not token:
+        if not action or not source_id:
             return {'code':400, 'json':{'error':True, 'reason':"Required parameter(s) missing"}}
         
         if source_id not in self.imports:
             return {'code':404, 'json':{'error':True, 'reason':"No import is in progress for this source"}}
         
         info = self.imports[source_id]
-        if token != info['token']:
-            raise Exception()
         
         if action == 'begin':
             info['importer'].begin()

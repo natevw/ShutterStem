@@ -66,19 +66,12 @@
                 var timer = setInterval(updateStatus, 2500);
                 updateStatus();
                 
-                if (status == 409) {
-                    // no token, can't perform actions
-                    // TODO: look into security implications of storing token in localStorage
-                    return;
-                }
-                
-                var csrf_token2 = response.token;
                 var import_button = document.getElementById("import");
                 import_button.className = "enabled";
                 import_button.addEventListener("click", function (e) {
                     e.preventDefault();
 
-                    db.http("POST", null, ['_import', import_id, 'begin'], {token:csrf_token2}, function (status, response) {
+                    db.http("POST", null, ['_import', import_id, 'begin'], null, function (status, response) {
                         if (status == 202) {
                             import_button.className = "";
                         }
@@ -90,7 +83,7 @@
                 cancel_button.addEventListener("click", function (e) {
                     e.preventDefault();
 
-                    db.http("POST", null, ['_import', import_id, 'cancel'], {token:csrf_token2}, function (status, response) {
+                    db.http("POST", null, ['_import', import_id, 'cancel'], null, function (status, response) {
                         if (status == 202) {
                             cancel_button.className = "";
                         }
