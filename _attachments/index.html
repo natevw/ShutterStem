@@ -90,9 +90,19 @@
                 }, false);
                 thumbnails.appendChild(frame);
             }
+            
+            var to_import = document.createElement("div");
+            to_import.className = "frame";
+            to_import.innerText = "Import more...";
+            thumbnails.appendChild(to_import);
             db.get("_design/shutterstem/_view/by_date", {descending:true, reduce:false, limit:25}, function (response) {
                 response.rows.forEach(addThumbnail);
+                var to_next = document.createElement("div");
+                to_next.className = "frame";
+                to_next.innerText = "Next →";
+                thumbnails.appendChild(to_next);
             });
+            
             
             var baskets = document.getElementById('baskets');
             function addBasket(basketRow, i) {
