@@ -97,6 +97,7 @@
             function showPhotos(prev, start, options) {
                 lastShow = {prev:prev, start:start, options:options};
                 thumbnails.innerHTML = "";
+                selection = {};
                 if (start) {
                     var to_prev = document.createElement("div");
                     to_prev.className = "frame subtly_clickable";
@@ -169,9 +170,6 @@
                         });
                     } else {
                         showPhotos(lastShow.prev, lastShow.start, lastShow.options);
-                        db.get("_design/shutterstem/_view/by_date", {descending:true, reduce:false, limit:25}, function (response) {
-                            response.rows.forEach(addThumbnail);
-                        });
                     }
                 }, false);
                 
