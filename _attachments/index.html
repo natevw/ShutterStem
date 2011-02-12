@@ -94,9 +94,8 @@
                 thumbnails.appendChild(frame);
             }
             
-            var lastShow;
             function showPhotos(prev, start, options) {
-                lastShow = {prev:prev, start:start, options:options};
+                localStorage['shutterstem-lastShow'] = JSON.stringify({prev:prev, start:start, options:options});
                 thumbnails.innerHTML = "";
                 selection = {};
                 if (start) {
@@ -148,7 +147,18 @@
                 });
             
             }
-            showPhotos(null, null, {count:25});
+            function showLastPhotos() {
+                var lastShow;
+                try {
+                    lastShow = JSON.parse(localStorage['shutterstem-lastShow']);
+                } catch (e) {}
+                if (lastShow) {
+                    showPhotos(lastShow.prev, lastShow.start, lastShow.options);
+                } else {
+                    showPhotos(null, null, {count:25});
+                }
+            }
+            showLastPhotos();
             
             var baskets = document.getElementById('baskets');
             function addBasket(basketRow, i) {
@@ -170,7 +180,7 @@
                             doc.photos.forEach(addThumbnail);
                         });
                     } else {
-                        showPhotos(lastShow.prev, lastShow.start, lastShow.options);
+                        showLastPhotos();
                     }
                 }, false);
                 
@@ -229,7 +239,7 @@
                     }
                     db.remove(basketDoc);
                     if (basket.classList.contains("displayed")) {
-                        showPhotos(lastShow.prev, lastShow.start, lastShow.options);
+                        showLastPhotos();
                     }
                     basket.parentNode.removeChild(basket);
                 }, false);
