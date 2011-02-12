@@ -37,10 +37,11 @@
             .basket h1 { margin: 0.1em; font-size: 110%; font-weight: normal; cursor: pointer; }
             .basket.displayed h1 { font-weight: bold; color: blue; }
             .basket ul { margin: 0em; padding: 0em; }
-            .basket li, #add_basket { margin: 0em 0.25em; cursor: pointer; text-decoration: underline; }
+            .basket li, #add_basket { margin: 0em 0.25em; }
             .basket.displayed .add { display: none; }
             .basket .remove { display: none; }
             .basket.displayed .remove { display: list-item; }
+            .clickable { cursor: pointer; text-decoration: underline; }
         </style>
         <script src="couch.js"></script>
         <script src="flatstache.js"></script>
@@ -48,11 +49,11 @@
         <script id="basket_template" type="text/x-flat">
             <section id="{{ id }}" class="basket">
                 <!-- menu/commands? -->
-                <h1>{{ value }}</h1>
+                <h1 class="clickable">{{ value }}</h1>
                 <ul>
-                    <li class="rename">Rename
-                    <li class="add">Add selection
-                    <li class="remove">Remove selection
+                    <li class="rename clickable">Rename
+                    <li class="add clickable">Add selection
+                    <li class="remove clickable">Remove selection
                 </ul>
             </section>
         </script>
@@ -63,7 +64,7 @@
     
     <body>
         <div id="baskets">
-            <span id="add_basket">Add basket</a>
+            <span id="add_basket" class="clickable">Add basket</a>
         </div>
         <div id="thumbnails"></div>
         
@@ -95,7 +96,7 @@
                 thumbnails.innerHTML = "";
                 if (start) {
                     var to_prev = document.createElement("div");
-                    to_prev.className = "frame";
+                    to_prev.className = "frame clickable";
                     to_prev.innerText = "← Previous";
                     to_prev.addEventListener("click", function () {
                         showPhotos(prev && prev.prev, prev, count, {show_last:true});
@@ -105,7 +106,7 @@
                     var to_import = document.createElement("a");
                     to_import.href = "dashboard.html";
                     to_import.target = "DashboardWindow";
-                    to_import.className = "frame";
+                    to_import.className = "frame clickable";
                     to_import.innerText = "Import more...";
                     thumbnails.appendChild(to_import);
                 }
@@ -130,7 +131,7 @@
                         return;
                     }
                     var to_next = document.createElement("div");
-                    to_next.className = "frame";
+                    to_next.className = "frame clickable";
                     to_next.innerText = "Next →";
                     to_next.addEventListener("click", function () {
                         if (start && prev) {
