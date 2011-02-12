@@ -32,7 +32,10 @@ class Importer(object):
     def _image_doc(self, folder, path):
         full_path = os.path.join(folder, path)
         
-        get_photo = [GET_PHOTO, '--thumbnail', '64', '--thumbnail', '512', '--timezone', self._source['time_zone'], full_path]
+        get_photo = [GET_PHOTO, '--thumbnail', '64', '--thumbnail', '512']
+        if 'time_zone' in self._source:
+            get_photo.extend(['--timezone', self._source['time_zone']])
+        get_photo.append(full_path)
         p = subprocess.Popen(get_photo, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = p.communicate()
         #with open("/Users/nathan/Desktop/log.txt", 'w') as f:
