@@ -80,6 +80,7 @@ class Importer(object):
         self._imported_refs = Queue()
         
         def find_new_files():
+            self._find_image({'update_identifiers':"Updating identifiers view index before new import."}, stale=False)
             for (dirpath, dirnames, filenames) in os.walk(folder):
                 for filename in filenames:
                     if self._cancelled:
@@ -144,8 +145,6 @@ class Importer(object):
                 if not doc:
                     break
                 self._db.remove(doc)
-        
-        self._find_image({'prepare_views':'before import'}, stale=False)
         
         self._find_files = Thread(target=find_new_files, name="Find new files (%s)" % self._source['_id'])
         self._find_files.daemon = True
