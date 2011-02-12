@@ -135,7 +135,7 @@ class Importer(object):
                 doc = self._imported_refs.get()
                 if not doc:
                     break
-                self._db.delete(doc)
+                self._db.remove(doc)
         
         self._find_files = Thread(target=find_new_files, name="Find new files (%s)" % self._source['_id'])
         self._find_files.daemon = True
