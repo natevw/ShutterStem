@@ -42,6 +42,7 @@
             .basket .remove { display: none; }
             .basket.displayed .remove { display: list-item; }
             .clickable { cursor: pointer; text-decoration: underline; }
+            .subtly_clickable { cursor: pointer; }
         </style>
         <script src="couch.js"></script>
         <script src="flatstache.js"></script>
@@ -49,7 +50,7 @@
         <script id="basket_template" type="text/x-flat">
             <section id="{{ id }}" class="basket">
                 <!-- menu/commands? -->
-                <h1 class="clickable">{{ value }}</h1>
+                <h1 class="subtly_clickable">{{ value }}</h1>
                 <ul>
                     <li class="rename clickable">Rename
                     <li class="add clickable">Add selection
@@ -96,7 +97,7 @@
                 thumbnails.innerHTML = "";
                 if (start) {
                     var to_prev = document.createElement("div");
-                    to_prev.className = "frame clickable";
+                    to_prev.className = "frame subtly_clickable";
                     to_prev.innerText = "← Previous";
                     to_prev.addEventListener("click", function () {
                         showPhotos(prev && prev.prev, prev, count, {show_last:true});
@@ -106,7 +107,7 @@
                     var to_import = document.createElement("a");
                     to_import.href = "dashboard.html";
                     to_import.target = "DashboardWindow";
-                    to_import.className = "frame clickable";
+                    to_import.className = "frame";
                     to_import.innerText = "Import more...";
                     thumbnails.appendChild(to_import);
                 }
@@ -131,7 +132,7 @@
                         return;
                     }
                     var to_next = document.createElement("div");
-                    to_next.className = "frame clickable";
+                    to_next.className = "frame subtly_clickable";
                     to_next.innerText = "Next →";
                     to_next.addEventListener("click", function () {
                         if (start && prev) {
