@@ -91,20 +91,58 @@
                 thumbnails.appendChild(frame);
             }
             
-            var to_import = document.createElement("a");
-            to_import.href = "dashboard.html";
-            to_import.target = "DashboardWindow";
-            to_import.className = "frame";
-            to_import.innerText = "Import more...";
-            thumbnails.appendChild(to_import);
-            db.get("_design/shutterstem/_view/by_date", {descending:true, reduce:false, limit:25}, function (response) {
-                response.rows.forEach(addThumbnail);
-                var to_next = document.createElement("div");
-                to_next.className = "frame";
-                to_next.innerText = "Next →";
-                thumbnails.appendChild(to_next);
-            });
+            function showPhotos(prev, start, count, options) {
+                thumbnails.innerHTML = "";
+                if (start) {
+                    var to_prev = document.createElement("div");
+                    to_prev.className = "frame";
+                    to_prev.innerText = "← Previous";
+                    to_prev.addEventListener("click", function () {
+                        showPhotos(prev && prev.prev, prev, count, {show_last:true});
+                    }, false);
+                    thumbnails.appendChild(to_prev);
+                } else {
+                    var to_import = document.createElement("a");
+                    to_import.href = "dashboard.html";
+                    to_import.target = "DashboardWindow";
+                    to_import.className = "frame";
+                    to_import.innerText = "Import more...";
+                    thumbnails.appendChild(to_import);
+                }
+                
+                var query = {descending:true, reduce:false, limit:count+1};
+                if (start) {
+                    query.$startkey = start.key;
+                    query.startkey_docid = start.id;
+                }
+                db.get("_design/shutterstem/_view/by_date", query, function (response) {
+                    var nextRow;
+                    if (response.total_rows - response.offset - count > 0) {
+                        nextRow = response.rows.pop();
+                    }
+                    response.rows.forEach(addThumbnail);
+                    
+                    if (options && options.show_last) {
+                        thumbnails.scrollTop = thumbnails.scrollHeight - thumbnails.clientHeight;
+                    }
+                    
+                    if (!nextRow) {
+                        return;
+                    }
+                    var to_next = document.createElement("div");
+                    to_next.className = "frame";
+                    to_next.innerText = "Next →";
+                    to_next.addEventListener("click", function () {
+                        if (start && prev) {
+                            start.prev = prev;
+                        }
+                        showPhotos(start, nextRow, count);
+                    }, false);
+                    thumbnails.appendChild(to_next);
+                });
             
+            }
+            showPhotos(null, null, 25);
             
             var baskets = document.getElementById('baskets');
             function addBasket(basketRow, i) {
