@@ -106,20 +106,25 @@ class Importer(object):
                 
                 path = os.path.relpath(file, folder)
                 doc = self._image_doc(folder, path)
+                if not doc:
+                    continue
+                
                 new_identifiers = json.loads(json.dumps(doc['identifiers']))
                 del new_identifiers['relative_path']
-                if doc and not self._find_image(new_identifiers):
-                    while not self._cancelled:
-                        try:
-                            self._image_docs.put(doc, True, 0.5)
-                        except QueueFull:
-                            pass
-                        else:
-                            break
-                    
-                    doc = json.loads(json.dumps(doc))
-                    del doc['_attachments']['thumbnail/512.jpg']
-                    self._recent_image_docs.appendleft(doc)
+                if self._find_image(new_identifiers):
+                    continue
+                
+                while not self._cancelled:
+                    try:
+                        self._image_docs.put(doc, True, 0.5)
+                    except QueueFull:
+                        pass
+                    else:
+                        break
+                
+                doc = json.loads(json.dumps(doc))
+                del doc['_attachments']['thumbnail/512.jpg']
+                self._recent_image_docs.appendleft(doc)
             
             while not self._cancelled:
                 try:
