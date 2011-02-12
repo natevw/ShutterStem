@@ -107,11 +107,9 @@
                     }, false);
                     thumbnails.appendChild(to_prev);
                 } else {
-                    var to_import = document.createElement("a");
-                    to_import.href = "dashboard.html";
-                    to_import.target = "DashboardWindow";
+                    var to_import = document.createElement("div");
                     to_import.className = "frame";
-                    to_import.innerText = "Import more...";
+                    to_import.innerHTML="<a href='dashboard.html' target='DashboardWindow'>Import more...</a>";
                     thumbnails.appendChild(to_import);
                 }
                 
