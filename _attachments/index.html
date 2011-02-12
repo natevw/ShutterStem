@@ -93,14 +93,16 @@
                 thumbnails.appendChild(frame);
             }
             
-            function showPhotos(prev, start, count, options) {
+            var lastShow;
+            function showPhotos(prev, start, options) {
+                lastShow = {prev:prev, start:start, options:options};
                 thumbnails.innerHTML = "";
                 if (start) {
                     var to_prev = document.createElement("div");
                     to_prev.className = "frame subtly_clickable";
                     to_prev.innerText = "← Previous";
                     to_prev.addEventListener("click", function () {
-                        showPhotos(prev && prev.prev, prev, count, {show_last:true});
+                        showPhotos(prev && prev.prev, prev, {count:options.count, show_last:true});
                     }, false);
                     thumbnails.appendChild(to_prev);
                 } else {
@@ -112,19 +114,19 @@
                     thumbnails.appendChild(to_import);
                 }
                 
-                var query = {descending:true, reduce:false, limit:count+1};
+                var query = {descending:true, reduce:false, limit:options.count+1};
                 if (start) {
                     query.$startkey = start.key;
                     query.startkey_docid = start.id;
                 }
                 db.get("_design/shutterstem/_view/by_date", query, function (response) {
                     var nextRow;
-                    if (response.total_rows - response.offset - count > 0) {
+                    if (response.total_rows - response.offset - options.count > 0) {
                         nextRow = response.rows.pop();
                     }
                     response.rows.forEach(addThumbnail);
                     
-                    if (options && options.show_last) {
+                    if (options.show_last) {
                         thumbnails.scrollTop = thumbnails.scrollHeight - thumbnails.clientHeight;
                     }
                     
@@ -138,13 +140,13 @@
                         if (start && prev) {
                             start.prev = prev;
                         }
-                        showPhotos(start, nextRow, count);
+                        showPhotos(start, nextRow, {count:options.count});
                     }, false);
                     thumbnails.appendChild(to_next);
                 });
             
             }
-            showPhotos(null, null, 25);
+            showPhotos(null, null, {count:25});
             
             var baskets = document.getElementById('baskets');
             function addBasket(basketRow, i) {
@@ -166,6 +168,7 @@
                             doc.photos.forEach(addThumbnail);
                         });
                     } else {
+                        showPhotos(lastShow.prev, lastShow.start, lastShow.options);
                         db.get("_design/shutterstem/_view/by_date", {descending:true, reduce:false, limit:25}, function (response) {
                             response.rows.forEach(addThumbnail);
                         });
