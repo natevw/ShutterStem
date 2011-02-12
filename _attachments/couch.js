@@ -57,6 +57,14 @@ Couch.prototype.write = function (doc) {
     }
     doc._rev = req.response.rev;
 }
+Couch.prototype.remove = function (doc) {
+    var req = this.http("DELETE", null, doc._id, {'rev':doc._rev});
+    if (req.status !== 200) {
+        throw Error(req.statusText);
+    }
+    doc._deleted = true;
+    doc._rev = req.response.rev;
+}
 
 Couch.guessDB = function () {
     var x;

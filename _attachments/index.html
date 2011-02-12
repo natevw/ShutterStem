@@ -55,6 +55,7 @@
                     <li class="rename clickable">Rename
                     <li class="add clickable">Add selection
                     <li class="remove clickable">Remove selection
+                    <li class="delete clickable">Delete basket
                 </ul>
             </section>
         </script>
@@ -218,6 +219,19 @@
                     db.write(basketDoc);
                     baskets.insertBefore(basket, document.getElementById('add_basket').nextElementSibling);
                     selection = {};
+                }, false);
+                
+                basket.querySelector(".delete").addEventListener("click", function () {
+                    var basketDoc = db.read(basketRow.id);
+                    var forReals = confirm("\"" + basketDoc.name + "\" will disappear forever.");
+                    if (!forReals) {
+                        return;
+                    }
+                    db.remove(basketDoc);
+                    if (basket.classList.contains("displayed")) {
+                        showPhotos(lastShow.prev, lastShow.start, lastShow.options);
+                    }
+                    basket.parentNode.removeChild(basket);
                 }, false);
                 
                 if (i !== 'top') {
