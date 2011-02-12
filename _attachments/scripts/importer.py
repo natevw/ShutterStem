@@ -18,13 +18,16 @@ from collections import deque
 GET_PHOTO = os.path.dirname(os.path.abspath(__file__)) + '/getphoto-osx/build/Release/getphoto';
 
 class Importer(object):
-    def _find_image(self, identifiers):
+    def _find_image(self, identifiers, stale=True):
         for type, ident in identifiers.iteritems():
             if type == 'relative_path':
                 key = ident['source']['_id'], ident['path']
             else:
                 key = ident
-            matches = self._db.get([self._DDOC, '_view/by_identifier'], {'$key':key})
+            query = {'$key':key}
+            if stale:
+                query['stale'] = 'ok'
+            matches = self._db.get([self._DDOC, '_view/by_identifier'], query)
             if matches['rows']:
                 match = matches['rows'][0]
                 return match['id'], match['value']
@@ -102,7 +105,9 @@ class Importer(object):
                 
                 path = os.path.relpath(file, folder)
                 doc = self._image_doc(folder, path)
-                if doc and not self._find_image(doc['identifiers']):
+                new_identifiers = json.loads(json.dumps(doc['identifiers']))
+                del new_identifiers['relative_path']
+                if doc and not self._find_image(new_identifiers):
                     while not self._cancelled:
                         try:
                             self._image_docs.put(doc, True, 0.5)
@@ -139,6 +144,8 @@ class Importer(object):
                 if not doc:
                     break
                 self._db.remove(doc)
+        
+        self._find_image({'prepare_views':'before import'}, stale=False)
         
         self._find_files = Thread(target=find_new_files, name="Find new files (%s)" % self._source['_id'])
         self._find_files.daemon = True
