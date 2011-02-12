@@ -91,7 +91,9 @@
                 thumbnails.appendChild(frame);
             }
             
-            var to_import = document.createElement("div");
+            var to_import = document.createElement("a");
+            to_import.href = "dashboard.html";
+            to_import.target = "DashboardWindow";
             to_import.className = "frame";
             to_import.innerText = "Import more...";
             thumbnails.appendChild(to_import);
