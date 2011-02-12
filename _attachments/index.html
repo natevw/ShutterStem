@@ -37,7 +37,7 @@
             .basket h1 { margin: 0.1em; font-size: 110%; font-weight: normal; cursor: pointer; }
             .basket.displayed h1 { font-weight: bold; color: blue; }
             .basket ul { margin: 0em; padding: 0em; }
-            .basket li { margin: 0em 0.25em; cursor: pointer; text-decoration: underline; }
+            .basket li, #add_basket { margin: 0em 0.25em; cursor: pointer; text-decoration: underline; }
             .basket.displayed .add { display: none; }
             .basket .remove { display: none; }
             .basket.displayed .remove { display: list-item; }
@@ -63,7 +63,7 @@
     
     <body>
         <div id="baskets">
-            <a href id="add_basket">Add basket</a>
+            <span id="add_basket">Add basket</a>
         </div>
         <div id="thumbnails"></div>
         
@@ -187,8 +187,6 @@
                 response.rows.forEach(addBasket);
             });
             document.getElementById('add_basket').addEventListener('click', function (e) {
-                e.preventDefault();
-                
                 var basket = {
                     _id: "testbasket-" + Math.random(),
                     "testtype-basket": true,
