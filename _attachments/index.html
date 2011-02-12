@@ -153,6 +153,7 @@
                     lastShow = JSON.parse(localStorage['shutterstem-lastShow']);
                 } catch (e) {}
                 if (lastShow) {
+                    delete lastShow.options.show_last;
                     showPhotos(lastShow.prev, lastShow.start, lastShow.options);
                 } else {
                     showPhotos(null, null, {count:25});
