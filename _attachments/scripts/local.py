@@ -26,11 +26,19 @@ class LocalHelper(couch.External):
             if first_chunk.find("<!-- SHUTTERSTEM-TOKEN(%s)TOKEN-SHUTTERSTEM -->" % token) == -1:
                 raise Exception()
         
+        folder = os.path.dirname(helper)
+        allow_originals = req['query'].get('allow_originals', None)
+        if allow_originals == 'true':
+            # TODO: store this folder to local config w/token and helper path
+            return {'code':200, 'json':{'ok':True, 'message':"Originals may be hosted from '%s'." % folder}}
+        elif allow_originals is not None:
+            # TODO: remove this folder from local config
+            return {'code':200, 'json':{'ok':True, 'message':"Originals will NOT be hosted from '%s'." % folder}}
+        
         if source_id in self.importers:
             return {'code':409, 'json':{'error':True, 'reason':"An import is already in progress for this source"}}
         
         db_url = "http://%s/%s" % (req['headers']['Host'], req['info']['db_name'])
-        folder = os.path.dirname(helper)
         self.importers[source_id] = Importer(db_url, source_id, folder)
         
         return {'code':202, 'json':{'ok':True, 'message':"Import of '%s' may now start." % folder}}
