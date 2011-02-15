@@ -28,7 +28,7 @@ class LocalHelper(couch.External):
             if first_chunk.find("<!-- SHUTTERSTEM-TOKEN(%s)TOKEN-SHUTTERSTEM -->" % token) == -1:
                 raise Exception()
         
-        folder = os.path.dirname(helper)
+        folder, name = os.path.split(helper)
         allow_originals = req['query'].get('allow_originals', None)
         if allow_originals is not None:
             if os.path.exists(CONFIG):
@@ -39,8 +39,8 @@ class LocalHelper(couch.External):
             folders = config.setdefault('sources', {}).setdefault(source_id, {}).setdefault('folders', {})
             
             if allow_originals == 'true':
-                folders[folder] = True  # TODO: store utility name and token
-                message = "Originals may be hosted from '%s'." % folder
+                folders[folder] = {'utility':name, 'token':token}
+                message = "Originals may be hosted from '%s' while import utility remains in place." % folder
             else:
                 del folders[folder]
                 message = "Originals will NOT be hosted from '%s'." % folder
