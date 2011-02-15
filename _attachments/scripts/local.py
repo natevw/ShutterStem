@@ -9,6 +9,8 @@ from time import sleep
 import os
 import json
 
+CONFIG = os.path.dirname(os.path.abspath(__file__)) + '/local.config.ini'
+
 class LocalHelper(couch.External):
     def __init__(self):
         self.importers = {}
@@ -28,12 +30,24 @@ class LocalHelper(couch.External):
         
         folder = os.path.dirname(helper)
         allow_originals = req['query'].get('allow_originals', None)
-        if allow_originals == 'true':
-            # TODO: store this folder to local config w/token and helper path
-            return {'code':200, 'json':{'ok':True, 'message':"Originals may be hosted from '%s'." % folder}}
-        elif allow_originals is not None:
-            # TODO: remove this folder from local config
-            return {'code':200, 'json':{'ok':True, 'message':"Originals will NOT be hosted from '%s'." % folder}}
+        if allow_originals is not None:
+            if os.path.exists(CONFIG):
+                with open(CONFIG, 'r') as f:
+                    config = json.loads(f.read())
+            else:
+                 config = {}
+            folders = config.setdefault('sources', {}).setdefault(source_id, {}).setdefault('folders', {})
+            
+            if allow_originals == 'true':
+                folders[folder] = True  # TODO: store utility name and token
+                message = "Originals may be hosted from '%s'." % folder
+            else:
+                del folders[folder]
+                message = "Originals will NOT be hosted from '%s'." % folder
+            
+            with open(CONFIG, 'w') as f:
+                f.write(json.dumps(config))
+            return {'code':200, 'json':{'ok':True, 'message':message}}
         
         if source_id in self.importers:
             return {'code':409, 'json':{'error':True, 'reason':"An import is already in progress for this source"}}
