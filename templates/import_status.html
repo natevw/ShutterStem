@@ -24,6 +24,7 @@
     </head>
     
     <body>
+        <label><input id="allow_originals" type="checkbox" disabled>Share originals from this folder</label>
         <h2>Some new images found for this source:</h2>
         <div id="new_photos"></div>
         <a href id="import">Start Import</a>
@@ -45,12 +46,24 @@
             var db = new Couch(database_url);
             
             var new_photos = document.getElementById("new_photos");
+            var allow_originals = document.getElementById("allow_originals");
             db.http("POST", null, ['_import', import_id, 'folder'], {utility:utility_path, token:csrf_token}, function (status, response) {
                 // check for import started (or already in progress)
                 if (status != 202 && status != 409) {
                     new_photos.innerText = JSON.stringify(response, null, 4);
                     return;
                 }
+                
+                allow_originals.disabled = false;
+                allow_originals.checked = response.originals;
+                allow_originals.addEventListener("change", function () {
+                    var query = {utility:utility_path, token:csrf_token, $allow_originals:allow_originals.checked};
+                    db.http("POST", null, ['_import', import_id, 'folder'], query, function (status) {
+                        if (status !== 200) {
+                            allow_originals.disabled = true; allow_originals.checked = false;
+                        }
+                    });
+                }, false);
                 
                 function performAction(e) {
                     e.preventDefault();

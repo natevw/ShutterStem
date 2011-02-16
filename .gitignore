@@ -3,3 +3,4 @@
 *.mode1v3
 *.pyc
 build/
+_attachments/scripts/local.config.ini

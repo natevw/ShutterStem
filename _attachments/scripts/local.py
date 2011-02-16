@@ -29,33 +29,34 @@ class LocalHelper(couch.External):
                 raise Exception()
         
         folder, name = os.path.split(helper)
-        allow_originals = req['query'].get('allow_originals', None)
+        config_changed = False
+        if os.path.exists(CONFIG):
+            with open(CONFIG, 'r') as f:
+                config = json.loads(f.read())
+        else:
+             config = {}
+        folders = config.setdefault('sources', {}).setdefault(source_id, {}).setdefault('folders', {})
+        
+        allow_originals = req['query'].get('allow_originals', 'true' if (folder in folders) else None)
         if allow_originals is not None:
-            if os.path.exists(CONFIG):
-                with open(CONFIG, 'r') as f:
-                    config = json.loads(f.read())
-            else:
-                 config = {}
-            folders = config.setdefault('sources', {}).setdefault(source_id, {}).setdefault('folders', {})
-            
             if allow_originals == 'true':
+                # update or set folder utility information
                 folders[folder] = {'utility':name, 'token':token}
                 message = "Originals may be hosted from '%s' while import utility remains in place." % folder
             else:
                 del folders[folder]
                 message = "Originals will NOT be hosted from '%s'." % folder
-            
             with open(CONFIG, 'w') as f:
-                f.write(json.dumps(config))
-            return {'code':200, 'json':{'ok':True, 'message':message}}
+                    f.write(json.dumps(config))
+            if 'allow_originals' in req['query']:
+                return {'code':200, 'json':{'ok':True, 'message':message}}
         
+        originals = folder in folders
         if source_id in self.importers:
-            return {'code':409, 'json':{'error':True, 'reason':"An import is already in progress for this source"}}
-        
-        db_url = "http://%s/%s" % (req['headers']['Host'], req['info']['db_name'])
-        self.importers[source_id] = Importer(db_url, source_id, folder)
-        
-        return {'code':202, 'json':{'ok':True, 'message':"Import of '%s' may now start." % folder}}
+            return {'code':409, 'json':{'error':True, 'reason':"An import is already in progress for this source", 'originals':originals}}
+        else:
+            self.importers[source_id] = Importer("http://%s/%s" % (req['headers']['Host'], req['info']['db_name']), source_id, folder)
+            return {'code':202, 'json':{'ok':True, 'message':"Import of '%s' may now start." % folder, 'originals':originals}}
     
     def process_action(self, req):
         action = req['path'][3]
