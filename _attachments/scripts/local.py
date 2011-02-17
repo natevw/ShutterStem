@@ -83,6 +83,42 @@ class LocalHelper(couch.External):
         return {'code':400, 'json':{'error':True, 'reason':"Unknown action"}}
     
     
+    def process_image(self, req):
+        image_doc = self.db.read(req.path[2])
+        
+        # TODO: avoid config shenanigans if request can be satisfied by image_doc's thumbnails?
+        
+        if os.path.exists(CONFIG):
+            with open(CONFIG, 'r') as f:
+                config = json.loads(f.read())
+        else:
+             config = {}
+        
+        image_path_info = image_doc['identifiers']['relative_path']
+        source_id = image_path_info['source']['_id']
+        folders = config.setdefault('sources', {}).setdefault(source_id, {}).setdefault('folders', {})
+        
+        for folder, utility in folders.iteritems():
+            utility_path = os.path.join(folder, utility['name'])
+            
+            # check that the utility (and folder!) is still available
+            if not os.path.exists(utility_path):
+                continue
+            
+            # check that the file is actually the utility
+            with open(helper, 'r') as f:
+                first_chunk = f.read(4096)  # token required in first 4k
+                if first_chunk.find("<!-- SHUTTERSTEM-TOKEN(%s)TOKEN-SHUTTERSTEM -->" % utility['token']) == -1:
+                    continue
+            
+            image_path = os.path.join(folder, image_path['name'])
+            if os.path.exists(image_path):
+                # TODO: call GET_PHOTO to conjure up appropriate thumbnail/original/export
+                break
+        
+        return {'code':404, 'json':{'error':True, 'reason':"No original image could be found"}}
+        
+    
     def process(self, req):
         if req['method'] == 'POST' and req['path'][3] == "folder":
             try:
