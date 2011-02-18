@@ -15,6 +15,30 @@ class LocalHelper(couch.External):
     def __init__(self):
         self.importers = {}
     
+    
+    @property
+    def configfile(self):
+        if os.path.exists(CONFIG):
+            with open(CONFIG, 'r') as file:
+                return json.loads(file.read())
+        else:
+             return {}
+    
+    @configfile.setter
+    def configfile(self, config):
+        with open(CONFIG, 'w') as file:
+            file.write(json.dumps(config))
+    
+    @configfile.deleter
+    def configfile(self):
+        os.remove(CONFIG)
+    
+    def check_utility(self, utility_path, token):
+        with open(utility_path, 'r') as f:
+            first_chunk = f.read(4096)  # token required in first 4k
+            if first_chunk.find("<!-- SHUTTERSTEM-TOKEN(%s)TOKEN-SHUTTERSTEM -->" % token) == -1:
+                raise Exception()
+    
     def process_folder(self, req):
         source_id = req['path'][2]
         token = req['query'].get('token', None)
@@ -23,18 +47,10 @@ class LocalHelper(couch.External):
             return {'code':400, 'json':{'error':True, 'reason':"Required parameter(s) missing"}}
         
         # check that the request is not forged
-        with open(helper, 'r') as f:
-            first_chunk = f.read(4096)  # token required in first 4k
-            if first_chunk.find("<!-- SHUTTERSTEM-TOKEN(%s)TOKEN-SHUTTERSTEM -->" % token) == -1:
-                raise Exception()
+        self.check_utility(helper, token)
         
         folder, name = os.path.split(helper)
-        config_changed = False
-        if os.path.exists(CONFIG):
-            with open(CONFIG, 'r') as f:
-                config = json.loads(f.read())
-        else:
-             config = {}
+        config = self.configfile
         folders = config.setdefault('sources', {}).setdefault(source_id, {}).setdefault('folders', {})
         
         allow_originals = req['query'].get('allow_originals', 'true' if (folder in folders) else None)
@@ -46,8 +62,7 @@ class LocalHelper(couch.External):
             else:
                 del folders[folder]
                 message = "Originals will NOT be hosted from '%s'." % folder
-            with open(CONFIG, 'w') as f:
-                    f.write(json.dumps(config))
+            self.configfile = config
             if 'allow_originals' in req['query']:
                 return {'code':200, 'json':{'ok':True, 'message':message}}
         
@@ -85,35 +100,21 @@ class LocalHelper(couch.External):
     
     def process_image(self, req):
         image_doc = self.db.read(req.path[2])
-        
-        # TODO: avoid config shenanigans if request can be satisfied by image_doc's thumbnails?
-        
-        if os.path.exists(CONFIG):
-            with open(CONFIG, 'r') as f:
-                config = json.loads(f.read())
-        else:
-             config = {}
-        
         image_path_info = image_doc['identifiers']['relative_path']
         source_id = image_path_info['source']['_id']
-        folders = config.setdefault('sources', {}).setdefault(source_id, {}).setdefault('folders', {})
         
+        config = self.configfile
+        folders = config.setdefault('sources', {}).setdefault(source_id, {}).setdefault('folders', {})
         for folder, utility in folders.iteritems():
-            utility_path = os.path.join(folder, utility['name'])
-            
-            # check that the utility (and folder!) is still available
-            if not os.path.exists(utility_path):
+            # check that the utility (and folder!) is still valid and currently available
+            try:
+                self.check_utility(os.path.join(folder, utility['name']), utility['token'])
+            except Exception:
                 continue
-            
-            # check that the file is actually the utility
-            with open(helper, 'r') as f:
-                first_chunk = f.read(4096)  # token required in first 4k
-                if first_chunk.find("<!-- SHUTTERSTEM-TOKEN(%s)TOKEN-SHUTTERSTEM -->" % utility['token']) == -1:
-                    continue
             
             image_path = os.path.join(folder, image_path['name'])
             if os.path.exists(image_path):
-                # TODO: call GET_PHOTO to conjure up appropriate thumbnail/original/export
+                # TODO: call GET_PHOTO to conjure up appropriate original/export/view
                 break
         
         return {'code':404, 'json':{'error':True, 'reason':"No original image could be found"}}
