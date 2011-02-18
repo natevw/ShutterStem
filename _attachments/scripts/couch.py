@@ -76,8 +76,8 @@ class External(object):
         while line:
             try:
                 response = self.process(json.loads(line))
-            except Exception:
-                response = {'code':500, 'json':{'error':True, 'reason':"Internal error processing request"}}
+            except Exception as e:
+                response = {'code':500, 'json':{'error':True, 'reason':"Internal error processing request (%s)" % e}}
             sys.stdout.write("%s\n" % json.dumps(response))
             sys.stdout.flush()
             line = sys.stdin.readline()
