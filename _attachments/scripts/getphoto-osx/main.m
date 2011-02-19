@@ -18,10 +18,11 @@
 
 static const struct option cli_options[] = {
     {"original", no_argument, NULL, 'o'},       // output _attachments/original
-    {"modified", no_argument, NULL, 'O'},       // output _attachments/modified (with "write" metadata when given)
-    {"export", required_argument, NULL, 'e'},   // output _attachments/export/SIZE.jpg (with "write" metadata if given)
-    {"thumbnail", required_argument, NULL, 't'},// output _attachments/thumbnail/SIZE.jpg (with no metadata)
-    {"metadata", required_argument, NULL, 'm'}, // {"read":["timestamp","location"], "write":{"timestamp":"2010-02-18T20:15:00-08:00"}}
+  //{"modified", no_argument, NULL, 'O'},       // output _attachments/modified (original format with modidata)
+    {"export", required_argument, NULL, 'e'},   // output _attachments/export/SIZE.jpg (modidata modifying metadata)
+    {"thumbnail", required_argument, NULL, 't'},// output _attachments/thumbnail/SIZE.jpg (only modidata metadata)
+    {"modidata", required_argument, NULL, 'M'}, // (re)set or remove {"timestamp":"2010-02-18T20:15:00-08:00","location":null}
+    {"metadata", required_argument, NULL, 'm'}, // output original's ["timestamp","location","etc."] in document
     {"timezone", required_argument, NULL, 'z'}, // timezone used to read/write timestamps, defaults to system
     {}
 };
