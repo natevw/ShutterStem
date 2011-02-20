@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+    <head>
+    <meta charset="UTF-8">
+    <title>ShutterStem - {{ description }}</title>
+    
+    <style>
+        #config { display: none; }
+    </style>
+    <script src="{{ database_url }}/_design/shutterstem/couch.js"></script>
+    <script src="{{ database_url }}/_design/shutterstem/classlist.js"></script>
+    </head>
+    
+    <body>
+        <div id="config" data-database_url="{{ database_url }}" data-csrf_token="{{ csrf_token }}"></div>
+        <script>
+            var config = document.getElementById('config');
+            var database_url = config.getAttribute('data-database_url');
+            var csrf_token = config.getAttribute('data-csrf_token');
+            var db = new Couch(database_url);
+            // TODO: so.... export.....?
+        </script>
+    </body>
+</html>
