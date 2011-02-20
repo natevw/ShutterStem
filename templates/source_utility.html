@@ -96,13 +96,11 @@
             });
             
             var import_status = document.getElementById('import_status');
-            function update_import_status_height() {
-                var height = parseInt(import_status.contentWindow.location.hash.split("h=")[1]);
-                import_status.style.height = Math.max(275, height + 40) + "px";
-            }
-            import_status.addEventListener("load", update_import_status_height, false);
-            window.addEventListener("resize", update_import_status_height, false);
-            setInterval(update_import_status_height, 1000);     // fallback to polling for content changes we can't monitor
+            window.addEventListener("message", function (e) {
+                if (e.source === import_status.contentWindow) {
+                    import_status.style.height = Math.max(275, parseInt(e.data) + 40) + "px";
+                }
+            }, false);
             var status_url = db.urlFor(["/_design/shutterstem/_show/import_status/", import_id], {utility:utility_path, token:csrf_token});
             import_status.src = status_url;
             

@@ -38,7 +38,7 @@
             data-csrf_token="{{ csrf_token }}"></div>
         <script>
             function update_height_info() {
-                window.location.hash = "h=" + document.body.clientHeight;
+                window.parent.postMessage(JSON.stringify(document.body.clientHeight), "*");
             }
             window.addEventListener("resize", update_height_info, false);
             update_height_info();
