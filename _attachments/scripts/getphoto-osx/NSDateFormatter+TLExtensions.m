@@ -67,7 +67,7 @@ static const NSUInteger TLYMDHMSCalendarUnit = NSYearCalendarUnit | NSMonthCalen
 }
 
 + (NSString*)tl_dateToRFC3339:(NSDate*)date withTimezone:(NSTimeZone*)tz {
-    NSCalendar* gregorian = [[NSCalendar alloc] initWithCalendarIdentifier:NSGregorianCalendar];
+    NSCalendar* gregorian = [[[NSCalendar alloc] initWithCalendarIdentifier:NSGregorianCalendar] autorelease];
     NSString* tzString;
     
     // this is aligned with RFC3339 distinction among -00:00, +00:00 and Z
