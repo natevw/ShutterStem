@@ -49,17 +49,20 @@ class Importer(object):
                 info = json.loads(line)
             except ValueError:
                 info = {'error':True, 'fallback_message':"Failed to parse utility log: '%s'" % line}
-            self._log.setdefault(full_path, []).append(info)
-        
+            info['path'] = "%s/%s" % (self._source['_id'], path)
+            self._log.append(info)
         if p.returncode:
             return
+        
         try:
             doc = json.loads(out)
         except ValueError:
             info = {'error':True, 'message':"Failed to parse output document: '%s'" % out}
-            self._log.setdefault(full_path, []).append(info)
+            info['path'] = "%s/%s" % (self._source['_id'], path)
+            self._log.append(info)
             return
-        del doc['original_info']
+        if 'original_info' in doc:
+            del doc['original_info']
         doc['_id'] = "testfakeimage-%s" % uuid.uuid4().hex
         doc[self._IMAGE_TYPE] = True
         
@@ -89,7 +92,7 @@ class Importer(object):
         self._recent_image_docs = deque(maxlen=10)
         self._image_docs = Queue(maxsize=30)
         self._imported_refs = Queue()
-        self._log = {}
+        self._log = deque()
         
         def find_new_files():
             self._find_image({'update_identifiers':"Updating identifiers view index before new import."}, stale=False)
@@ -220,5 +223,5 @@ class Importer(object):
             'remaining': remaining,
             'verb': verb,
             'recent': list(self._recent_image_docs),
-            'log': self._log
+            'log': list(self._log)
         }
