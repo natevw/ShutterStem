@@ -34,17 +34,19 @@ class Importer(object):
     def _image_doc(self, folder, path):
         full_path = os.path.join(folder, path)
         
-        get_photo = [GET_PHOTO, '--thumbnail', '64', '--thumbnail', '512']
+        get_photo = [GET_PHOTO, full_path]
         if 'time_zone' in self._source:
             get_photo.extend(['--timezone', self._source['time_zone']])
-        get_photo.append(full_path)
+        get_photo.extend(['--thumbnail', '64', '--thumbnail', '512'])
+        
         p = subprocess.Popen(get_photo, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = p.communicate()
+        out, log = p.communicate()
         
         if p.returncode:
             return
         
         doc = json.loads(out)
+        del doc['original_info']
         doc['_id'] = "testfakeimage-%s" % uuid.uuid4().hex
         doc[self._IMAGE_TYPE] = True
         
@@ -119,7 +121,8 @@ class Importer(object):
                         break
                 
                 doc = json.loads(json.dumps(doc))
-                del doc['_attachments']['thumbnail/512.jpg']
+                if 'thumbnail/512.jpg' in doc.get('_attachments', {}):
+                    del doc['_attachments']['thumbnail/512.jpg']
                 self._recent_image_docs.appendleft(doc)
             
             while not self._cancelled:
