@@ -6,9 +6,11 @@
     <!-- SHUTTERSTEM-TOKEN({{ csrf_token }})TOKEN-SHUTTERSTEM -->
     
     <style>
+        #config { display: none; }
         .error { display: block; width: 400px; font-family: sans-serif; font-size: 105%; }
         .error h1 { font-family: monospace; font-size: 200%; color: red; }
         #server_frame { border-style: none; display: block; width: 100%; height: 100%; margin: -8px 0px; padding: 0px; }
+
     </style>
     </head>
     
@@ -36,12 +38,14 @@
         
         <iframe id="server_frame"></iframe>
         
-        <div id="config" data-frame_url="{{ frame_url }}"></div>
+        <div id="config" data-frame_host="{{ frame_host }}" data-frame_path="{{ frame_path }}" data-frame_message="{{ frame_message }}"></div>
         <script>
             var server_frame = document.getElementById('server_frame');
             if (document.location.protocol === "file:") {
                 var config = document.getElementById('config');
-                server_frame.src = config.getAttribute('data-frame_url') + "&utility=" + encodeURIComponent(document.location.pathname);
+                var frame_host = config.getAttribute('data-frame_host');
+                var frame_path = config.getAttribute('data-frame_path');
+                server_frame.src = frame_host + frame_path + encodeURIComponent(document.location.pathname);
                 var assumeFailed = setTimeout(function () {
                     document.getElementById('load_fail').style.display = "block";
                     server_frame.style.display = "none";
@@ -51,6 +55,7 @@
                     clearTimeout(assumeFailed);
                     document.getElementById('load_fail').style.display = "none";
                     server_frame.style.display = "";
+                    server_frame.contentWindow.postMessage(config.getAttribute('data-frame_message'), frame_host);
                 }
             } else {
                 document.getElementById('bad_location').style.display = "block";
