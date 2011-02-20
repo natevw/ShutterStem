@@ -42,10 +42,23 @@ class Importer(object):
         p = subprocess.Popen(get_photo, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, log = p.communicate()
         
+        for line in log.split("\n"):
+            if not line:
+                continue
+            try:
+                info = json.loads(line)
+            except ValueError:
+                info = {'error':True, 'fallback_message':"Failed to parse utility log: '%s'" % line}
+            self._log.setdefault(full_path, []).append(info)
+        
         if p.returncode:
             return
-        
-        doc = json.loads(out)
+        try:
+            doc = json.loads(out)
+        except ValueError:
+            info = {'error':True, 'message':"Failed to parse output document: '%s'" % out}
+            self._log.setdefault(full_path, []).append(info)
+            return
         del doc['original_info']
         doc['_id'] = "testfakeimage-%s" % uuid.uuid4().hex
         doc[self._IMAGE_TYPE] = True
@@ -76,6 +89,7 @@ class Importer(object):
         self._recent_image_docs = deque(maxlen=10)
         self._image_docs = Queue(maxsize=30)
         self._imported_refs = Queue()
+        self._log = {}
         
         def find_new_files():
             self._find_image({'update_identifiers':"Updating identifiers view index before new import."}, stale=False)
@@ -205,5 +219,6 @@ class Importer(object):
             'imported': imported,
             'remaining': remaining,
             'verb': verb,
-            'recent': list(self._recent_image_docs)
+            'recent': list(self._recent_image_docs),
+            'log': self._log
         }
