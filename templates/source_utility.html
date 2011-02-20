@@ -20,7 +20,7 @@
         #recent_photos img.finding { border-style: dotted; border-color: yellow; }
         #recent_photos img.notfound { border-style: dashed; border-color: red; padding: 1px; }
         
-        #import_status { border-style: none; display: block; width: 100%; height: 200px; margin: 0px -8px; padding: 0px; }
+        #import_status { border-style: none; display: block; width: 100%; height: 275px; margin: 0px -8px; padding: 0px; }
     </style>
     <script src="{{ database_url }}/_design/shutterstem/couch.js"></script>
     <script src="{{ database_url }}/_design/shutterstem/classlist.js"></script>
@@ -95,8 +95,16 @@
                 el.innerText = folder;
             });
             
+            var import_status = document.getElementById('import_status');
+            function update_import_status_height() {
+                var height = parseInt(import_status.contentWindow.location.hash.split("h=")[1]);
+                import_status.style.height = Math.max(275, height + 40) + "px";
+            }
+            import_status.addEventListener("load", update_import_status_height, false);
+            window.addEventListener("resize", update_import_status_height, false);
+            setInterval(update_import_status_height, 1000);     // fallback to polling for content changes we can't monitor
             var status_url = db.urlFor(["/_design/shutterstem/_show/import_status/", import_id], {utility:utility_path, token:csrf_token});
-            document.getElementById('import_status').src = status_url;
+            import_status.src = status_url;
             
             // TODO: just store list of "last_imported_ids" in import source document
             var recent_photos = document.getElementById('recent_photos');

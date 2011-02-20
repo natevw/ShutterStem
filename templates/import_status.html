@@ -37,6 +37,12 @@
             data-utility_path="{{ utility_path }}"
             data-csrf_token="{{ csrf_token }}"></div>
         <script>
+            function update_height_info() {
+                window.location.hash = "h=" + document.body.clientHeight;
+            }
+            window.addEventListener("resize", update_height_info, false);
+            update_height_info();
+            
             var config = document.getElementById('config');
             var database_url = config.getAttribute('data-database_url');
             var import_id = config.getAttribute('data-import_id');
@@ -51,6 +57,7 @@
                 // check for import started (or already in progress)
                 if (status != 202 && status != 409) {
                     new_photos.innerText = JSON.stringify(response, null, 4);
+                    update_height_info();
                     return;
                 }
                 
@@ -87,6 +94,7 @@
                         import_button.className = "";
                         cancel_button.className = "";
                         finish_button.className = "";
+                        update_height_info();
                         return;
                     }
                     
@@ -115,8 +123,10 @@
                         img.alt = image_doc.path;
                         var thumb = image_doc._attachments['thumbnail/64.jpg'];
                         img.src = "data:" + thumb.content_type + ";base64," + thumb.data;
+                        img.addEventListener("load", update_height_info, false);
                         new_photos.appendChild(img);
                     });
+                    update_height_info();
                 } 
                 var timer = setInterval(updateStatus, 2500);
                 updateStatus();
