@@ -31,7 +31,7 @@
         
         <div id="load_fail" class="error" style="display: none;">
         <h1>Server down?</h1>
-        This utility must be opened on a machine actively hosting ShutterStem.
+        This utility must be opened on the machine actively hosting the ShutterStem database from whence it came.
         </div>
         
         <iframe id="server_frame"></iframe>
@@ -41,7 +41,7 @@
             var server_frame = document.getElementById('server_frame');
             if (document.location.protocol === "file:") {
                 var config = document.getElementById('config');
-                server_frame.src = config.getAttribute('data-frame_url') + "&utility=" + document.location.pathname;
+                server_frame.src = config.getAttribute('data-frame_url') + "&utility=" + encodeURIComponent(document.location.pathname);
                 var assumeFailed = setTimeout(function () {
                     document.getElementById('load_fail').style.display = "block";
                     server_frame.style.display = "none";
