@@ -6,19 +6,64 @@
     
     <style>
         #config { display: none; }
+        #start_export { font-size: 150%; color: green; }
     </style>
     <script src="{{ database_url }}/_design/shutterstem/couch.js"></script>
     <script src="{{ database_url }}/_design/shutterstem/classlist.js"></script>
     </head>
     
     <body>
+        <h1>ShutterStem Export</h1>
+        
+        <form>
+        <h2>Format:</h2>
+        <label><input type="radio" name="export_format" value="original">Copy original files</label><br>
+        <label><input type="radio" name="export_format" value="2048">Huge size (2048 pixels)</label><br>
+        <label><input type="radio" name="export_format" value="1024" checked>Large size (1024 pixels)</label><br>
+        <label><input type="radio" name="export_format" value="640">Medium size (640 pixels)</label><br>
+        <h2>Location:</h2>
+        Photos will be exported into <var class="export_path">the folder this utility is within</var>.<br>
+        <label><input name="in_folder" type="checkbox" checked>Put inside subfolder</label>
+        <label>named: <input name="folder_name" type="text" value="{{ default_folder_name }}"></label><br>
+        
+        <a id="start_export" href>Begin export</a>
+        
+        </form>
         <div id="config" data-database_url="{{ database_url }}" data-csrf_token="{{ csrf_token }}"></div>
         <script>
             var config = document.getElementById('config');
             var database_url = config.getAttribute('data-database_url');
             var csrf_token = config.getAttribute('data-csrf_token');
-            var db = new Couch(database_url);
-            // TODO: so.... export.....?
+            //var db = new Couch(database_url);
+            
+            var format;
+            Array.prototype.forEach.call(document.getElementsByName("export_format"), function (button) {
+                if (button.checked) {
+                    format = button.value;
+                }
+                button.addEventListener("change", function () {
+                    format = this.value;
+                }, false);
+            });
+            
+            var subfolder;
+            var folder_name = document.getElementsByName("folder_name")[0];
+            document.getElementsByName("in_folder")[0].addEventListener("change", function () {
+                if (this.checked) {
+                    folder_name.disabled = false;
+                    subfolder = folder_name.value;
+                } else {
+                    folder_name.disabled = true;
+                    subfolder = null;
+                }
+            }, false);
+            subfolder = folder_name.value;
+            
+            document.getElementById("start_export").addEventListener("click", function (e) {
+                e.preventDefault();
+                console.log("EXPORT, YO!");
+                // TODO: so.... export.....?
+            }, false);
         </script>
     </body>
 </html>
