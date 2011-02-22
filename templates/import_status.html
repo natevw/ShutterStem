@@ -13,11 +13,11 @@
         #new_photos img.pending { border-style: dotted; border-color: yellow; }
         #new_photos img.imported { border-color: green; }
         
-        #import { font-size: 200%; color: green; }
+        #begin { font-size: 200%; color: green; }
         #cancel { font-size: 90%; color: gray; }
         #finish { font-size: 100%; color: blue; }
-        #import, #cancel, #finish { visibility: hidden; }
-        #import.enabled, #cancel.enabled, #finish.enabled { visibility: visible; }
+        #begin, #cancel, #finish { visibility: hidden; }
+        #begin.enabled, #cancel.enabled, #finish.enabled { visibility: visible; }
     </style>
     <script src="{{ database_url }}/_design/shutterstem/couch.js"></script>
     <script src="{{ database_url }}/_design/shutterstem/classlist.js"></script>
@@ -27,7 +27,7 @@
         <label><input id="allow_originals" type="checkbox" disabled>Share originals from this folder</label>
         <h2>Some new images found for this source:</h2>
         <div id="new_photos"></div>
-        <a href id="import">Start Import</a>
+        <a href id="begin">Start Import</a>
         <a href id="cancel">Cancel</a>
         <a href id="finish">Finish</a>
         
@@ -51,9 +51,28 @@
             
             var db = new Couch(database_url);
             
-            var new_photos = document.getElementById("new_photos");
             var allow_originals = document.getElementById("allow_originals");
-            db.http("POST", null, ['_import', import_id, 'folder'], {utility:utility_path, token:csrf_token}, function (status, response) {
+            db.http("POST", null, ['_local_shutterstem', 'folder', import_id, 'update'], {utility:utility_path, token:csrf_token}, function (status, response) {
+                if (status !== 200) {
+                    console.warn("Bad response for folder when trying to update originals hosting.");
+                    return;
+                }
+                
+                allow_originals.disabled = false;
+                allow_originals.checked = response.allows_originals;
+                allow_originals.addEventListener("change", function () {
+                    var action = (allow_originals.checked) ? 'allow' : 'disable';
+                    db.http("POST", null, ['_local_shutterstem', 'folder', import_id, action], {utility:utility_path, token:csrf_token}, function (status) {
+                        if (status !== 200) {
+                            console.warn("Bad response for folder when trying to change originals hosting.");
+                            allow_originals.disabled = true; allow_originals.checked = false;
+                        }
+                    });
+                }, false);
+            });
+            
+            var new_photos = document.getElementById("new_photos");
+            db.http("POST", null, ['_local_shutterstem', 'import', import_id, 'create'], {utility:utility_path, token:csrf_token}, function (status, response) {
                 // check for import started (or already in progress)
                 if (status != 202 && status != 409) {
                     new_photos.innerText = JSON.stringify(response, null, 4);
@@ -61,37 +80,25 @@
                     return;
                 }
                 
-                allow_originals.disabled = false;
-                allow_originals.checked = response.originals;
-                allow_originals.addEventListener("change", function () {
-                    var query = {utility:utility_path, token:csrf_token, $allow_originals:allow_originals.checked};
-                    db.http("POST", null, ['_import', import_id, 'folder'], query, function (status) {
-                        if (status !== 200) {
-                            allow_originals.disabled = true; allow_originals.checked = false;
-                        }
-                    });
-                }, false);
-                
+                var begin_button = document.getElementById("begin");
+                var cancel_button = document.getElementById("cancel");
+                var finish_button = document.getElementById("finish");
                 function performAction(e) {
                     e.preventDefault();
                     this.className = "";
-                    db.http("POST", null, ['_import', import_id, this.id], null, function (status, response) {
+                    db.http("POST", null, ['_local_shutterstem', 'import', import_id, this.id], {utility:utility_path, token:csrf_token}, function (status, response) {
                         updateStatus();
                     });
                 }
-                
-                var import_button = document.getElementById("import");
-                var cancel_button = document.getElementById("cancel");
-                var finish_button = document.getElementById("finish");
-                import_button.addEventListener("click", performAction, false);
+                begin_button.addEventListener("click", performAction, false);
                 cancel_button.addEventListener("click", performAction, false);
                 finish_button.addEventListener("click", performAction, false);
                 
                 function updateStatus() {
                     //new_photos.innerText = JSON.stringify(response, null, 4);
-                    var response = db.get(['_import', import_id]);
+                    var response = db.get(['_local_shutterstem', 'import', import_id]);
                     if (!response) {
-                        import_button.className = "";
+                        begin_button.className = "";
                         cancel_button.className = "";
                         finish_button.className = "";
                         update_height_info();
@@ -99,9 +106,9 @@
                     }
                     
                     if (response.verb.indexOf('wait') != -1) {
-                        import_button.className = "enabled";
+                        begin_button.className = "enabled";
                     } else {
-                        import_button.className = "";
+                        begin_button.className = "";
                     }
                     
                     if (response.verb != 'cancel') {
