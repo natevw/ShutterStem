@@ -38,6 +38,7 @@ class LocalHelper(couch.External):
             if first_chunk.find("<!-- SHUTTERSTEM-TOKEN(%s)TOKEN-SHUTTERSTEM -->" % csrf_token) == -1:
                 raise Exception()
     
+    
     def process(self, req):
         _db_name, _this_external, action = req['path'][:3]
         action_subpath = req['path'][3:]
@@ -64,8 +65,9 @@ class LocalHelper(couch.External):
         return {'code':400, 'json':{'error':True, 'reason':"Bad request"}}
     
     
-    def process_image_GET(self, req):
-        image_doc = self.db.read(req.path[2])
+    
+    def process_image_GET(self, req, subpath):
+        image_doc = couch.Database(req['database_url']).read(subpath[0])
         image_path_info = image_doc['identifiers']['relative_path']
         source_id = image_path_info['source']['_id']
         

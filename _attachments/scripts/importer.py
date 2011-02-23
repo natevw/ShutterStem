@@ -3,6 +3,7 @@ from __future__ import with_statement   # needed under Python 2.5 (Leopard defau
 
 
 import couch
+import image
 
 import os
 import json
@@ -33,34 +34,19 @@ class Importer(object):
     
     def _image_doc(self, folder, path):
         full_path = os.path.join(folder, path)
-        
-        get_photo = [GET_PHOTO, full_path]
+        args = []
         if 'time_zone' in self._source:
-            get_photo.extend(['--timezone', self._source['time_zone']])
-        get_photo.extend(['--thumbnail', '64', '--thumbnail', '512'])
+            args.extend(['--timezone', self._source['time_zone']])
+        args.extend(['--thumbnail', '64', '--thumbnail', '512'])
+        doc, logs = image.get(full_path, *args)
         
-        p = subprocess.Popen(get_photo, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, log = p.communicate()
+        for log in logs:
+            log['path'] = "%s/%s" % (self._source['_id'], path)
+            self._log.append(log)
         
-        for line in log.split("\n"):
-            if not line:
-                continue
-            try:
-                info = json.loads(line)
-            except ValueError:
-                info = {'error':True, 'fallback_message':"Failed to parse utility log: '%s'" % line}
-            info['path'] = "%s/%s" % (self._source['_id'], path)
-            self._log.append(info)
-        if p.returncode:
+        if not doc:
             return
         
-        try:
-            doc = json.loads(out)
-        except ValueError:
-            info = {'error':True, 'message':"Failed to parse output document: '%s'" % out}
-            info['path'] = "%s/%s" % (self._source['_id'], path)
-            self._log.append(info)
-            return
         if 'original_info' in doc:
             del doc['original_info']
         doc['_id'] = "testfakeimage-%s" % uuid.uuid4().hex
