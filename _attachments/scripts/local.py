@@ -3,6 +3,7 @@ from __future__ import with_statement   # needed under Python 2.5 (Leopard defau
 
 
 import couch
+import image
 from importer import Importer
 
 from time import sleep
@@ -67,10 +68,12 @@ class LocalHelper(couch.External):
     
     
     def process_image_GET(self, req, subpath):
-        image_doc = couch.Database(req['database_url']).read(subpath[0])
-        image_path_info = image_doc['identifiers']['relative_path']
-        source_id = image_path_info['source']['_id']
+        image_id, type = subpath[:2]
+        image_doc = couch.Database(req['database_url']).read(image_id)
+        import_info = image_doc['identifiers']['relative_path']
+        source_id = import_info['source']['_id']
         
+        logs = []
         config = self.configfile
         folders = config.setdefault('sources', {}).setdefault(source_id, {}).setdefault('folders', {})
         for folder, utility in folders.iteritems():
@@ -78,14 +81,20 @@ class LocalHelper(couch.External):
             try:
                 self.check_utility(os.path.join(folder, utility['name']), utility['token'])
             except Exception:
+                logs.append("Utility at %s/%s wasn't valid" % (folder, utility['name']))
                 continue
             
-            image_path = os.path.join(folder, image_path['name'])
+            image_path = os.path.join(folder, import_info['path'])
             if os.path.exists(image_path):
-                # TODO: call GET_PHOTO to conjure up appropriate original/export/view
-                break
+                # TODO: conjure up appropriate original/export/view
+                doc, logs = image.get(image_path, '--thumbnail', type)
+                logs.extend(logs)
+                if doc:
+                    headers = {'Content-Type':'image/jpeg'}
+                    data = doc['_attachments']['thumbnail/%s.jpg' % type]['data']
+                    return {'code':200, 'headers':headers, 'base64':data}
         
-        return {'code':404, 'json':{'error':True, 'reason':"No original image could be found"}}
+        return {'code':404, 'json':{'error':True, 'reason':"No original image could be found", 'logs':logs}}
     
     
     def process_import_GET(self, req, subpath):
@@ -131,7 +140,7 @@ class LocalHelper(couch.External):
         if action == 'check':
             pass
         elif action == 'allow' or (action == 'update' and folder_info):
-            folder_info['utility'] = req['utility']['name']
+            folder_info['name'] = req['utility']['name']
             folder_info['token'] = req['utility']['token']
             self.configfile = config
         elif action == 'disable':
