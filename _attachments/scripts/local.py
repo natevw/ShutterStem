@@ -73,7 +73,6 @@ class LocalHelper(couch.External):
         import_info = image_doc['identifiers']['relative_path']
         source_id = import_info['source']['_id']
         
-        logs = []
         config = self.configfile
         folders = config.setdefault('sources', {}).setdefault(source_id, {}).setdefault('folders', {})
         for folder, utility in folders.iteritems():
@@ -81,20 +80,18 @@ class LocalHelper(couch.External):
             try:
                 self.check_utility(os.path.join(folder, utility['name']), utility['token'])
             except Exception:
-                logs.append("Utility at %s/%s wasn't valid" % (folder, utility['name']))
                 continue
             
             image_path = os.path.join(folder, import_info['path'])
             if os.path.exists(image_path):
                 # TODO: conjure up appropriate original/export/view
-                doc, logs = image.get(image_path, '--thumbnail', type)
-                logs.extend(logs)
+                doc, _ = image.get(image_path, '--thumbnail', type)
                 if doc:
                     headers = {'Content-Type':'image/jpeg'}
                     data = doc['_attachments']['thumbnail/%s.jpg' % type]['data']
                     return {'code':200, 'headers':headers, 'base64':data}
         
-        return {'code':404, 'json':{'error':True, 'reason':"No original image could be found", 'logs':logs}}
+        return {'code':404, 'json':{'error':True, 'reason':"No original image could be found"}}
     
     
     def process_import_GET(self, req, subpath):
