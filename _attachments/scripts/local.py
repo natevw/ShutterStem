@@ -87,9 +87,10 @@ class LocalHelper(couch.External):
                 # TODO: conjure up appropriate original/export/view
                 doc, _ = image.get(image_path, '--thumbnail', type)
                 if doc:
-                    headers = {'Content-Type':'image/jpeg'}
-                    data = doc['_attachments']['thumbnail/%s.jpg' % type]['data']
-                    return {'code':200, 'headers':headers, 'base64':data}
+                    img = doc.get('_attachments', {}).get('thumbnail/%s.jpg' % type)
+                    if img:
+                        headers = {'Content-Type':img['content_type']}
+                        return {'code':200, 'headers':headers, 'base64':img['data']}
         
         return {'code':404, 'json':{'error':True, 'reason':"No original image could be found"}}
     
