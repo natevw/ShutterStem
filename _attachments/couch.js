@@ -45,7 +45,9 @@ Couch.prototype.get = function (path, query, callback) {
 
 Couch.prototype.read = function (id) {
     var req = this.http("GET", null, id);
-    if (req.status !== 200) {
+    if (req.status === 404) {
+        return null;
+    } else if (req.status !== 200) {
         throw Error(req.statusText);
     }
     return req.response;

@@ -39,7 +39,9 @@ class Database(object):
     
     def read(self, doc_id):
         status, result = self.http('GET', None, doc_id)
-        if status != 200:
+        if status == 404:
+            return None
+        elif status != 200:
             raise IOError(status, result['error'], doc_id)
         return result
     
