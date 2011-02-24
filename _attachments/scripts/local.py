@@ -9,8 +9,12 @@ from importer import Importer
 from time import sleep
 import os
 import json
+import base64
+from cStringIO import StringIO
 
 CONFIG = os.path.dirname(os.path.abspath(__file__)) + '/local.config.ini'
+
+BAD_REQUEST = {'code':400, 'json':{'error':True, 'reason':"Bad request"}}
 
 class LocalHelper(couch.External):
     def __init__(self):
@@ -51,29 +55,60 @@ class LocalHelper(couch.External):
                 self.check_utility(utility_path, csrf_token)
             except Exception:
                 sleep(2.5)    # slow down malicious local scanning
-                return {'code':400, 'json':{'error':True, 'reason':"Bad request"}}
+                return BAD_REQUEST
             else:
                 folder, name = os.path.split(utility_path)
                 req['utility'] = {'path':utility_path, 'token':csrf_token, 'folder':folder, 'name':name}
         elif req['method'] != 'GET':
-            return {'code':400, 'json':{'error':True, 'reason':"Bad request"}}
+            return BAD_REQUEST
         
         processor = getattr(self, 'process_%s_%s' % (action, req['method']), None)
         if processor:
             return processor(req, action_subpath)
         
         #return {'body': "<h1>Hello World!</h1>\n<pre>%s</pre>" % json.dumps(req, indent=4)}
-        return {'code':400, 'json':{'error':True, 'reason':"Bad request"}}
+        return BAD_REQUEST
     
     
     
-    def process_image_GET(self, req, subpath):
-        image_id, type = subpath[:2]
+    def _get_original(self, image_path):
+        try:
+            with open(image_path, 'rb') as f:
+                buffer = StringIO()
+                base64.encode(f, buffer)
+        except Exception:
+            return {'code':500, 'json':{'error':True, 'reason':"Failed to get image"}}
+        else:
+            headers = {'Content-Type':"application/octet-stream"}
+            return {'code':200, 'headers':headers, 'base64':buffer.getvalue()}
+    
+    def _get_thumbnail(self, image_path, size):
+        doc, _ = image.get(image_path, '--thumbnail', size)
+        if doc:
+            img = doc.get('_attachments', {}).get('thumbnail/%s.jpg' % size)
+            if img:
+                headers = {'Content-Type':img['content_type']}
+                return {'code':200, 'headers':headers, 'base64':img['data']}
+        return {'code':500, 'json':{'error':True, 'reason':"Failed to get image"}}
+    
+    def process_images_GET(self, req, subpath):
+        try:
+            image_id = subpath[0]
+        except ValueError:
+            return BAD_REQUEST
+        
+        size = req['query'].get('size')
+        if size and not size.isdigit():
+            size = 'original_size'
+        
         image_doc = couch.Database(req['database_url']).read(image_id)
+        if not image_doc:
+            return {'code':404, 'json':{'error':True, 'reason':"No such image"}}
         import_info = image_doc['identifiers']['relative_path']
         source_id = import_info['source']['_id']
         
         config = self.configfile
+        found = False
         folders = config.setdefault('sources', {}).setdefault(source_id, {}).setdefault('folders', {})
         for folder, utility in folders.iteritems():
             # check that the utility (and folder!) is still valid and currently available
@@ -84,15 +119,24 @@ class LocalHelper(couch.External):
             
             image_path = os.path.join(folder, import_info['path'])
             if os.path.exists(image_path):
-                # TODO: conjure up appropriate original/export/view
-                doc, _ = image.get(image_path, '--thumbnail', type)
-                if doc:
-                    img = doc.get('_attachments', {}).get('thumbnail/%s.jpg' % type)
-                    if img:
-                        headers = {'Content-Type':img['content_type']}
-                        return {'code':200, 'headers':headers, 'base64':img['data']}
+                found = True
+                if not size:
+                    response = self._get_original(image_path)
+                    filename = req['query'].get('as')
+                    if filename:
+                        filename += os.path.splitext(image_path)[1].lower()
+                    else:
+                        filename = os.path.basename(image_path)
+                    headers = {'Content-Disposition': "attachment; filename=%s" % filename}
+                    response.setdefault('headers', {}).update(headers)
+                else:
+                    response = self._get_thumbnail(image_path, size)
+                
+                if response.get('code', 200) == 200:
+                    return response
         
-        return {'code':404, 'json':{'error':True, 'reason':"No original image could be found"}}
+        message = "No original image could be %s." % ('read' if found else 'found')
+        return {'code':404, 'json':{'error':True, 'reason':message}}
     
     
     def process_import_GET(self, req, subpath):
