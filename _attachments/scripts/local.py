@@ -45,7 +45,10 @@ class LocalHelper(couch.External):
     
     
     def process(self, req):
-        _db_name, _this_external, action = req['path'][:3]
+        try:
+            _db_name, _this_external, action = req['path'][:3]
+        except ValueError:
+            return BAD_REQUEST
         action_subpath = req['path'][3:]
         req['database_url'] = "http://%s/%s" % (req['headers']['Host'], req['info']['db_name'])
         
@@ -69,6 +72,10 @@ class LocalHelper(couch.External):
         #return {'body': "<h1>Hello World!</h1>\n<pre>%s</pre>" % json.dumps(req, indent=4)}
         return BAD_REQUEST
     
+    
+    
+    def process_status_GET(self, req, subpath):
+        return {'code':200, 'json':{'status':'ok', 'database':req['database_url']}}
     
     
     def _get_original(self, image_path):
