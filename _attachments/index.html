@@ -206,12 +206,12 @@
                         }
                         var image = document.getElementById(photoId);
                         image.classList.remove("selected");
+                        delete selection[photo.id];
                         basketDoc.photos.push(Couch.makeRef({_id:photoId}));
                     });
                     basketDoc.modified = (new Date).toISOString();
                     db.write(basketDoc);
                     baskets.insertBefore(basket, document.getElementById('add_basket').nextElementSibling);
-                    selection = {};
                 }, false);
                 
                 basket.querySelector(".remove").addEventListener("click", function () {
@@ -222,12 +222,12 @@
                         }
                         var frame = document.getElementById(photo._id).parentNode;
                         frame.parentNode.removeChild(frame);
+                        delete selection[photo._id];
                         return false;
                     });
                     basketDoc.modified = (new Date).toISOString();
                     db.write(basketDoc);
                     baskets.insertBefore(basket, document.getElementById('add_basket').nextElementSibling);
-                    selection = {};
                 }, false);
                 
                 basket.querySelector(".delete").addEventListener("click", function () {
@@ -253,11 +253,21 @@
                 response.rows.forEach(addBasket);
             });
             document.getElementById('add_basket').addEventListener('click', function (e) {
+                var name = prompt("Create a basket named:", "Untitled Basket");
+                if (!name) {
+                    return;
+                }
+                var photos = Object.keys(selection).map(function (id) {
+                    var image = document.getElementById(id);
+                    image.classList.remove("selected");
+                    delete selection[id];
+                    return Couch.makeRef({_id:id});
+                });
                 var basket = {
                     _id: "testbasket-" + Math.random(),
                     "testtype-basket": true,
-                    name: "Basket",
-                    photos: Object.keys(selection).map(function (id) { return Couch.makeRef({_id:id}); }),
+                    name: name,
+                    photos: photos,
                     created: (new Date).toISOString()
                 };
                 db.write(basket);
