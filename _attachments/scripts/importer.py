@@ -34,7 +34,7 @@ class Importer(object):
     
     def _image_doc(self, folder, path):
         full_path = os.path.join(folder, path)
-        args = []
+        args = ['--metadata']
         if 'time_zone' in self._source:
             args.extend(['--timezone', self._source['time_zone']])
         args.extend(['--thumbnail', '64', '--thumbnail', '512'])
