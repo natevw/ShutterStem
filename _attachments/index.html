@@ -41,9 +41,10 @@
             
             .basket { clear: both; margin: 1em 0em; }
             .basket h1 { margin: 0.1em; font-size: 110%; font-weight: normal; cursor: pointer; }
+            #_selection_basket h1 { font-style: italic; }
             .basket.displayed h1 { font-weight: bold; color: blue; }
             .basket ul { margin: 0em; padding: 0em; }
-            .basket li, #add_basket { margin: 0em 0.25em; }
+            .basket li { margin: 0em 0.25em; }
             .basket.displayed .add { display: none; }
             .basket .remove { display: none; }
             .basket.displayed .remove { display: list-item; }
@@ -59,6 +60,7 @@
                 <h1 class="subtly_clickable">{{ value }}</h1>
                 <ul>
                     <li class="rename clickable">Rename
+                    <li class="download clickable">Download
                     <li class="add clickable">Add selection
                     <li class="remove clickable">Remove selection
                     <li class="delete clickable">Delete basket
@@ -72,7 +74,14 @@
     
     <body>
         <div id="baskets">
-            <span id="add_basket" class="clickable">Add basket</span>
+            <section id="_selection_basket" class="basket">
+            <h1 id="selection">Selection</h1>
+            <ul>
+                <li class="create clickable">Save as basket
+                <li class="download clickable">Download
+                <li class="all clickable">Select all 
+                <li class="clear clickable">Clear
+            </ul>
         </div>
         <div id="thumbnails"></div>
         
@@ -218,7 +227,7 @@
                     basketDoc.modified = (new Date).toISOString();
                     db.write(basketDoc);
                     basket.querySelector("h1").innerText = newName;
-                    baskets.insertBefore(basket, document.getElementById('add_basket').nextElementSibling);
+                    baskets.insertBefore(basket, document.getElementById('_selection_basket').nextElementSibling);
                 }, false);
                 
                 basket.querySelector(".add").addEventListener("click", function () {
@@ -235,7 +244,7 @@
                     });
                     basketDoc.modified = (new Date).toISOString();
                     db.write(basketDoc);
-                    baskets.insertBefore(basket, document.getElementById('add_basket').nextElementSibling);
+                    baskets.insertBefore(basket, document.getElementById('_selection_basket').nextElementSibling);
                 }, false);
                 
                 basket.querySelector(".remove").addEventListener("click", function () {
@@ -252,7 +261,7 @@
                     });
                     basketDoc.modified = (new Date).toISOString();
                     db.write(basketDoc);
-                    baskets.insertBefore(basket, document.getElementById('add_basket').nextElementSibling);
+                    baskets.insertBefore(basket, document.getElementById('_selection_basket').nextElementSibling);
                 }, false);
                 
                 basket.querySelector(".delete").addEventListener("click", function () {
@@ -271,13 +280,13 @@
                 if (i !== 'top') {
                     baskets.appendChild(basket);
                 } else {
-                    baskets.insertBefore(basket, document.getElementById('add_basket').nextElementSibling);
+                    baskets.insertBefore(basket, document.getElementById('_selection_basket').nextElementSibling);
                 }
             }
             db.get("_design/shutterstem/_view/baskets", {descending:true}, function (response) {
                 response.rows.forEach(addBasket);
             });
-            document.getElementById('add_basket').addEventListener('click', function (e) {
+            document.querySelector('#_selection_basket .create').addEventListener('click', function (e) {
                 var name = prompt("Create a basket named:", "Untitled Basket");
                 if (!name) {
                     return;
@@ -297,6 +306,16 @@
                 db.write(basket);
                 addBasket({id:basket._id, value:basket.name}, 'top');
             }, false);
+            document.querySelector('#_selection_basket .all').addEventListener('click', function (e) {
+                Array.prototype.forEach.call(document.querySelectorAll('.image'), function (img) {
+                    img.classList.add("selected");
+                });
+            });
+            document.querySelector('#_selection_basket .clear').addEventListener('click', function (e) {
+                Array.prototype.forEach.call(document.querySelectorAll('.image'), function (img) {
+                    img.classList.remove("selected");
+                });
+            });
         </script>
     </body>
 </html>
