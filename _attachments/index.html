@@ -121,11 +121,9 @@
                     image.classList.toggle("selected");
                     frame.classList.add("enlarged");
                 }, false);
-                function unlargeImage() {
+                image.addEventListener("mouseup", function () {
                     frame.classList.remove("enlarged");
-                }
-                image.addEventListener("mouseup", unlargeImage, false);
-                image.addEventListener("mouseout", unlargeImage, false);
+                }, false);
                 
                 thumbnails.appendChild(frame);
             }
