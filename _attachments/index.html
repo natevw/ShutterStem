@@ -30,8 +30,14 @@
                 width: 256px; height: 256px; margin: 32px 8px; float: left;
                 display: -webkit-box; -webkit-box-align: center; -webkit-box-pack: center;
             }
-            .image { max-width: 256px; max-height: 256px; border: 6px solid white; cursor: pointer; }
+            .image {
+                max-width: 256px; max-height: 256px; border: 6px solid white;
+                cursor: pointer; -webkit-touch-callout: none;
+            }
             .selected { border: 6px solid blue; }
+            
+            .frame.enlarged { position: absolute; width: 100%; height: 100%; }
+            .frame.enlarged .image { max-width: 100%; max-height: 100%; }
             
             .basket { clear: both; margin: 1em 0em; }
             .basket h1 { margin: 0.1em; font-size: 110%; font-weight: normal; cursor: pointer; }
@@ -79,6 +85,9 @@
                 imageRow.id || (imageRow.id = imageRow._id);
                 imageRow.doc_url = db.urlFor(imageRow.id);
                 var frame = Flatstache.elementify('thumbnail_template', imageRow);
+                if (!frame.classList) {
+                    frame.classList = new ClassList(frame);
+                }
                 var image = frame.querySelector(".image");
                 if (!image.classList) {
                     image.classList = new ClassList(image);
@@ -91,6 +100,22 @@
                         delete selection[this.id];
                     }
                 }, false);
+                
+                var enlargeImage;
+                image.addEventListener("mousedown", function (e) {
+                    e.preventDefault();
+                    enlargeImage = setTimeout(function () {
+                        frame.classList.add("enlarged");
+                    }, 500);
+                }, false);
+                
+                function unlargeImage() {
+                    clearTimeout(enlargeImage);
+                    frame.classList.remove("enlarged");
+                }
+                image.addEventListener("mouseup", unlargeImage, false);
+                image.addEventListener("mouseout", unlargeImage, false);
+                
                 thumbnails.appendChild(frame);
             }
             
