@@ -23,7 +23,7 @@ Couch.prototype.http = function (method, obj, path, query, callback) {
     req.send(JSON.stringify(obj));
     if (callback) {
         req.onreadystatechange = function() {
-            if (req.readyState === req.DONE) {
+            if (req.readyState === (req.DONE || 4)) {
                 callback(req.status, JSON.parse(req.responseText));
             }
         }
