@@ -102,18 +102,15 @@
                 if (!image.classList) {
                     image.classList = new ClassList(image);
                 }
-                image.addEventListener("click", function () {
+                
+                var enlargeImage;
+                image.addEventListener("mousedown", function (e) {
                     var selected = this.classList.toggle("selected");
                     if (selected) {
                         selection[this.id] = true;
                     } else {
                         delete selection[this.id];
                     }
-                }, false);
-                
-                var enlargeImage;
-                image.addEventListener("mousedown", function (e) {
-                    e.preventDefault();
                     enlargeImage = setTimeout(function () {
                         frame.classList.add("enlarged");
                     }, 500);
