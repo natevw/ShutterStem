@@ -29,6 +29,7 @@
             .frame {
                 width: 256px; height: 256px; margin: 32px 8px; float: left;
                 display: -webkit-box; -webkit-box-align: center; -webkit-box-pack: center;
+                -webkit-transition: -webkit-transform 0.25s linear; -moz-transition: -moz-transform 0.25s linear;
             }
             .image {
                 max-width: 256px; max-height: 256px; border: 6px solid white;
@@ -107,17 +108,11 @@
                     image.classList = new ClassList(image);
                 }
                 
-                var enlargeImage;
                 image.addEventListener("mousedown", function (e) {
                     image.classList.toggle("selected");
-                    enlargeImage = setTimeout(function () {
-                        image.classList.toggle("selected");
-                        frame.classList.add("enlarged");
-                    }, 500);
+                    frame.classList.add("enlarged");
                 }, false);
-                
                 function unlargeImage() {
-                    clearTimeout(enlargeImage);
                     frame.classList.remove("enlarged");
                 }
                 image.addEventListener("mouseup", unlargeImage, false);
