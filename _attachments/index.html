@@ -80,6 +80,16 @@
             var db = new Couch();
             var selection = {};
             
+            if (!Object.keys) {
+                Object.keys = function (obj) {
+                    var keys = [], key;
+                    for (key in obj) if (obj.hasOwnProperty(key)) {
+                        keys.push(key);
+                    }
+                    return keys;
+                };
+            }
+            
             var thumbnails = document.getElementById('thumbnails');
             function addThumbnail(imageRow) {
                 imageRow.id || (imageRow.id = imageRow._id);
