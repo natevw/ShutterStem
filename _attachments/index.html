@@ -77,16 +77,21 @@
         
         <script>
             var db = new Couch();
-            var selection = {};
             
-            if (!Object.keys) {
-                Object.keys = function (obj) {
-                    var keys = [], key;
-                    for (key in obj) if (obj.hasOwnProperty(key)) {
-                        keys.push(key);
-                    }
-                    return keys;
-                };
+            function selectedPhotos(returnType) {
+                var result = document.querySelectorAll('.image.selected');
+                if (returnType === '[]') {
+                    result = Array.prototype.map.call(result, function (img) {
+                        return img.id;
+                    });
+                } else if (returnType === '{}') {
+                    var dict = {};
+                    Array.prototype.forEach.call(result, function (img) {
+                        dict[img.id] = true;
+                    });
+                    result = dict;
+                }
+                return result;
             }
             
             var thumbnails = document.getElementById('thumbnails');
@@ -104,13 +109,9 @@
                 
                 var enlargeImage;
                 image.addEventListener("mousedown", function (e) {
-                    var selected = this.classList.toggle("selected");
-                    if (selected) {
-                        selection[this.id] = true;
-                    } else {
-                        delete selection[this.id];
-                    }
+                    image.classList.toggle("selected");
                     enlargeImage = setTimeout(function () {
+                        image.classList.toggle("selected");
                         frame.classList.add("enlarged");
                     }, 500);
                 }, false);
@@ -128,7 +129,6 @@
             function showPhotos(prev, start, options) {
                 localStorage['shutterstem-lastShow'] = JSON.stringify({prev:prev, start:start, options:options});
                 thumbnails.innerHTML = "";
-                selection = {};
                 if (start) {
                     var to_prev = document.createElement("div");
                     to_prev.className = "frame subtly_clickable";
@@ -204,7 +204,6 @@
                     }
                     var displayed = basket.classList.toggle("displayed");
                     thumbnails.innerHTML = "";
-                    selection = {};
                     if (displayed) {
                         db.get(basketRow.id, null, function (doc) {
                             doc.photos.forEach(addThumbnail);
@@ -231,13 +230,12 @@
                     var basketDoc = db.read(basketRow.id);
                     var currentPhotos = {};
                     basketDoc.photos.forEach(function (photo) { currentPhotos[photo._id] = true; });
-                    Object.keys(selection).forEach(function (photoId) {
+                    selectedPhotos('[]').forEach(function (photoId) {
                         if (photoId in currentPhotos) {
                             return;
                         }
                         var image = document.getElementById(photoId);
                         image.classList.remove("selected");
-                        delete selection[photoId];
                         basketDoc.photos.push(Couch.makeRef({_id:photoId}));
                     });
                     basketDoc.modified = (new Date).toISOString();
@@ -246,15 +244,16 @@
                 }, false);
                 
                 basket.querySelector(".remove").addEventListener("click", function () {
+                    var selected = selectedPhotos('{}');
                     var basketDoc = db.read(basketRow.id);
                     basketDoc.photos = basketDoc.photos.filter(function (photo) {
-                        if (!selection[photo._id]) {
+                        if (selected[photo._id]) {
+                            var frame = document.getElementById(photo._id).parentNode;
+                            frame.parentNode.removeChild(frame);
+                            return false;
+                        } else {
                             return true;
                         }
-                        var frame = document.getElementById(photo._id).parentNode;
-                        frame.parentNode.removeChild(frame);
-                        delete selection[photo._id];
-                        return false;
                     });
                     basketDoc.modified = (new Date).toISOString();
                     db.write(basketDoc);
@@ -288,10 +287,9 @@
                 if (!name) {
                     return;
                 }
-                var photos = Object.keys(selection).map(function (id) {
+                var photos = selectedPhotos('[]').map(function (id) {
                     var image = document.getElementById(id);
                     image.classList.remove("selected");
-                    delete selection[id];
                     return Couch.makeRef({_id:id});
                 });
                 var basket = {
