@@ -231,7 +231,7 @@
                         }
                         var image = document.getElementById(photoId);
                         image.classList.remove("selected");
-                        delete selection[photo.id];
+                        delete selection[photoId];
                         basketDoc.photos.push(Couch.makeRef({_id:photoId}));
                     });
                     basketDoc.modified = (new Date).toISOString();
