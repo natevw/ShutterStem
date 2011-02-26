@@ -63,7 +63,7 @@
                 <h1 class="subtly_clickable">{{ value }}</h1>
                 <ul>
                     <li class="rename clickable">Rename
-                    <li class="download clickable">Download
+                    <li class="export clickable">Export
                     <li class="add clickable">Add selection
                     <li class="remove clickable">Remove selection
                     <li class="delete clickable">Delete basket
@@ -71,7 +71,7 @@
             </section>
         </script>
         <script id="thumbnail_template" type="text/x-flat">
-            <div class="frame"><img class="image" id="{{id}}" src="{{doc_url}}/thumbnail/512.jpg"></div>
+            <div class="frame"><a href="{{orig_url}}"><img class="image" id="{{id}}" src="{{doc_url}}/thumbnail/512.jpg"></a></div>
         </script>
     </head>
     
@@ -81,7 +81,7 @@
             <h1 id="selection">Selection</h1>
             <ul>
                 <li class="create clickable">Save as basket
-                <li class="download clickable">Download
+                <li class="export clickable">Export
                 <li class="all clickable">Select all 
                 <li class="clear clickable">Clear
             </ul>
@@ -111,6 +111,7 @@
             function addThumbnail(imageRow) {
                 imageRow.id || (imageRow.id = imageRow._id);
                 imageRow.doc_url = db.urlFor(imageRow.id);
+                imageRow.orig_url = db.urlFor(["_local_shutterstem", "images", imageRow.id]);
                 var frame = Flatstache.elementify('thumbnail_template', imageRow);
                 if (!frame.classList) {
                     frame.classList = new ClassList(frame);
@@ -120,12 +121,15 @@
                     image.classList = new ClassList(image);
                 }
                 
-                image.addEventListener("mousedown", function (e) {
+                image.addEventListener("mousedown", function () {
                     image.classList.toggle("selected");
                     frame.classList.add("enlarged");
                 }, false);
                 image.addEventListener("mouseup", function () {
                     frame.classList.remove("enlarged");
+                }, false);
+                image.parentNode.addEventListener("click", function (e) {
+                    e.preventDefault();
                 }, false);
                 
                 thumbnails.appendChild(frame);
