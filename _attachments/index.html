@@ -29,13 +29,26 @@
             .frame {
                 width: 256px; height: 256px; margin: 32px 8px; float: left;
                 display: -webkit-box; -webkit-box-align: center; -webkit-box-pack: center;
-                -webkit-transition: -webkit-transform 0.25s linear; -moz-transition: -moz-transform 0.25s linear;
+                -webkit-transition: -webkit-transform 0.25s linear 0.25s;
             }
             .image {
                 max-width: 256px; max-height: 256px; border: 6px solid white;
                 cursor: pointer; -webkit-touch-callout: none;
             }
             .selected { border: 6px solid blue; }
+            
+            @-webkit-keyframes pulse1 {
+                0% { -webkit-transform: scale(0.95); }
+                50% { -webkit-transform: scale(1.1); }
+                100% { -webkit-transform: scale(1.0); }
+            }
+            .selected { -webkit-animation: pulse1 0.25s linear; }
+            @-webkit-keyframes pulse2 {
+                0% { -webkit-transform: scale(0.95); }
+                50% { -webkit-transform: scale(1.1); }
+                100% { -webkit-transform: scale(1.0); }
+            }
+            .unselected { -webkit-animation: pulse2 0.25s linear; }
             
             .frame.enlarged { -webkit-transform: scale(2); -moz-transform: scale(2); }
             
@@ -309,11 +322,13 @@
             document.querySelector('#_selection_basket .all').addEventListener('click', function (e) {
                 Array.prototype.forEach.call(document.querySelectorAll('.image'), function (img) {
                     img.classList.add("selected");
+                    img.classList.remove("unselected");
                 });
             });
             document.querySelector('#_selection_basket .clear').addEventListener('click', function (e) {
                 Array.prototype.forEach.call(document.querySelectorAll('.image'), function (img) {
                     img.classList.remove("selected");
+                    img.classList.add("unselected");
                 });
             });
         </script>
