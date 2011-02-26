@@ -18,7 +18,8 @@ var Flatstache = (function(){
     };
     pub.elementify = function (templateId, data) {
         var tmpDiv = document.createElement('div');
-        tmpDiv.innerHTML = pub.to_html(document.getElementById(templateId).innerText, data);
+        var template = document.getElementById(templateId);
+        tmpDiv.innerHTML = pub.to_html((template.innerText || template.textContent), data);
         return tmpDiv.firstElementChild;
     };
     return pub;
