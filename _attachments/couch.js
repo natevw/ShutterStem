@@ -6,7 +6,7 @@ Couch.prototype.urlFor = function (path, query) {
         path = path.join("/");
     }
     if (query) {
-        path += "?" + Object.keys(query).map(function (key) {
+        path += "?" + Couch._keys(query).map(function (key) {
             if (key[0] === '$') {
                 return encodeURIComponent(key.slice(1)) + "=" + encodeURIComponent(JSON.stringify(query[key]));
             } else {
@@ -67,6 +67,16 @@ Couch.prototype.remove = function (doc) {
     doc._deleted = true;
     doc._rev = req.response.rev;
 }
+
+
+// helper needed under older JavaScript engines
+Couch._keys = Object.keys || function (obj) {
+    var keys = [], key;
+    for (key in obj) if (obj.hasOwnProperty(key)) {
+        keys.push(key);
+    }
+    return keys;
+};
 
 Couch.guessDB = function () {
     var x;
