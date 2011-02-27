@@ -36,6 +36,13 @@
             var csrf_token = config.getAttribute('data-csrf_token');
             //var db = new Couch(database_url);
             
+            window.addEventListener("message", function (e) {
+                if (e.source === window.parent) {
+                    //console.log(e.data);
+                    document.body.innerHTML += "<pre>" + e.data + "</pre>";
+                }
+            }, false);
+            
             var format;
             Array.prototype.forEach.call(document.getElementsByName("export_format"), function (button) {
                 if (button.checked) {
@@ -64,6 +71,7 @@
                 console.log("EXPORT, YO!");
                 // TODO: so.... export.....?
             }, false);
+            
         </script>
     </body>
 </html>
