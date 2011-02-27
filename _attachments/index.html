@@ -199,6 +199,44 @@
             }
             showLastPhotos();
             
+            
+            var selection_basket = document.getElementById('_selection_basket');
+            selection_basket.querySelector(".create").addEventListener('click', function (e) {
+                var name = prompt("Create a basket named:", "Untitled Basket");
+                if (!name) {
+                    return;
+                }
+                var photos = selectedPhotos('[]').map(function (id) {
+                    var image = document.getElementById(id);
+                    image.classList.remove("selected");
+                    return Couch.makeRef({_id:id});
+                });
+                var basket = {
+                    _id: "testbasket-" + Math.random(),
+                    "testtype-basket": true,
+                    name: name,
+                    photos: photos,
+                    created: (new Date).toISOString()
+                };
+                db.write(basket);
+                addBasket({id:basket._id, value:basket.name}, 'top');
+            }, false);
+            selection_basket.querySelector(".all").addEventListener('click', function (e) {
+                Array.prototype.forEach.call(document.querySelectorAll('.image'), function (img) {
+                    img.classList.add("selected");
+                });
+            });
+            selection_basket.querySelector(".clear").addEventListener('click', function (e) {
+                Array.prototype.forEach.call(document.querySelectorAll('.image'), function (img) {
+                    img.classList.remove("selected");
+                });
+            });
+            selection_basket.querySelector(".export").addEventListener("click", function () {
+                var images = selectedPhotos('[]').join(",");
+                var info = {type:"export", name:"selected images", images:images};
+                window.location.href = db.urlFor(["_design/shutterstem", "_show/utility"], info);
+            }, false);
+            
             var baskets = document.getElementById('baskets');
             function addBasket(basketRow, i) {
                 var basket = Flatstache.elementify('basket_template', basketRow);
@@ -220,6 +258,13 @@
                     } else {
                         showLastPhotos();
                     }
+                }, false);
+                
+                basket.querySelector(".export").addEventListener("click", function () {
+                    var basketDoc = db.read(basketRow.id);
+                    var images = basketDoc.photos.map(function (photo) { return photo._id; }).join(",");
+                    var info = {type:"export", name:basketDoc.name, images:images};
+                    window.location.href = db.urlFor(["_design/shutterstem", "_show/utility"], info);
                 }, false);
                 
                 basket.querySelector(".rename").addEventListener("click", function () {
@@ -253,10 +298,10 @@
                 }, false);
                 
                 basket.querySelector(".remove").addEventListener("click", function () {
-                    var selected = selectedPhotos('{}');
+                    var selectedIds = selectedPhotos('{}');
                     var basketDoc = db.read(basketRow.id);
                     basketDoc.photos = basketDoc.photos.filter(function (photo) {
-                        if (selected[photo._id]) {
+                        if (photo._id in selectedIds) {
                             var frame = document.getElementById(photo._id).parentNode;
                             frame.parentNode.removeChild(frame);
                             return false;
@@ -291,36 +336,7 @@
             db.get("_design/shutterstem/_view/baskets", {descending:true}, function (response) {
                 response.rows.forEach(addBasket);
             });
-            document.querySelector('#_selection_basket .create').addEventListener('click', function (e) {
-                var name = prompt("Create a basket named:", "Untitled Basket");
-                if (!name) {
-                    return;
-                }
-                var photos = selectedPhotos('[]').map(function (id) {
-                    var image = document.getElementById(id);
-                    image.classList.remove("selected");
-                    return Couch.makeRef({_id:id});
-                });
-                var basket = {
-                    _id: "testbasket-" + Math.random(),
-                    "testtype-basket": true,
-                    name: name,
-                    photos: photos,
-                    created: (new Date).toISOString()
-                };
-                db.write(basket);
-                addBasket({id:basket._id, value:basket.name}, 'top');
-            }, false);
-            document.querySelector('#_selection_basket .all').addEventListener('click', function (e) {
-                Array.prototype.forEach.call(document.querySelectorAll('.image'), function (img) {
-                    img.classList.add("selected");
-                });
-            });
-            document.querySelector('#_selection_basket .clear').addEventListener('click', function (e) {
-                Array.prototype.forEach.call(document.querySelectorAll('.image'), function (img) {
-                    img.classList.remove("selected");
-                });
-            });
+            
         </script>
     </body>
 </html>

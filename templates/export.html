@@ -38,7 +38,6 @@
             
             window.addEventListener("message", function (e) {
                 if (e.source === window.parent) {
-                    //console.log(e.data);
                     document.body.innerHTML += "<pre>" + e.data + "</pre>";
                 }
             }, false);

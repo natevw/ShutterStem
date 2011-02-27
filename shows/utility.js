@@ -13,7 +13,7 @@ function (doc, req) {
         doc.csrf_token = '' + Math.round(Math.random() * 1e16) + req.uuid + Math.round(Math.random() * 1e16) + '';
         
         if (req.query.type === 'export') {
-            doc.title = "Export"
+            doc.title = "Export " + (req.query.name || "images");
             doc.location_html = "your desired export destination";
             doc.frame_host = host;
             doc.frame_path = req.info.db_name + "/_design/shutterstem/_show/export?token=" + doc.csrf_token + "&utility=";
