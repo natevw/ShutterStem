@@ -6,16 +6,13 @@ import couch
 import image
 
 import os
-import json
 import uuid
 import hashlib
-import subprocess
 
 from threading import Thread
 from Queue import Queue, Full as QueueFull
 from collections import deque
 
-GET_PHOTO = os.path.dirname(os.path.abspath(__file__)) + '/getphoto-osx/build/Release/getphoto'
 
 class Importer(object):
     def _find_image(self, identifiers, stale=True):
@@ -110,7 +107,7 @@ class Importer(object):
                 if not doc:
                     continue
                 
-                new_identifiers = json.loads(json.dumps(doc['identifiers']))
+                new_identifiers = image.copy_doc(doc['identifiers'])
                 del new_identifiers['relative_path']
                 if self._find_image(new_identifiers):
                     continue
@@ -123,7 +120,7 @@ class Importer(object):
                     else:
                         break
                 
-                doc = json.loads(json.dumps(doc))
+                doc = image.copy_doc(doc)
                 if 'thumbnail/512.jpg' in doc.get('_attachments', {}):
                     del doc['_attachments']['thumbnail/512.jpg']
                 self._recent_image_docs.appendleft(doc)

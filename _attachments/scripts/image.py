@@ -27,3 +27,6 @@ def get(full_path, *args):
         except ValueError:
             messages.append({'error':True, 'message':"Failed to parse output document: '%s'" % out})
     return doc, messages
+
+def copy_doc(doc):
+    return json.loads(json.dumps(doc))
