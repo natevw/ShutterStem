@@ -169,7 +169,7 @@ class LocalHelper(couch.External):
         
         if action == 'create':
             self.importers[source_id] = Importer(req['database_url'], source_id, req['utility']['folder'])
-            return {'code':202, 'json':{'ok':True, 'message':"Import will proceed"}}
+            return {'code':201, 'json':{'ok':True, 'message':"Import created"}}
         elif action == 'begin':
             importer.begin()
             return {'code':202, 'json':{'ok':True, 'message':"Import will proceed"}}

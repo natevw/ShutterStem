@@ -74,7 +74,7 @@
             var new_photos = document.getElementById("new_photos");
             db.http("POST", null, ['_local_shutterstem', 'import', import_id, 'create'], {utility:utility_path, token:csrf_token}, function (status, response) {
                 // check for import started (or already in progress)
-                if (status != 202 && status != 409) {
+                if (status != 201 && status != 409) {
                     new_photos.innerText = JSON.stringify(response, null, 4);
                     update_height_info();
                     return;
