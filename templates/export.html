@@ -6,7 +6,15 @@
     
     <style>
         #config { display: none; }
-        #start_export { font-size: 150%; color: green; }
+        
+        h2 { margin-bottom: 0.1em; }
+        #start_export { display: block; margin-top: 1em; font-size: 150%; color: gray; }
+        #start_export[href] { color: green; }
+        
+        #thumbnails { max-width: 500px; }
+        .thumbnail { margin: 4px; }
+        
+        #progress { display: none; }
     </style>
     <script src="{{ database_url }}/_design/shutterstem/couch.js"></script>
     <script src="{{ database_url }}/_design/shutterstem/classlist.js"></script>
@@ -15,35 +23,39 @@
     <body>
         <h1>ShutterStem Export</h1>
         
-        <form>
-        <h2>Format:</h2>
-        <label><input type="radio" name="export_format" value="original">Copy original files</label><br>
-        <label><input type="radio" name="export_format" value="2048">Huge size (2048 pixels)</label><br>
-        <label><input type="radio" name="export_format" value="1024" checked>Large size (1024 pixels)</label><br>
-        <label><input type="radio" name="export_format" value="640">Medium size (640 pixels)</label><br>
-        <h2>Location:</h2>
-        Photos will be exported into <var class="export_path">the folder this utility is within</var>.<br>
-        <label><input name="in_folder" type="checkbox" checked>Put inside subfolder</label>
-        <label>named: <input name="folder_name" type="text" value="{{ default_subfolder_name }}"></label><br>
+        <section id="setup">
+            <form>
+            <h2>Format:</h2>
+            <label><input type="radio" name="export_format" value="original">Copy original files</label><br>
+            <label><input type="radio" name="export_format" value="2048">Huge size (2048 pixels)</label><br>
+            <label><input type="radio" name="export_format" value="1024" checked>Large size (1024 pixels)</label><br>
+            <label><input type="radio" name="export_format" value="640">Medium size (640 pixels)</label><br>
+            <h2>Location:</h2>
+            Photos will be exported into <var class="export_path">the folder this utility is within</var>.<br>
+            <label><input name="in_folder" type="checkbox" checked>Put inside subfolder</label>
+            <label>named: <input name="folder_name" type="text" value="{{ default_subfolder_name }}"></label><br>
+            
+            <h2 id="thumbnails_caption">Preview:</h2>
+            <div id="thumbnails">Loading...</div>
+            <a id="start_export">Begin export</a>
+            </form>
+        </section>
         
-        <a id="start_export" href>Begin export</a>
+        <section id="progress">
+            <h2>Export status:</h2>
+            
+        </section>
         
-        </form>
-        <div id="config" data-utility_path="{{ utility_path }}" data-database_url="{{ database_url }}" data-csrf_token="{{ csrf_token }}"></div>
+        <div id="config"
+            data-utility_path="{{ utility_path }}"
+            data-database_url="{{ database_url }}"
+            data-csrf_token="{{ csrf_token }}" />
         <script>
             var config = document.getElementById('config');
             var database_url = config.getAttribute('data-database_url');
             var csrf_token = config.getAttribute('data-csrf_token');
             var utility_path = config.getAttribute('data-utility_path');
-            //var db = new Couch(database_url);
-            
-            var imageIds;
-            window.addEventListener("message", function (e) {
-                if (e.source === window.parent) {
-                    imageIds = e.data.split(",");
-                    console.log("Export", imageIds);
-                }
-            }, false);
+            var db = new Couch(database_url);
             
             var format;
             Array.prototype.forEach.call(document.getElementsByName("export_format"), function (button) {
@@ -59,7 +71,7 @@
             function updatePath() {
                 full_path = (subfolder) ? [folder, subfolder].join('/') : folder;
                 Array.prototype.forEach.call(document.querySelectorAll('.export_path'), function (el) {
-                    el.innerText = full_path;
+                    el.textContent = full_path;
                 });
             }
             var folder_name = document.getElementsByName("folder_name")[0];
@@ -81,10 +93,50 @@
             subfolder = folder_name.value;
             updatePath();
             
-            document.getElementById("start_export").addEventListener("click", function (e) {
+            var images;
+            var start_export = document.getElementById("start_export");
+            var thumbnails = document.getElementById("thumbnails");
+            window.addEventListener("message", function (e) {
+                if (e.source === window.parent) {
+                    thumbnails.innerHTML = "";
+                    start_export.href = db.urlFor("_local_shutterstem/export", {images:e.data});
+                    images = e.data.split(",");
+                    function addImage(imageId) {
+                        var img = new Image();
+                        img.className = "thumbnail";
+                        img.src = db.urlFor([imageId, "thumbnail/64.jpg"]);
+                        thumbnails.appendChild(img);
+                    }
+                    var LIMIT = 5;
+                    if (images.length > LIMIT + 2) {
+                        images.slice(0, LIMIT).forEach(addImage);
+                            var more = document.createElement("a");
+                            more.href = "#";
+                            more.textContent = "See all " + images.length + " images..."
+                            more.addEventListener("click", function (e) {
+                                e.preventDefault();
+                                thumbnails.removeChild(more);
+                                images.slice(LIMIT).forEach(addImage);
+                            }, false);
+                            thumbnails.appendChild(more);
+                    } else {
+                        images.forEach(addImage);
+                    }
+                }
+            }, false);
+            
+            start_export.addEventListener("click", function (e) {
                 e.preventDefault();
-                console.log("EXPORT, YO!");
-                // TODO: so.... export.....?
+                
+                document.getElementById("setup").style.display = "none";
+                document.getElementById("progress").style.display = "block";
+                
+                var info = {folder:full_path, images:images, format:format};
+                var query = {token:csrf_token, utility:utility_path};
+                db.http("POST", info, "_local_shutterstem/export", query, function (status, response) {
+                    // TODO: so.... export.....
+                    console.log(status, response);
+                });
             }, false);
             
         </script>
