@@ -5,6 +5,7 @@ from __future__ import with_statement   # needed under Python 2.5 (Leopard defau
 import couch
 import image
 from importer import Importer
+from exporter import Exporter
 
 from time import sleep
 import os
@@ -19,6 +20,7 @@ BAD_REQUEST = {'code':400, 'json':{'error':True, 'reason':"Bad request"}}
 class LocalHelper(couch.External):
     def __init__(self):
         self.importers = {}
+        self.exporters = {}
     
     @property
     def configfile(self):
@@ -102,7 +104,7 @@ class LocalHelper(couch.External):
     def process_images_GET(self, req, subpath):
         try:
             image_id = subpath[0]
-        except ValueError:
+        except IndexError:
             return BAD_REQUEST
         
         size = req['query'].get('size')
@@ -202,6 +204,64 @@ class LocalHelper(couch.External):
             self.configfile = config
             folder_info = None
         return {'json':{'ok':True, 'allows_originals':bool(folder_info)}}
+    
+    
+    def process_export_GET(self, req, subpath):
+        if subpath:
+            helper = self.exporters.get(subpath[0], None)
+            if helper:
+                return {'json':helper.status()}
+            else:
+                return {'code':404, 'json':{'error':True, 'reason':"No such exporter."}}
+        else:
+            statii = {}
+            for id, helper in self.exporters.iteritems():
+                statii[id] = helper.status()
+            return {'json':statii}
+    
+    def process_export_POST(self, req, subpath):
+        try:
+            action = subpath[0]
+        except IndexError:
+            return BAD_REQUEST
+        
+        if action == 'start':
+            id = req['uuid']
+            
+            try:
+                data = json.loads(req['body'])
+            except Exception:
+                return BAD_REQUEST
+            
+            try:
+                image_ids, folder, size = data['images'], data['folder'], data['format']
+            except KeyError:
+                return BAD_REQUEST
+            
+            if size == 'original':
+                size = None
+            self.exporters[id] = Exporter(self.process_images_GET, req['database_url'], image_ids, folder, size)
+            return {'code':201, 'json':{'ok':True, 'message':"Export begun", 'id':id}}
+        else:
+            try:
+                id = subpath[1]
+            except IndexError:
+                return BAD_REQUEST
+            
+            try:
+                helper = self.exporters[id]
+            except KeyError:
+                return {'code':404, 'json':{'error':True, 'reason':"No such exporter."}}
+            
+            if action == 'cancel':
+                helper.cancel()
+                return {'code':202, 'json':{'ok':True, 'message':"Export cancelled"}}
+            elif action == 'finish':
+                helper.finish()
+                del self.exporters[id]
+                return {'code':200, 'json':{'ok':True, 'message':"Export finished"}}
+            
+        return BAD_REQUEST
 
 if __name__ == "__main__":
     LocalHelper().run()

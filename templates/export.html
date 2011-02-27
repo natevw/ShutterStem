@@ -133,7 +133,7 @@
                 
                 var info = {folder:full_path, images:images, format:format};
                 var query = {token:csrf_token, utility:utility_path};
-                db.http("POST", info, "_local_shutterstem/export", query, function (status, response) {
+                db.http("POST", info, "_local_shutterstem/export/start", query, function (status, response) {
                     // TODO: so.... export.....
                     console.log(status, response);
                 });
