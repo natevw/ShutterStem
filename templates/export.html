@@ -36,9 +36,11 @@
             var csrf_token = config.getAttribute('data-csrf_token');
             //var db = new Couch(database_url);
             
+            var imageIds;
             window.addEventListener("message", function (e) {
                 if (e.source === window.parent) {
-                    document.body.innerHTML += "<pre>" + e.data + "</pre>";
+                    imageIds = e.data.split(",");
+                    console.log("Export", imageIds);
                 }
             }, false);
             
