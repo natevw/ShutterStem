@@ -127,7 +127,6 @@ int main(int argc, char* argv[]) {
             } else {
                 NSDictionary* origMetadata = [(id)CGImageSourceCopyPropertiesAtIndex(imgSrc, 0, NULL) autorelease];
                 NSMutableDictionary* modMetadata = nil;
-                NSLog(@"%@", origMetadata);
                 if ([[origMetadata objectForKey:(id)kCGImagePropertyOrientation] intValue] > 1) {
                     modMetadata = [[origMetadata mutableCopy] autorelease];
                     [modMetadata setObject:[NSNumber numberWithInt:1] forKey:(id)kCGImagePropertyOrientation];
