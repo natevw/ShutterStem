@@ -16,7 +16,8 @@ function (doc, req) {
             doc.title = "Export " + (req.query.name || "images");
             doc.location_html = "your desired export destination";
             doc.frame_host = host;
-            doc.frame_path = req.info.db_name + "/_design/shutterstem/_show/export?token=" + doc.csrf_token + "&utility=";
+            var query = "?name=" + req.query.name + "&token=" + doc.csrf_token + "&utility=";
+            doc.frame_path = req.info.db_name + "/_design/shutterstem/_show/export" + query;
             doc.frame_message = req.query.images;
         }
         

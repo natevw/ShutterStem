@@ -2,7 +2,7 @@
 <html>
     <head>
     <meta charset="UTF-8">
-    <title>ShutterStem - {{ description }}</title>
+    <title>ShutterStem - Export</title>
     
     <style>
         #config { display: none; }
@@ -24,16 +24,17 @@
         <h2>Location:</h2>
         Photos will be exported into <var class="export_path">the folder this utility is within</var>.<br>
         <label><input name="in_folder" type="checkbox" checked>Put inside subfolder</label>
-        <label>named: <input name="folder_name" type="text" value="{{ default_folder_name }}"></label><br>
+        <label>named: <input name="folder_name" type="text" value="{{ default_subfolder_name }}"></label><br>
         
         <a id="start_export" href>Begin export</a>
         
         </form>
-        <div id="config" data-database_url="{{ database_url }}" data-csrf_token="{{ csrf_token }}"></div>
+        <div id="config" data-utility_path="{{ utility_path }}" data-database_url="{{ database_url }}" data-csrf_token="{{ csrf_token }}"></div>
         <script>
             var config = document.getElementById('config');
             var database_url = config.getAttribute('data-database_url');
             var csrf_token = config.getAttribute('data-csrf_token');
+            var utility_path = config.getAttribute('data-utility_path');
             //var db = new Couch(database_url);
             
             var imageIds;
@@ -54,8 +55,18 @@
                 }, false);
             });
             
-            var subfolder;
+            var folder, subfolder, full_path;
+            function updatePath() {
+                full_path = (subfolder) ? [folder, subfolder].join('/') : folder;
+                Array.prototype.forEach.call(document.querySelectorAll('.export_path'), function (el) {
+                    el.innerText = full_path;
+                });
+            }
             var folder_name = document.getElementsByName("folder_name")[0];
+            folder_name.addEventListener("input", function () {
+                subfolder = folder_name.value;
+                updatePath();
+            }, false);
             document.getElementsByName("in_folder")[0].addEventListener("change", function () {
                 if (this.checked) {
                     folder_name.disabled = false;
@@ -64,8 +75,11 @@
                     folder_name.disabled = true;
                     subfolder = null;
                 }
+                updatePath();
             }, false);
+            folder = utility_path.split("/").slice(0, -1).join("/");
             subfolder = folder_name.value;
+            updatePath();
             
             document.getElementById("start_export").addEventListener("click", function (e) {
                 e.preventDefault();
