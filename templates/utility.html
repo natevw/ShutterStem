@@ -38,7 +38,10 @@
         
         <iframe id="server_frame"></iframe>
         
-        <div id="config" data-frame_host="{{ frame_host }}" data-frame_path="{{ frame_path }}" data-frame_message="{{ frame_message }}"></div>
+        <div id="config"
+            data-frame_host="{{ frame_host }}"
+            data-frame_path="{{ frame_path }}"
+            data-frame_message="{{ frame_message }}"></div>
         <script>
             var server_frame = document.getElementById('server_frame');
             if (document.location.protocol === "file:") {
