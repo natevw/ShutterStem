@@ -125,10 +125,26 @@ int main(int argc, char* argv[]) {
             if (opt == 't') {
                 CGImageDestinationAddImage(imgDst, img, NULL);
             } else {
-                CFDictionaryRef origMetadata = CGImageSourceCopyPropertiesAtIndex(imgSrc, 0, NULL);
+                NSDictionary* origMetadata = [(id)CGImageSourceCopyPropertiesAtIndex(imgSrc, 0, NULL) autorelease];
+                NSMutableDictionary* modMetadata = nil;
+                NSLog(@"%@", origMetadata);
+                if ([[origMetadata objectForKey:(id)kCGImagePropertyOrientation] intValue] > 1) {
+                    modMetadata = [[origMetadata mutableCopy] autorelease];
+                    [modMetadata setObject:[NSNumber numberWithInt:1] forKey:(id)kCGImagePropertyOrientation];
+                    
+                    NSDictionary* tiffData = [origMetadata objectForKey:(id)kCGImagePropertyTIFFDictionary];
+                    if ([[tiffData objectForKey:(id)kCGImagePropertyTIFFOrientation] intValue] > 1) {
+                        NSMutableDictionary* newTiffData = [[tiffData mutableCopy] autorelease];
+                        [newTiffData setObject:[NSNumber numberWithInt:1] forKey:(id)kCGImagePropertyTIFFOrientation];
+                        [modMetadata setObject:newTiffData forKey:(id)kCGImagePropertyTIFFDictionary];
+                    }
+                }
                 // TODO: modify origMetadata according to modidata
-                CGImageDestinationAddImage(imgDst, img, origMetadata);
-                CFRelease(origMetadata);
+                if (modMetadata) {
+                    CGImageDestinationAddImage(imgDst, img, (CFDictionaryRef)modMetadata);
+                } else {
+                    CGImageDestinationAddImage(imgDst, img, (CFDictionaryRef)origMetadata);
+                }
             }
             CGImageDestinationFinalize(imgDst);
             CFRelease(imgDst);
