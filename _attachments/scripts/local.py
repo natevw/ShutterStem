@@ -89,10 +89,11 @@ class LocalHelper(couch.External):
             headers = {'Content-Type':"application/octet-stream"}
             return {'code':200, 'headers':headers, 'base64':buffer.getvalue()}
     
-    def _get_thumbnail(self, image_path, size):
-        doc, _ = image.get(image_path, '--thumbnail', size)
+    def _get_jpeg(self, image_path, size, metadata=False):
+        name = 'export' if metadata else 'thumbnail'
+        doc, _ = image.get(image_path, '--%s' % name, size)
         if doc:
-            img = doc.get('_attachments', {}).get('thumbnail/%s.jpg' % size)
+            img = doc.get('_attachments', {}).get('%s/%s.jpg' % (name, size))
             if img:
                 headers = {'Content-Type':img['content_type']}
                 return {'code':200, 'headers':headers, 'base64':img['data']}
@@ -127,17 +128,21 @@ class LocalHelper(couch.External):
             image_path = os.path.join(folder, import_info['path'])
             if os.path.exists(image_path):
                 found = True
+                filename = req['query'].get('as')
+                if filename:
+                    filename += os.path.splitext(image_path)[1].lower()
+                else:
+                    filename = os.path.basename(image_path)
+                download = {'Content-Disposition': "attachment; filename=%s" % filename}
+                
                 if not size:
                     response = self._get_original(image_path)
-                    filename = req['query'].get('as')
-                    if filename:
-                        filename += os.path.splitext(image_path)[1].lower()
-                    else:
-                        filename = os.path.basename(image_path)
-                    headers = {'Content-Disposition': "attachment; filename=%s" % filename}
-                    response.setdefault('headers', {}).update(headers)
+                    response.setdefault('headers', {}).update(download)
+                elif req['query'].get('export') == 'jpeg':
+                    response = self._get_jpeg(image_path, size, True)
+                    response.setdefault('headers', {}).update(download)
                 else:
-                    response = self._get_thumbnail(image_path, size)
+                    response = self._get_jpeg(image_path, size)
                 
                 if response.get('code', 200) == 200:
                     return response
