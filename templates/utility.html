@@ -48,7 +48,12 @@
                 var config = document.getElementById('config');
                 var frame_host = config.getAttribute('data-frame_host');
                 var frame_path = config.getAttribute('data-frame_path');
-                server_frame.src = frame_host + frame_path + encodeURIComponent(document.location.pathname);
+                var pathname = document.location.pathname;
+                if (encodeURI(decodeURI(pathname)) == pathname) {
+                    // WebKit provides unencoded values, but FF3.6 encodes
+                    pathname = decodeURI(pathname);
+                }
+                server_frame.src = frame_host + frame_path + encodeURIComponent(pathname);
                 var assumeFailed = setTimeout(function () {
                     document.getElementById('load_fail').style.display = "block";
                     server_frame.style.display = "none";
