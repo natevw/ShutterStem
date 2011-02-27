@@ -13,7 +13,7 @@ class Database(object):
         self.url = url
     
     def url_for(self, path, query=None):
-        if type(path) not in (str, unicode):
+        if not isinstance(path, basestring):
             path = '/'.join(path)
         
         if query:
