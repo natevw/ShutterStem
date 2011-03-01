@@ -233,7 +233,7 @@
             });
             selection_basket.querySelector(".export").addEventListener("click", function () {
                 var images = selectedPhotos('[]').join(",");
-                var info = {type:"export", name:"selected images", images:images};
+                var info = {type:"export", name:"selected images", images:images, random:Math.random()};
                 window.location.href = db.urlFor(["_design/shutterstem", "_show/utility"], info);
             }, false);
             
@@ -263,7 +263,7 @@
                 basket.querySelector(".export").addEventListener("click", function () {
                     var basketDoc = db.read(basketRow.id);
                     var images = basketDoc.photos.map(function (photo) { return photo._id; }).join(",");
-                    var info = {type:"export", name:basketDoc.name, images:images};
+                    var info = {type:"export", name:basketDoc.name, images:images, random:Math.random()};
                     window.location.href = db.urlFor(["_design/shutterstem", "_show/utility"], info);
                 }, false);
                 

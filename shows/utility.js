@@ -1,7 +1,7 @@
 function (doc, req) {
     var ddoc = this;
     provides("html", function () {
-        if (req.query.random) {
+        if (!req.query.random) {
             // avoid caching of csrf_token (a bit overzealous...?)
             return {code:400, body:"<h1>Bad Request</h1>You must include a random query parameter."};
         }
