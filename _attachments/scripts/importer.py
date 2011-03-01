@@ -13,12 +13,14 @@ from threading import Thread
 from Queue import Queue, Full as QueueFull
 from collections import deque
 
+IMAGE_TYPE = 'com.shutterstem.image'
+
 
 class Importer(object):
     def _find_image(self, identifiers, stale=True):
         for type, ident in identifiers.iteritems():
-            if type == 'relative_path':
-                key = ident['source']['_id'], ident['path']
+            if type == 'path':
+                key = ident['source']['_id'], ident['name']
             else:
                 key = ident
             query = {'$key':key}
@@ -50,7 +52,7 @@ class Importer(object):
         doc[IMAGE_TYPE] = True
         
         idents = doc.setdefault('identifiers', {})
-        idents['relative_path'] = {'source':couch.make_ref(self._source), 'path':path}
+        idents['path'] = {'source':couch.make_ref(self._source), 'name':path}
         with open(full_path, 'rb') as f:
             md5 = hashlib.md5()
             sha1 = hashlib.sha1()
@@ -89,7 +91,7 @@ class Importer(object):
                     
                     full_path = os.path.join(dirpath, filename)
                     rel_path = os.path.relpath(full_path, folder)
-                    identifiers = {'relative_path':{'source':{'_id':source_id}, 'path':rel_path}}
+                    identifiers = {'path':{'source':{'_id':source_id}, 'name':rel_path}}
                     if not self._find_image(identifiers):
                         self._files.put(full_path)
                 
@@ -109,7 +111,7 @@ class Importer(object):
                     continue
                 
                 new_identifiers = image.copy_doc(doc['identifiers'])
-                del new_identifiers['relative_path']
+                del new_identifiers['path']
                 if self._find_image(new_identifiers):
                     continue
                 

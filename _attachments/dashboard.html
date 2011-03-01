@@ -23,7 +23,7 @@
         <h1>ShutterStem Mission Control</h1>
         
         <div id="sources">
-            <a id="add_source" href>Add import source</a>
+            <a id="add_source" href>Add image source</a>
         </div>
         
         <script>
@@ -35,7 +35,7 @@
                 var el = Flatstache.elementify('source_template', row);
                 el.querySelector(".rename").addEventListener("click", function () {
                     var doc = db.read(row.id);
-                    var newName = prompt("Change the name of this import source to:", doc.name);
+                    var newName = prompt("Change the name of this image source to:", doc.name);
                     if (!newName) {
                         return;
                     }
@@ -50,19 +50,19 @@
                     sources.insertBefore(el, document.getElementById('add_source').nextElementSibling);
                 }
             }
-            db.get("_design/shutterstem/_view/import_sources", {descending:true}, function (response) {
+            db.get("_design/shutterstem/_view/image_sources", {descending:true}, function (response) {
                 response.rows.forEach(addSource);
             });
             document.getElementById('add_source').addEventListener('click', function (e) {
                 e.preventDefault();
                 
-                var name = prompt("Make a new import source named:", "Pictures folder");
+                var name = prompt("Make a new image source named:", "Pictures folder");
                 if (!name) {
                     return;
                 }
                 
                 var doc = {
-                    _id: "imgsrc-" + Math.random(),
+                    _id: "imgsrc-" + db.get("../_uuids").uuids[0],
                     "com.shutterstem.image-source": true,
                     name: name,
                     created: (new Date).toISOString()

@@ -10,13 +10,13 @@ function (doc) {
         };
     }
     
-    var IMAGE_TYPE = "testtype-image";
+    var IMAGE_TYPE = "com.shutterstem.image";
     if (!doc[IMAGE_TYPE]) return;
     
     Object.keys(doc.identifiers).forEach(function (name) {
         var identifier = doc.identifiers[name];
-        if (name === "relative_path") {
-            emit([identifier.source._id, identifier.path], name);
+        if (name === "path") {
+            emit([identifier.source._id, identifier.name], name);
         } else {
             emit(identifier, name);
         }

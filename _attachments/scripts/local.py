@@ -114,8 +114,8 @@ class LocalHelper(couch.External):
         image_doc = couch.Database(req['database_url']).read(image_id)
         if not image_doc:
             return {'code':404, 'json':{'error':True, 'reason':"No such image"}}
-        import_info = image_doc['identifiers']['relative_path']
-        source_id = import_info['source']['_id']
+        path_info = image_doc['identifiers']['path']
+        source_id = path_info['source']['_id']
         
         config = self.configfile
         found = False
@@ -127,7 +127,7 @@ class LocalHelper(couch.External):
             except Exception:
                 continue
             
-            image_path = os.path.join(folder, import_info['path'])
+            image_path = os.path.join(folder, path_info['name'])
             if os.path.exists(image_path):
                 found = True
                 filename = req['query'].get('as')
