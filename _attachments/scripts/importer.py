@@ -52,14 +52,16 @@ class Importer(object):
         idents = doc.setdefault('identifiers', {})
         idents['relative_path'] = {'source':couch.make_ref(self._source), 'path':path}
         with open(full_path, 'rb') as f:
-            digester = hashlib.md5()
+            md5 = hashlib.md5()
+            sha1 = hashlib.sha1()
             while True:
                 buff = f.read(524288)
                 if not buff:
                     break
-                digester.update(buff)
-            digest = digester.hexdigest()
-        idents['md5'] = digest
+                md5.update(buff)
+                sha1.update(buff)
+        idents['md5'] = md5.hexdigest()
+        idents['sha1'] = sha1.hexdigest()
         
         return doc
     
