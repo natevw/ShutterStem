@@ -40,7 +40,7 @@
             var db = new Couch();
             var sources = document.getElementById('sources');
             function addSource(row, i) {
-                row.utility_url = db.urlFor("_design/shutterstem/_show/source_utility/" + row.id);
+                row.utility_url = db.urlFor(['_design/shutterstem', '_show/utility', row.id], {type: 'import', random:Math.random()});
                 var el = Flatstache.elementify('source_template', row);
                 el.querySelector(".rename").addEventListener("click", function () {
                     var doc = db.read(row.id);

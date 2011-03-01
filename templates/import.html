@@ -1,0 +1,109 @@
+<!doctype html>
+<html>
+    <head>
+    <meta charset="UTF-8">
+    <title>ShutterStem - Import from Source</title>
+    
+    <style>
+        #config { display: none; }
+        
+        h2 { margin-bottom: 0.1em; }
+        #start { display: block; margin-top: 1em; font-size: 150%; color: gray; }
+        #start[href] { color: green; }
+        
+        .looking { font-style: italic; }
+        
+        #progress { display: none; }
+    </style>
+    <script src="{{ database_url }}/_design/shutterstem/couch.js"></script>
+    <script src="{{ database_url }}/_design/shutterstem/classlist.js"></script>
+    </head>
+    
+    <body>
+        <h1>ShutterStem Source</h1>
+        
+        <h2>Image sharing</h2>
+        <label><input id="allow_originals" type="checkbox" disabled>Allow hosting and export of original images in <var class="local_path">this folder</var>.</label>
+        
+        <section id="preview">
+            <h2>Previously imported:</h2>
+            <div id="recent_photos"></div>
+            <div id="recent_photos_info"><span class="looking">
+            Looking for previously imported {{ name }} images.
+            </span></div>
+            
+            <h2>Ready for import:</h2>
+            <div id="new_photos"></div>
+            <div id="new_photos_info"><span class="looking">
+            Looking for new images in <var class="local_path">this document's folder</var>.
+            </span></div>
+            <a id="start">Begin Import</a>
+        </section>
+        
+        <section id="progress">
+            <h2>Importing:</h2>
+            
+        </section>
+        
+        <div id="config"
+            data-database_url="{{ database_url }}"
+            data-import_id="{{ _id }}"
+            data-utility_path="{{ utility_path }}"
+            data-csrf_token="{{ csrf_token }}"></div>
+        <script>
+            var config = document.getElementById('config');
+            var database_url = config.getAttribute('data-database_url');
+            var import_id = config.getAttribute('data-import_id');
+            var utility_path = config.getAttribute('data-utility_path');
+            var csrf_token = config.getAttribute('data-csrf_token');
+            var db = new Couch(database_url);
+            
+            var allow_originals = document.getElementById("allow_originals");
+            db.http("POST", null, ['_local_shutterstem', 'folder', import_id, 'update'], {utility:utility_path, token:csrf_token}, function (status, response) {
+                if (status !== 200) {
+                    console.warn("Bad response for folder when trying to update originals hosting.");
+                    return;
+                }
+                
+                allow_originals.disabled = false;
+                allow_originals.checked = response.allows_originals;
+                allow_originals.addEventListener("change", function () {
+                    var action = (allow_originals.checked) ? 'allow' : 'disable';
+                    db.http("POST", null, ['_local_shutterstem', 'folder', import_id, action], {utility:utility_path, token:csrf_token}, function (status) {
+                        if (status !== 200) {
+                            console.warn("Bad response for folder when trying to change originals hosting.");
+                            allow_originals.disabled = true; allow_originals.checked = false;
+                        }
+                    });
+                }, false);
+            });
+            
+            var start = document.getElementById("start");
+            db.http("POST", null, ['_local_shutterstem', 'import', import_id, 'create'], {utility:utility_path, token:csrf_token}, function (status, response) {
+                // check for import started (or already in progress)
+                if (status != 201 && status != 409) {
+                    new_photos.innerText = JSON.stringify(response, null, 4);
+                    update_height_info();
+                    return;
+                }
+                
+                start.href = db.urlFor(['_local_shutterstem', 'import', import_id, 'begin']);
+            });
+            
+            start.addEventListener("click", function (e) {
+                e.preventDefault();
+                
+                document.getElementById("preview").style.display = "none";
+                document.getElementById("progress").style.display = "block";
+                
+                var info = null;
+                var query = {token:csrf_token, utility:utility_path};
+                db.http("POST", info, ['_local_shutterstem', 'import', import_id, 'begin'], query, function (status, response) {
+                    // TODO: so.... import.....
+                    console.log(status, response);
+                });
+            }, false);
+            
+        </script>
+    </body>
+</html>

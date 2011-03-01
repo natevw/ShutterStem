@@ -8,8 +8,8 @@
         #config { display: none; }
         
         h2 { margin-bottom: 0.1em; }
-        #start_export { display: block; margin-top: 1em; font-size: 150%; color: gray; }
-        #start_export[href] { color: green; }
+        #start { display: block; margin-top: 1em; font-size: 150%; color: gray; }
+        #start[href] { color: green; }
         
         #thumbnails { max-width: 500px; }
         .thumbnail { margin: 4px; }
@@ -37,18 +37,18 @@
             
             <h2 id="thumbnails_caption">Preview:</h2>
             <div id="thumbnails">Loading...</div>
-            <a id="start_export">Begin export</a>
+            <a id="start">Begin export</a>
             </form>
         </section>
         
         <section id="progress">
-            <h2>Export status:</h2>
+            <h2>Exporting:</h2>
             
         </section>
         
         <div id="config"
-            data-utility_path="{{ utility_path }}"
             data-database_url="{{ database_url }}"
+            data-utility_path="{{ utility_path }}"
             data-csrf_token="{{ csrf_token }}"></div>
         <script>
             var config = document.getElementById('config');
@@ -94,12 +94,13 @@
             updatePath();
             
             var images;
-            var start_export = document.getElementById("start_export");
+            var start = document.getElementById("start");
             var thumbnails = document.getElementById("thumbnails");
             window.addEventListener("message", function (e) {
                 if (e.source === window.parent) {
                     thumbnails.innerHTML = "";
-                    start_export.href = db.urlFor("_local_shutterstem/export", {images:e.data});
+                    // fake URL for user to see in status bar
+                    start.href = db.urlFor(['_local_shutterstem', 'export'], {images:e.data});
                     images = e.data.split(",");
                     function addImage(imageId) {
                         var img = new Image();
@@ -125,7 +126,7 @@
                 }
             }, false);
             
-            start_export.addEventListener("click", function (e) {
+            start.addEventListener("click", function (e) {
                 e.preventDefault();
                 
                 document.getElementById("setup").style.display = "none";
@@ -133,7 +134,7 @@
                 
                 var info = {folder:full_path, images:images, format:format};
                 var query = {token:csrf_token, utility:utility_path};
-                db.http("POST", info, "_local_shutterstem/export/start", query, function (status, response) {
+                db.http("POST", info, ['_local_shutterstem', 'export', 'start'], query, function (status, response) {
                     // TODO: so.... export.....
                     console.log(status, response);
                 });

@@ -162,7 +162,10 @@ class LocalHelper(couch.External):
             return {'code':404, 'json':{'error':True, 'reason':"No import is in progress for '%s'." % source_id}}
     
     def process_import_POST(self, req, subpath):
-        source_id, action = subpath[:2]
+        try:
+            source_id, action = subpath[:2]
+        except ValueError:
+            return BAD_REQUEST
         importer = self.importers.get(source_id, None)
         if not importer and action != 'create':
             return {'code':404, 'json':{'error':True, 'reason':"No import is in progress for '%s'." % source_id}}
