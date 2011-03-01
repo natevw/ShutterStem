@@ -15,6 +15,9 @@
         
         #progress { display: none; }
         
+        #stop, #undo { visibility: hidden; }
+        #stop[href], #undo[href] { visibility: visible; }
+        
         #log li.error .path { color: red; }
         #log li.warning .path { color: orange; }
         #log li.success .path { color: green; }
@@ -97,27 +100,43 @@
             
             db.http("POST", null, ['_local_shutterstem', 'import', import_id, 'create'], {utility:utility_path, token:csrf_token}, function (status, response) {
                 // check for import started (or already in progress)
-                if (status != 201 && status != 409) {
-                    new_photos.innerText = JSON.stringify(response, null, 4);
+                if (status == 409) {
+                    if (response.verb.indexOf('wait') === -1) {
+                        showProgress();
+                        return;
+                    }
+                } else if (status != 201) {
+                    document.getElementById("preview").style.display = "none";
+                    document.getElementById("progress").style.display = "block";
+                    var item = {status:'error', local_path:database_url, message:"Unexpected error from server: " + JSON.stringify(response)};
+                    log.appendChild(Flatstache.elementify('logitem_template', item));
                     return;
                 }
                 
                 start.href = db.urlFor(['_local_shutterstem', 'import', import_id, 'begin']);
+                window.onunload = function () {
+                    var query = {token:csrf_token, utility:utility_path};
+                    db.http("POST", null, ['_local_shutterstem', 'import', import_id, 'cancel'], query);
+                    db.http("POST", null, ['_local_shutterstem', 'import', import_id, 'finish'], query);
+                };
             });
             
             start.addEventListener("click", function (e) {
                 e.preventDefault();
                 if (!this.href) {
                     return;
+                } else {
+                    this.href = null;
+                    window.onunload = null;
                 }
-                
-                document.getElementById("preview").style.display = "none";
-                document.getElementById("progress").style.display = "block";
-                showProgress();
                 
                 var info = null;
                 var query = {token:csrf_token, utility:utility_path};
-                db.http("POST", info, ['_local_shutterstem', 'import', import_id, 'begin'], query, function (status, response) {});
+                db.http("POST", info, ['_local_shutterstem', 'import', import_id, 'begin'], query, function (status, response) {
+                    if (status === 202) {
+                        showProgress();
+                    }
+                });
             }, false);
             
             stop.addEventListener("click", cancelImport, false);
@@ -126,15 +145,19 @@
                 e.preventDefault();
                 if (!this.href) {
                     return;
+                } else {
+                    this.href = null;
                 }
                 
                 var query = {token:csrf_token, utility:utility_path};
                 if (this === stop) {
                     query['keep'] = true;
+                } else {
+                    stop.href = null;
                 }
                 db.http("POST", null, ['_local_shutterstem', 'import', import_id, 'cancel'], query, function (status, response) {
                     if (status === 202) {
-                        delete this.href;
+                        this.href = null;
                     }
                 });
             }
@@ -143,6 +166,10 @@
             var log = document.getElementById('log');
             var log_summary = document.getElementById('log_summary');
             function showProgress() {
+                document.getElementById("preview").style.display = "none";
+                document.getElementById("progress").style.display = "block";
+                window.onunload = null;
+                
                 db.get(['_local_shutterstem', 'import', import_id], {log_skip:log_position, log_limit:log_size}, function (status) {
                     var description;
                     if (status.verb == 'cancel') {
@@ -171,10 +198,10 @@
                     log_summary.textContent = description;
                     
                     if (status.verb == 'cancel') {
-                        delete stop.href;
-                        delete undo.href;
+                        stop.href = null;
+                        undo.href = null;
                     } else if (status.verb == 'done') {
-                        delete stop.href;
+                        stop.href = null;
                         undo.href = db.urlFor(['_local_shutterstem', 'import', import_id, 'cancel']);
                     } else {
                         stop.href = db.urlFor(['_local_shutterstem', 'import', import_id, 'cancel'], {'keep':true});
@@ -187,7 +214,16 @@
                         log.appendChild(Flatstache.elementify('logitem_template', item));
                     });
                     log_position += status.log.length;
-                    setTimeout(showProgress, (status.log.length < log_size) ? 1500 : 0);
+                    if (status.verb != 'cancel') {
+                        setTimeout(showProgress, (status.log.length < log_size) ? 1500 : 0);
+                    }
+                    
+                    if (status.verb == 'done' || status.verb == 'cancel') {
+                        window.onunload = function () {
+                            var query = {token:csrf_token, utility:utility_path};
+                            db.http("POST", null, ['_local_shutterstem', 'import', import_id, 'finish'], query);
+                       };
+                    }
                 });
             }
         </script>

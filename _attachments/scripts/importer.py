@@ -182,13 +182,9 @@ class Importer(object):
     def _is_active(self):
         return any(t.is_alive() for t in (self._find_files, self._get_file_docs, self._upload_docs, self._delete_docs))
     
-    def finish(self):
-        if self._is_active():
-            raise AssertionError("Import still active")
-    
     def status(self, log_skip=0, log_limit=None, include_recent=False):
         log_start = log_skip
-        log_stop = (log_start + log_limit) if log_limit else None
+        log_stop = (log_start + log_limit) if log_limit is not None else None
         
         active = self._is_active()
         imported = self._imported_refs.qsize()
@@ -213,5 +209,5 @@ class Importer(object):
             'remaining': remaining,
             'verb': verb,
             'recent': list(self._recent_image_docs) if include_recent else None,
-            'log': list(self._log)[log_start:log_stop]
+            'log': list(self._log)[log_start:log_stop] if log_limit != 0 else None
         }

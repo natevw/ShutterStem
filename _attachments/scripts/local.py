@@ -149,14 +149,14 @@ class LocalHelper(couch.External):
                 if response.get('code', 200) == 200:
                     return response
         
-        message = "No original image could be %s." % ('read' if found else 'found')
+        message = "No original image could be %s" % ('read' if found else 'found')
         return {'code':404, 'json':{'error':True, 'reason':message}}
     
     
     def process_import_GET(self, req, subpath):
         source_id = subpath[0]
-        importer = self.importers.get(source_id, None)
-        if importer:
+        helper = self.importers.get(source_id, None)
+        if helper:
             try:
                 options = dict(
                     log_skip = int(req['query'].get('log_skip', 0)),
@@ -165,32 +165,37 @@ class LocalHelper(couch.External):
                 )
             except ValueError:
                 return BAD_REQUEST
-            return {'json':importer.status(**options)}
+            return {'json':helper.status(**options)}
         else:
-            return {'code':404, 'json':{'error':True, 'reason':"No import is in progress for '%s'." % source_id}}
+            return {'code':404, 'json':{'error':True, 'reason':"No import is in progress for '%s'" % source_id}}
     
     def process_import_POST(self, req, subpath):
         try:
             source_id, action = subpath[:2]
         except ValueError:
             return BAD_REQUEST
-        importer = self.importers.get(source_id, None)
-        if not importer and action != 'create':
-            return {'code':404, 'json':{'error':True, 'reason':"No import is in progress for '%s'." % source_id}}
-        elif action == 'create' and importer:
-            return {'code':409, 'json':{'error':True, 'reason':"An import is already in progress for this source"}}
+        helper = self.importers.get(source_id, None)
+        if not helper and action != 'create':
+            return {'code':404, 'json':{'error':True, 'reason':"No import is in progress for '%s'" % source_id}}
+        elif action == 'create' and helper:
+            status = helper.status(log_limit=0)
+            status['message'] = "An import is already in progress for this source"
+            return {'code':409, 'json':status}
         
         if action == 'create':
             self.importers[source_id] = Importer(req['database_url'], source_id, req['utility']['folder'])
             return {'code':201, 'json':{'ok':True, 'message':"Import created"}}
         elif action == 'begin':
-            importer.begin()
+            helper.begin()
             return {'code':202, 'json':{'ok':True, 'message':"Import will proceed"}}
         elif action == 'cancel':
-            importer.cancel()
-            return {'code':202, 'json':{'ok':True, 'message':"Import is cancelling"}}
+            remove = False if req['query'].get('keep') == 'true' else True
+            helper.cancel(remove=remove)
+            if remove:
+                return {'code':202, 'json':{'ok':True, 'message':"Import is cancelling, removing images"}}
+            else:
+                return {'code':200, 'json':{'ok':True, 'message':"Import is cancelling"}}
         elif action == 'finish':
-            importer.finish()
             del self.importers[source_id]
             return {'code':200, 'json':{'ok':True, 'message':"Import finished"}}
         else:
@@ -223,7 +228,7 @@ class LocalHelper(couch.External):
             if helper:
                 return {'json':helper.status()}
             else:
-                return {'code':404, 'json':{'error':True, 'reason':"No such exporter."}}
+                return {'code':404, 'json':{'error':True, 'reason':"No such exporter"}}
         else:
             statii = {}
             for id, helper in self.exporters.iteritems():
@@ -262,14 +267,16 @@ class LocalHelper(couch.External):
             try:
                 helper = self.exporters[id]
             except KeyError:
-                return {'code':404, 'json':{'error':True, 'reason':"No such exporter."}}
+                return {'code':404, 'json':{'error':True, 'reason':"No such exporter"}}
             
             if action == 'cancel':
                 remove = False if req['query'].get('keep') == 'true' else True
                 helper.cancel(remove=remove)
-                return {'code':202, 'json':{'ok':True, 'message':"Export cancelled"}}
+                if remove:
+                    return {'code':202, 'json':{'ok':True, 'message':"Export is cancelling, removing images"}}
+                else:
+                    return {'code':200, 'json':{'ok':True, 'message':"Export cancelled"}}
             elif action == 'finish':
-                helper.finish()
                 del self.exporters[id]
                 return {'code':200, 'json':{'ok':True, 'message':"Export finished"}}
             
