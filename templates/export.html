@@ -15,15 +15,25 @@
         .thumbnail { margin: 4px; }
         
         #progress { display: none; }
+        #stop, #undo { visibility: hidden; }
+        #stop[href], #undo[href] { visibility: visible; }
+        
+        #log li.error { color: red; }
+        #log li.success { color: green; }
     </style>
     <script src="{{ database_url }}/_design/shutterstem/couch.js"></script>
-    <script src="{{ database_url }}/_design/shutterstem/classlist.js"></script>
+    <script src="{{ database_url }}/_design/shutterstem/flatstache.js"></script>
+    {{=<% %>=}}
+    <script id="logitem_template" type="text/x-flat">
+        <li class="{{ status }}">{{ msg }}</li>
+    </script>
+    <%={{ }}=%>
     </head>
     
     <body>
         <h1>ShutterStem Export</h1>
         
-        <section id="setup">
+        <section id="preview">
             <form>
             <h2>Format:</h2>
             <label><input type="radio" name="export_format" value="original">Copy original files</label><br>
@@ -43,7 +53,8 @@
         
         <section id="progress">
             <h2>Exporting:</h2>
-            
+            <span id="log_summary"></span> <a id="stop">Stop</a> <a id="undo">Undo</a>
+            <ul id="log"></ul>
         </section>
         
         <div id="config"
@@ -94,7 +105,6 @@
             updatePath();
             
             var images;
-            var start = document.getElementById("start");
             var thumbnails = document.getElementById("thumbnails");
             window.addEventListener("message", function (e) {
                 if (e.source === window.parent) {
@@ -126,19 +136,91 @@
                 }
             }, false);
             
+            var start = document.getElementById("start");
+            var stop = document.getElementById("stop");
+            var undo = document.getElementById("undo");
+            
+            var export_id;
             start.addEventListener("click", function (e) {
                 e.preventDefault();
-                
-                document.getElementById("setup").style.display = "none";
-                document.getElementById("progress").style.display = "block";
+                if (!this.href) {
+                    return;
+                } else {
+                    this.href = null;
+                }
                 
                 var info = {folder:full_path, images:images, format:format};
                 var query = {token:csrf_token, utility:utility_path};
                 db.http("POST", info, ['_local_shutterstem', 'export', 'start'], query, function (status, response) {
-                    // TODO: so.... export.....
-                    console.log(status, response);
+                    if (status == 201) {
+                        export_id = response.id;
+                        showProgress();
+                    }
                 });
             }, false);
+            
+            stop.addEventListener("click", cancelExport, false);
+            undo.addEventListener("click", cancelExport, false);
+            function cancelExport(e) {
+                e.preventDefault();
+                if (!this.href) {
+                    return;
+                } else {
+                    this.href = null;
+                }
+                
+                var query = {token:csrf_token, utility:utility_path};
+                if (this === stop) {
+                    query['keep'] = true;
+                } else {
+                    stop.href = null;
+                }
+                db.http("POST", null, ['_local_shutterstem', 'export', export_id, 'cancel'], query, function (status, response) {
+                    if (status === 202) {
+                        this.href = null;
+                    }
+                });
+            }
+            
+            var log_position = 0, log_size = 50;
+            var log = document.getElementById('log');
+            var log_summary = document.getElementById('log_summary');
+            function showProgress() {
+                document.getElementById("preview").style.display = "none";
+                document.getElementById("progress").style.display = "block";
+                
+                db.get(['_local_shutterstem', 'export', export_id], {log_skip:log_position, log_limit:log_size}, function (status) {
+                    var description = "Export....yeah.";
+                    log_summary.textContent = description;
+                    
+                    if (!status.done) {
+                        stop.href = db.urlFor(['_local_shutterstem', 'export', export_id, 'cancel'], {'keep':true});
+                    } else {
+                        stop.href = null;
+                    }
+                    if (!status.cancelled) {
+                        undo.href = db.urlFor(['_local_shutterstem', 'export', export_id, 'cancel']);
+                    } else {
+                        undo.href = null;
+                    }
+                    
+                    status.log.forEach(function (item) {
+                        item.status = (item.ok) ? "success" : "error";
+                        log.appendChild(Flatstache.elementify('logitem_template', item));
+                    });
+                    log_position += status.log.length;
+                    if (!status.done || (status.cancelled && status.exported)) {
+                        setTimeout(showProgress, (status.log.length < log_size) ? 1500 : 0);
+                    }
+                    
+                    if (status.done) {
+                        window.onunload = function () {
+                            var query = {token:csrf_token, utility:utility_path};
+                            db.http("POST", null, ['_local_shutterstem', 'export', export_id, 'finish'], query);
+                       };
+                    }
+                });
+            }
             
         </script>
     </body>

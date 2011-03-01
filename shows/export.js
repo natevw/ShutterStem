@@ -6,6 +6,6 @@ function (doc, req) {
         doc.utility_path = req.query.utility;
         doc.csrf_token = req.query.token;
         doc.default_subfolder_name = req.query.name;
-        return require("lib/flatstache").to_html(ddoc.templates['export'], doc);
+        return require("lib/mustache").to_html(ddoc.templates['export'], doc);
     });
 }

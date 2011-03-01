@@ -226,7 +226,14 @@ class LocalHelper(couch.External):
         if subpath:
             helper = self.exporters.get(subpath[0], None)
             if helper:
-                return {'json':helper.status()}
+                try:
+                    options = dict(
+                        log_skip = int(req['query'].get('log_skip', 0)),
+                        log_limit = int(req['query']['log_limit']) if 'log_limit' in req['query'] else None,
+                    )
+                except ValueError:
+                    return BAD_REQUEST
+                return {'json':helper.status(**options)}
             else:
                 return {'code':404, 'json':{'error':True, 'reason':"No such exporter"}}
         else:
@@ -260,8 +267,8 @@ class LocalHelper(couch.External):
             return {'code':201, 'json':{'ok':True, 'message':"Export begun", 'id':id}}
         else:
             try:
-                id = subpath[1]
-            except IndexError:
+                id, action = subpath[:2]
+            except ValueError:
                 return BAD_REQUEST
             
             try:

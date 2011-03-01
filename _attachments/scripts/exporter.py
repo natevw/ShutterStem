@@ -66,7 +66,7 @@ class Exporter(object):
                     self._log.append({'id':id, 'ok':True, 'msg':"Exported as %s." % name})
             self._written.put(None)
         
-        def unexport():        
+        def unexport():
             while True:
                 path = self._written.get()
                 if not path:
@@ -91,7 +91,10 @@ class Exporter(object):
         if remove:
             self._unexport.start()
     
-    def status(self):
+    def status(self, log_skip=0, log_limit=None):
+        log_start = log_skip
+        log_stop = (log_start + log_limit) if log_limit is not None else None
+        
         alive = self._export.is_alive() or (self._cancelled and self._unexport.is_alive())
         return {
             'done': not alive,
@@ -100,5 +103,5 @@ class Exporter(object):
             'removed': self._removed_count,
             'failed': self._failure_count,
             'total': self._total_count,
-            'log': list(self._log)
+            'log': list(self._log)[log_start:log_stop] if log_limit != 0 else None
         }
