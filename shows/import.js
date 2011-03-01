@@ -4,6 +4,6 @@ function (doc, req) {
         doc.database_url = "http://localhost:5984/" + req.info.db_name;
         doc.utility_path = req.query.utility;
         doc.csrf_token = req.query.token;
-        return require("lib/flatstache").to_html(ddoc.templates['import'], doc);
+        return require("lib/mustache").to_html(ddoc.templates['import'], doc);
     });
 }

@@ -163,7 +163,9 @@ class Importer(object):
         self._delete_docs = Thread(target=delete_docs, name="Remove documents from cancelled import (%s)" % self._source['_id'])
     
     def begin(self):
-        if not self._cancelled:
+        if self._cancelled or self._done or self._upload_docs.is_alive():
+            return
+        else:
             self._upload_docs.start()
     
     def cancel(self, remove=True):
@@ -184,7 +186,10 @@ class Importer(object):
         if self._is_active():
             raise AssertionError("Import still active")
     
-    def status(self):
+    def status(self, log_skip=0, log_limit=None, include_recent=False):
+        log_start = log_skip
+        log_stop = (log_start + log_limit) if log_limit else None
+        
         active = self._is_active()
         imported = self._imported_refs.qsize()
         remaining = self._files.qsize() + self._image_docs.qsize()
@@ -207,6 +212,6 @@ class Importer(object):
             'imported': imported,
             'remaining': remaining,
             'verb': verb,
-            'recent': list(self._recent_image_docs),
-            'log': list(self._log)
+            'recent': list(self._recent_image_docs) if include_recent else None,
+            'log': list(self._log)[log_start:log_stop]
         }

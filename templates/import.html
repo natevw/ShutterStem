@@ -14,9 +14,18 @@
         .looking { font-style: italic; }
         
         #progress { display: none; }
+        
+        #log li.error .path { color: red; }
+        #log li.warning .path { color: orange; }
+        #log li.success .path { color: green; }
     </style>
     <script src="{{ database_url }}/_design/shutterstem/couch.js"></script>
-    <script src="{{ database_url }}/_design/shutterstem/classlist.js"></script>
+    <script src="{{ database_url }}/_design/shutterstem/flatstache.js"></script>
+    {{=<% %>=}}
+    <script id="logitem_template" type="text/x-flat">
+        <li class="{{ status }}"><var class="path">{{ local_path }}</var><br>{{ message }}</li>
+    </script>
+    <%={{ }}=%>
     </head>
     
     <body>
@@ -42,7 +51,8 @@
         
         <section id="progress">
             <h2>Importing:</h2>
-            
+            <span id="log_summary"></span> <a id="stop">Stop</a> <a id="undo">Undo</a>
+            <ul id="log"></ul>
         </section>
         
         <div id="config"
@@ -57,6 +67,9 @@
             var utility_path = config.getAttribute('data-utility_path');
             var csrf_token = config.getAttribute('data-csrf_token');
             var db = new Couch(database_url);
+            
+            
+            var folder = utility_path.split("/").slice(0, -1).join("/");
             
             var allow_originals = document.getElementById("allow_originals");
             db.http("POST", null, ['_local_shutterstem', 'folder', import_id, 'update'], {utility:utility_path, token:csrf_token}, function (status, response) {
@@ -79,11 +92,13 @@
             });
             
             var start = document.getElementById("start");
+            var stop = document.getElementById("stop");
+            var undo = document.getElementById("undo");
+            
             db.http("POST", null, ['_local_shutterstem', 'import', import_id, 'create'], {utility:utility_path, token:csrf_token}, function (status, response) {
                 // check for import started (or already in progress)
                 if (status != 201 && status != 409) {
                     new_photos.innerText = JSON.stringify(response, null, 4);
-                    update_height_info();
                     return;
                 }
                 
@@ -92,18 +107,89 @@
             
             start.addEventListener("click", function (e) {
                 e.preventDefault();
+                if (!this.href) {
+                    return;
+                }
                 
                 document.getElementById("preview").style.display = "none";
                 document.getElementById("progress").style.display = "block";
+                showProgress();
                 
                 var info = null;
                 var query = {token:csrf_token, utility:utility_path};
-                db.http("POST", info, ['_local_shutterstem', 'import', import_id, 'begin'], query, function (status, response) {
-                    // TODO: so.... import.....
-                    console.log(status, response);
-                });
+                db.http("POST", info, ['_local_shutterstem', 'import', import_id, 'begin'], query, function (status, response) {});
             }, false);
             
+            stop.addEventListener("click", cancelImport, false);
+            undo.addEventListener("click", cancelImport, false);
+            function cancelImport(e) {
+                e.preventDefault();
+                if (!this.href) {
+                    return;
+                }
+                
+                var query = {token:csrf_token, utility:utility_path};
+                if (this === stop) {
+                    query['keep'] = true;
+                }
+                db.http("POST", null, ['_local_shutterstem', 'import', import_id, 'cancel'], query, function (status, response) {
+                    if (status === 202) {
+                        delete this.href;
+                    }
+                });
+            }
+            
+            var log_position = 0, log_size = 50;
+            var log = document.getElementById('log');
+            var log_summary = document.getElementById('log_summary');
+            function showProgress() {
+                db.get(['_local_shutterstem', 'import', import_id], {log_skip:log_position, log_limit:log_size}, function (status) {
+                    var description;
+                    if (status.verb == 'cancel') {
+                        description = "Import cancelled";
+                    } else {
+                        if (status.imported > 1) {
+                            description = "Imported " + status.imported + " images";
+                        } else if (status.imported) {
+                            description = "One image imported";
+                        } else {
+                            description = "No images imported";
+                        }
+                    }
+                    if (status.remaining > 1) {
+                        description += ", " + status.remaining + " in progress";
+                    } else if (status.remaining > 1) {
+                        description += ", one in progress";
+                    }
+                    if (status.verb.indexOf("scan") !== -1) {
+                        description += " and still looking for more.";
+                    } else if (status.verb == 'done' || status.verb == 'cancel') {
+                        description += ".";
+                    } else {
+                        description += "...";
+                    }
+                    log_summary.textContent = description;
+                    
+                    if (status.verb == 'cancel') {
+                        delete stop.href;
+                        delete undo.href;
+                    } else if (status.verb == 'done') {
+                        delete stop.href;
+                        undo.href = db.urlFor(['_local_shutterstem', 'import', import_id, 'cancel']);
+                    } else {
+                        stop.href = db.urlFor(['_local_shutterstem', 'import', import_id, 'cancel'], {'keep':true});
+                        undo.href = db.urlFor(['_local_shutterstem', 'import', import_id, 'cancel']);
+                    }
+                
+                    status.log.forEach(function (item) {
+                        item.status = (item.error) ? "error" : "warning";
+                        item.local_path = item.path.replace(import_id, function (str, idx) { return (idx == 0) ? folder : str; });
+                        log.appendChild(Flatstache.elementify('logitem_template', item));
+                    });
+                    log_position += status.log.length;
+                    setTimeout(showProgress, (status.log.length < log_size) ? 1500 : 0);
+                });
+            }
         </script>
     </body>
 </html>

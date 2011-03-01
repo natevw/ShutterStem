@@ -157,7 +157,15 @@ class LocalHelper(couch.External):
         source_id = subpath[0]
         importer = self.importers.get(source_id, None)
         if importer:
-            return {'json':importer.status()}
+            try:
+                options = dict(
+                    log_skip = int(req['query'].get('log_skip', 0)),
+                    log_limit = int(req['query']['log_limit']) if 'log_limit' in req['query'] else None,
+                    include_recent = req['query'].get('recent') == 'include',
+                )
+            except ValueError:
+                return BAD_REQUEST
+            return {'json':importer.status(**options)}
         else:
             return {'code':404, 'json':{'error':True, 'reason':"No import is in progress for '%s'." % source_id}}
     
@@ -257,7 +265,8 @@ class LocalHelper(couch.External):
                 return {'code':404, 'json':{'error':True, 'reason':"No such exporter."}}
             
             if action == 'cancel':
-                helper.cancel()
+                remove = False if req['query'].get('keep') == 'true' else True
+                helper.cancel(remove=remove)
                 return {'code':202, 'json':{'ok':True, 'message':"Export cancelled"}}
             elif action == 'finish':
                 helper.finish()
