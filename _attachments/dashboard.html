@@ -3,25 +3,15 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, user-scalable=no">
-        <title>ShutterStem Dashboard</title>
+        <title>ShutterStem — Dashboard</title>
         <style>
-            html {
-                width: 100%; height: 100%;
-            }
-            body {
-                padding: 0px; margin: 0px; width: 100%; height: 100%;
-            }
-            body :first-child { margin-top: 0em; }
             
-            #debug {
-                border: 1px dashed red; padding: 20px;
-            }
         </style>
         <script src="couch.js"></script>
         <script src="flatstache.js"></script>
         <script id="source_template" type="text/x-flat">
             <section id="{{ id }}" class="source">
-                <h1>{{ value }}</h1>
+                <h2>{{ value }}</h2>
                 <ul>
                     <li class="rename">Rename
                     <li class="download"><a href="{{ utility_url }}">Download import utility</a>
