@@ -5,7 +5,7 @@ import json
 import httplib
 import urllib, urlparse
 
-REF_TYPE = "testtype-reference"
+REF_TYPE = "net.stemstorage.reference"
 
 
 class Database(object):

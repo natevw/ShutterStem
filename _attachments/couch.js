@@ -89,10 +89,11 @@ Couch.guessDB = function () {
     }
 }
 
+Couch.REF_TYPE = "net.stemstorage.reference";
+
 Couch.makeRef = function (doc, denormalize) {
     var reference = {};
-    var REF_TYPE = "testtype-reference";
-    reference[REF_TYPE] = true;
+    reference[Couch.REF_TYPE] = true;
     reference._id = doc._id;
     if (denormalize) denormalize.forEach(function (field) {
         reference[field] = doc[field];

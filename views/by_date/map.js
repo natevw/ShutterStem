@@ -1,5 +1,5 @@
 function (doc) {
-    var IMAGE_TYPE = "testtype-image";
+    var IMAGE_TYPE = "com.shutterstem.image";
     if (!doc[IMAGE_TYPE]) return;
     
     var exports = {};

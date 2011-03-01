@@ -89,6 +89,7 @@
         <div id="thumbnails"></div>
         
         <script>
+            var BASKET_TYPE = "com.shutterstem.basket"
             var db = new Couch();
             
             function selectedPhotos(returnType) {
@@ -212,12 +213,12 @@
                     return Couch.makeRef({_id:id});
                 });
                 var basket = {
-                    _id: "testbasket-" + Math.random(),
-                    "testtype-basket": true,
+                    _id: "bskt-" + db.get("../_uuids").uuids[0],
                     name: name,
                     photos: photos,
                     created: (new Date).toISOString()
                 };
+                basket[BASKET_TYPE] = true;
                 db.write(basket);
                 addBasket({id:basket._id, value:basket.name}, 'top');
             }, false);

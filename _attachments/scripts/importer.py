@@ -46,8 +46,8 @@ class Importer(object):
         
         if 'original_info' in doc:
             del doc['original_info']
-        doc['_id'] = "testfakeimage-%s" % uuid.uuid4().hex
-        doc[self._IMAGE_TYPE] = True
+        doc['_id'] = "img-%s" % uuid.uuid4().hex
+        doc[IMAGE_TYPE] = True
         
         idents = doc.setdefault('identifiers', {})
         idents['relative_path'] = {'source':couch.make_ref(self._source), 'path':path}
@@ -69,7 +69,6 @@ class Importer(object):
         self._db = couch.Database(db_url)
         self._source = self._db.read(source_id)
         self._DDOC = '_design/shutterstem'
-        self._IMAGE_TYPE = 'testtype-image'
         
         self._cancelled = False
         self._done = False

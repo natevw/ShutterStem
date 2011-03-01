@@ -27,6 +27,7 @@
         </div>
         
         <script>
+            var IMAGE_SOURCE_TYPE = "com.shutterstem.image-source"
             var db = new Couch();
             var sources = document.getElementById('sources');
             function addSource(row, i) {
@@ -61,8 +62,8 @@
                 }
                 
                 var doc = {
-                    _id: "testsource-" + Math.random(),
-                    "testtype-import_source": true,
+                    _id: "imgsrc-" + Math.random(),
+                    "com.shutterstem.image-source": true,
                     name: name,
                     created: (new Date).toISOString()
                 };

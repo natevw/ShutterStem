@@ -1,6 +1,6 @@
 function (doc) {
-    var IMPORT_SOURCE_TYPE = "testtype-import_source";
-    if (!doc[IMPORT_SOURCE_TYPE]) return;
+    var IMAGE_SOURCE_TYPE = "com.shutterstem.image-source"
+    if (!doc[IMAGE_SOURCE_TYPE]) return;
     
     emit(doc.modified || doc.created, doc.name);
 }
