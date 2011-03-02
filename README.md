@@ -58,7 +58,7 @@ Questions? I'm @natevw on Twitter.
 
 # Architecture #
 
-![Rough architecture diagram](_attachments/architecture_sketch.gif)
+![Rough architecture diagram](ShutterStem/_attachments/architecture_sketch.gif)
 
 ShutterStem organizes photo metadata and thumbnails in a CouchDB database for reliable, replicable storage.
 An external plugin hosts import, export and access to originals. Import and export are controlled via
