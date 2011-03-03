@@ -2,7 +2,23 @@ ShutterStem is trying to make taking photos fun again. It is a CouchDB-based pho
 
 # Details #
 
-(TODO: bit more of an overview, link to [philosophy document]())
+Digital cameras make it easy to take thousands of photos; ShutterStem wants to make it possible to organize and enjoy the best —
+on any devices that are available, desktop computer and travel netbook, online or off-grid, jailbroken or not.
+To accomplish this, your photo library needs to be more of a /platform/ than a /product/.
+
+ShutterStem provides a simple web app for managing photos. Images can be imported, grouped into "baskets", and then exported.
+Metadata and thumbnails are stored in [CouchDB](http://guide.couchdb.org/draft/why.html),
+which means you can organize on any computer yet keep your changes synced easily.
+Other apps, web or native, can build cooler features on top of this traveling database of images, without having to reinvent the basics.
+
+You can [read more about the technical principles](https://github.com/natevw/ShutterStem/blob/master/PHILOSOPHY.md) behind ShutterStem,
+or you just hop right in and start kicking the tires for yourself by following the
+way-too-complicated, two-chapters-with-foreword installation process outlined below.
+
+While contributions to this core organizer are certainly welcome,
+focused apps that add their own metadata to, or rebuild an interface on top of the shared database are even more welcome!
+(e.g. a Mac or Android or iOS–native organizer, a web gallery/slideshow viewer, automatic face detection...)
+
 
 # Installation #
 

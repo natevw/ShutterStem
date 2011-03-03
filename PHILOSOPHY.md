@@ -61,13 +61,20 @@ ShutterStem should be able to gracefully handle any number of photos, and enable
 # Questions one might ask #
 
 Q. So how does ShutterStem manage to pull all of this off?
+
 A. CouchDB pretty much just does it all for us and we just relax.
 
+
 Q. CouchDB?
+
 A. CouchDB: http://www.building43.com/videos/2010/08/19/a-powerful-replicable-mobilized-database-couchdb/
 
+
 Q. So if CouchDB does all the work, then what doth ShutterStem?
+
 A. CouchDB is "just" a beautifully architected web filesystem and server, ShutterStem is a standardish way of using CouchDB to manage photos and provides the necessary app-specific infrastructure on top of CouchDB's foundation.
 
+
 Q. Does ShutterStem require CouchDB?
+
 A. Yes, although in theory ShutterStem's components could be exported to other cultures (e.g. devices crippled by anti-competitive censorship)
