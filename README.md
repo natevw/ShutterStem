@@ -47,17 +47,19 @@ You should not move or rename files within an image source, but do your organizi
 After you create an image source, you should save or download the utility document in the root of this image source folder.
 
 For example, I copy photos straight off my memory card's into folders by camera:
-~/Pictures/PowerShot A70
-~/Pictures/PowerShot S60
-~/Pictures/Rebel XT
-~/Pictures/Rebel T1i (contains images grouped in the camera-created subfolders like 260CANON and 270CANON)
+
+- ~/Pictures/PowerShot A70
+- ~/Pictures/PowerShot S60
+- ~/Pictures/Rebel XT
+- ~/Pictures/Rebel T1i (contains images grouped in the camera-created subfolders like 260CANON and 270CANON)
 
 So I've created an image source and placed the corresponding import utility into each one of these folders.
 
 When I want to import new images, I open this utility document and it connects to the ShutterStem helper scripts to manage the import into CouchDB.
 
 Since the folder structure and image names on my hard drive are the same as on the memory cards, I can even save another utility to import directly off of them, e.g.:
-"/Volumes/T1I_MEMCARD/DCIM/ShutterStem - Import Rebel T1i.html"
+
+- "/Volumes/T1I_MEMCARD/DCIM/ShutterStem - Import Rebel T1i.html"
 
 
 ## Fine print ##
@@ -80,15 +82,18 @@ folder utilities that communicate with the external plugin through CouchDB's HTT
 These folder utilities use an iframe and cross-window messaging to communicate the local folder path and user instructions to the backend. There backend can be divided roughly into three primary components, besides CouchDB itself:
 
 1\. The webapp and related indexes
+
 CouchDB can not only host JSON documents and file attachments, but also provides some basic infrastructure for writing dynamic, yet scalable, server-side code. Programs built to work within this built-in application layer are know as [Couch apps](http://couchapp.org/page/index), and the basic ShutterStem organizer is written to be hosted directly out of the same CouchDB design document that specifies the related document indexes.
 
 2\. The local helper script suite (local.py, which uses image.py, importer.py, exporter.py and couch.py)
+
 This is essentially a web server written in Python, which takes requests for things like "import this folder" or "what's the original for this image?" and
 reads from the folders the image utilities are in to access files on the webapp's behalf.
 It gets hooked into a URL within your main database as an [external process](http://wiki.apache.org/couchdb/ExternalProcesses) that
 CouchDB starts up and uses kind of like a plugin.
 
 3\. "getphoto-osx"
+
 This is the completely platform-specific part, which uses (in this case) the image libraries built into OS X to read metadata and pixels from your JPEG and RAW images.
 It is designed to interact with the local helper script suite via a command line interface so that similar utilities could be written for other platforms or datasources.
 
