@@ -102,7 +102,7 @@ It is designed to interact with the local helper script suite via a command line
 
 Released under the MIT License:
 
-Copyright 2010Ð2011 Nathan Vander Wilt.
+Copyright 2010â€“2011 Nathan Vander Wilt.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
