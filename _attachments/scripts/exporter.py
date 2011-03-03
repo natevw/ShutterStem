@@ -95,7 +95,7 @@ class Exporter(object):
         log_start = log_skip
         log_stop = (log_start + log_limit) if log_limit is not None else None
         
-        alive = self._export.is_alive() or (self._cancelled and self._unexport.is_alive())
+        alive = self._export.isAlive() or (self._cancelled and self._unexport.isAlive())
         return {
             'done': not alive,
             'cancelled': self._cancelled,

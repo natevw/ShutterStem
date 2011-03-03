@@ -75,7 +75,10 @@ class Importer(object):
         self._cancelled = False
         self._done = False
         self._files = Queue()
-        self._recent_image_docs = deque(maxlen=10)
+        try:
+            self._recent_image_docs = deque(maxlen=10)
+        except TypeError:
+            self._recent_image_docs = deque()
         self._image_docs = Queue(maxsize=30)
         self._imported_refs = Queue()
         self._log = deque()
@@ -90,11 +93,13 @@ class Importer(object):
                         continue
                     
                     full_path = os.path.join(dirpath, filename)
-                    rel_path = os.path.relpath(full_path, folder)
-                    identifiers = {'path':{'source':{'_id':source_id}, 'name':rel_path}}
+                    try:
+                        rel_path = os.path.relpath(full_path, folder)
+                        identifiers = {'path':{'source':{'_id':source_id}, 'name':rel_path}}
+                    except AttributeError:
+                        identifiers = {'path':{'source':{'_id':source_id}, 'name':full_path}}
                     if not self._find_image(identifiers):
                         self._files.put(full_path)
-                
                 if self._cancelled:
                     break
             self._files.put(None)
@@ -104,8 +109,10 @@ class Importer(object):
                 file = self._files.get()
                 if not file:
                     break
-                
-                path = os.path.relpath(file, folder)
+                try:
+                    path = os.path.relpath(file, folder)
+                except AttributeError:
+                    path = file
                 doc = self._image_doc(folder, path)
                 if not doc:
                     continue
@@ -164,7 +171,7 @@ class Importer(object):
         self._delete_docs = Thread(target=delete_docs, name="Remove documents from cancelled import (%s)" % self._source['_id'])
     
     def begin(self):
-        if self._cancelled or self._done or self._upload_docs.is_alive():
+        if self._cancelled or self._done or self._upload_docs.isAlive():
             return
         else:
             self._upload_docs.start()
@@ -172,7 +179,7 @@ class Importer(object):
     def cancel(self, remove=True):
         self._cancelled = True
         
-        if self._upload_docs.is_alive():
+        if self._upload_docs.isAlive():
             self._image_docs.put(None)
         else:
             self._imported_refs.put(None)
@@ -181,7 +188,7 @@ class Importer(object):
             self._delete_docs.start()
     
     def _is_active(self):
-        return any(t.is_alive() for t in (self._find_files, self._get_file_docs, self._upload_docs, self._delete_docs))
+        return any(t.isAlive() for t in (self._find_files, self._get_file_docs, self._upload_docs, self._delete_docs))
     
     def status(self, log_skip=0, log_limit=None, include_recent=False):
         log_start = log_skip
@@ -197,11 +204,11 @@ class Importer(object):
         elif self._done:
             verb = 'done'
             imported -= 1
-        elif self._upload_docs.is_alive():
-            verb = 'import+scan' if self._find_files.is_alive() else 'import'
+        elif self._upload_docs.isAlive():
+            verb = 'import+scan' if self._find_files.isAlive() else 'import'
             remaining -= 1 if verb == 'import' else 0
         else:
-            verb = 'wait+scan' if self._find_files.is_alive() else 'wait'
+            verb = 'wait+scan' if self._find_files.isAlive() else 'wait'
             remaining -= 1 if verb == 'wait' else 0
         
         return {
