@@ -57,7 +57,7 @@ class Exporter(object):
                     with open(image_path, 'wb') as f:
                         data = base64.decodestring(response['base64'])
                         f.write(data)
-                except Exception as e:
+                except Exception, e:
                     self._failure_count += 1
                     self._log.append({'id':id, 'ok':False, 'msg':"Failed to save %s: %s" % (name, e)})
                 else:
@@ -73,7 +73,7 @@ class Exporter(object):
                     break
                 try:
                     os.remove(path)
-                except Exception as e:
+                except Exception, e:
                     self._failure_count += 1
                     self._log.append({'id':id, 'ok':False, 'msg':"Failed to remove %s: %s" % (os.path.basename(path), e)})
                 else:

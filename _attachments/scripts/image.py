@@ -1,5 +1,8 @@
 import os
-import json
+try:
+    import simplejson as json
+except ImportError:
+    import json
 import subprocess
 
 GET_IMAGE = os.path.dirname(os.path.abspath(__file__)) + '/getphoto-osx/build/Release/getphoto'

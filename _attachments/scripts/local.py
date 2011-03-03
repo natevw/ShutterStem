@@ -9,7 +9,10 @@ from exporter import Exporter
 
 from time import sleep
 import os
-import json
+try:
+    import simplejson as json
+except ImportError:
+    import json
 import base64
 from cStringIO import StringIO
 
@@ -22,22 +25,21 @@ class LocalHelper(couch.External):
         self.importers = {}
         self.exporters = {}
     
-    @property
-    def configfile(self):
+    def get_configfile(self):
         if os.path.exists(CONFIG):
             with open(CONFIG, 'r') as file:
                 return json.loads(file.read())
         else:
              return {}
     
-    @configfile.setter
-    def configfile(self, config):
+    def set_configfile(self, config):
         with open(CONFIG, 'w') as file:
             file.write(json.dumps(config))
     
-    @configfile.deleter
-    def configfile(self):
+    def del_configfile(self):
         os.remove(CONFIG)
+    
+    configfile = property(get_configfile, set_configfile, del_configfile)
     
     def check_utility(self, utility_path, csrf_token):
         with open(utility_path, 'rb') as f:

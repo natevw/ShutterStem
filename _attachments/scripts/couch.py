@@ -1,7 +1,10 @@
 '''Simple classes for talking with CouchDB, as a client or as an external process'''
 
 import sys
-import json
+try:
+    import simplejson as json
+except ImportError:
+    import json
 import httplib
 import urllib, urlparse
 
@@ -78,7 +81,7 @@ class External(object):
         while line:
             try:
                 response = self.process(json.loads(line))
-            except Exception as e:
+            except Exception, e:
                 response = {'code':500, 'json':{'error':True, 'reason':"Internal error processing request (%s)" % e}}
             sys.stdout.write("%s\n" % json.dumps(response))
             sys.stdout.flush()
