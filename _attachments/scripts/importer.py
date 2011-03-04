@@ -31,8 +31,8 @@ class Importer(object):
                 match = matches['rows'][0]
                 return match['id'], match['value']
     
-    def _image_doc(self, folder, path):
-        full_path = os.path.join(folder, path)
+    def _image_doc(self, folder, rel_path):
+        full_path = os.path.join(folder, rel_path)
         args = ['--metadata']
         if 'time_zone' in self._source:
             args.extend(['--timezone', self._source['time_zone']])
@@ -40,7 +40,7 @@ class Importer(object):
         doc, logs = image.get(full_path, *args)
         
         for log in logs:
-            log['path'] = "%s/%s" % (self._source['_id'], path)
+            log['path'] = "%s/%s" % (self._source['_id'], rel_path)
             self._log.append(log)
         
         if not doc:
@@ -52,7 +52,7 @@ class Importer(object):
         doc[IMAGE_TYPE] = True
         
         idents = doc.setdefault('identifiers', {})
-        idents['path'] = {'source':couch.make_ref(self._source), 'name':path}
+        idents['path'] = {'source':couch.make_ref(self._source), 'name':rel_path}
         with open(full_path, 'rb') as f:
             md5 = hashlib.md5()
             sha1 = hashlib.sha1()
@@ -90,27 +90,20 @@ class Importer(object):
                         continue
                     
                     full_path = os.path.join(dirpath, filename)
-                    try:
-                        rel_path = os.path.relpath(full_path, folder)
-                        identifiers = {'path':{'source':{'_id':source_id}, 'name':rel_path}}
-                    except AttributeError:
-                        identifiers = {'path':{'source':{'_id':source_id}, 'name':full_path}}
+                    rel_path = full_path.split(os.path.join(folder,''), 1)[1]
+                    identifiers = {'path':{'source':{'_id':source_id}, 'name':rel_path}}
                     if not self._find_image(identifiers):
-                        self._files.put(full_path)
+                        self._files.put(rel_path)
                 if self._cancelled:
                     break
             self._files.put(None)
         
         def get_file_docs():
             while not self._cancelled:
-                file = self._files.get()
-                if not file:
+                rel_path = self._files.get()
+                if not rel_path:
                     break
-                try:
-                    path = os.path.relpath(file, folder)
-                except AttributeError:
-                    path = file
-                doc = self._image_doc(folder, path)
+                doc = self._image_doc(folder, rel_path)
                 if not doc:
                     continue
                 
