@@ -75,10 +75,7 @@ class Importer(object):
         self._cancelled = False
         self._done = False
         self._files = Queue()
-        try:
-            self._recent_image_docs = deque(maxlen=10)
-        except TypeError:
-            self._recent_image_docs = deque()
+        self._recent_image_docs = deque()
         self._image_docs = Queue(maxsize=30)
         self._imported_refs = Queue()
         self._log = deque()
@@ -133,6 +130,8 @@ class Importer(object):
                 doc = image.copy_doc(doc)
                 if 'thumbnail/512.jpg' in doc.get('_attachments', {}):
                     del doc['_attachments']['thumbnail/512.jpg']
+                if len(self._recent_image_docs) == 10:  # keep this list small (like maxlen in py2.6)
+                        self._recent_image_docs.pop()
                 self._recent_image_docs.appendleft(doc)
             
             while not self._cancelled:
