@@ -1,25 +1,40 @@
-# BROKEN/ANNOYANCE LIST #
+# BROKEN STUFF #
+
+## Bad bugs, fixes likely easy ##
+
+- webOS photos have TIFF timestamp only, which getphoto-osx doesn't look for
+- 275 pictures makes too long of URL to download exporter (need to POST instead)
+- trouble exporting basket named "Italy ✈"
+- baskets swap positions when adding photos (easy to add into wrong one)
+- moving mouse cursor when previewing a photo ends up selecting/dragging its thumbnail
+
+
+## Moderate pain and/or moderate difficulty to fix ##
 
 - import/export progress is barely implemented
-- include import time in metadata?
-- import is slow when thousands already imported (use folder last-modifieds?)
-- webOS photos have TIFF timestamp only, which getphoto-osx doesn't look for
-- movies (well, *.thm) imported, perhaps need ignored files and extensions per-source? (see above)
-- export utility ends up as "left over" file, making user garbage collect
-- trouble exporting basket named "Italy ✈"
-- 275 pictures makes too long of URL to download exporter (need to POST instead)
-- exported originals should get file mod date set to timestamp
-
-- pagination is super frustrating
+- installation process is painful
 - photos along edge cut off when previewed
 - photos selected when just previewing
-- moving mouse when previewing photo ends up selecting/dragging it
-
-- baskets swap positions when adding photos (easy to add to wrong one)
-- you have to select photos multiple times to add to multiple baskets
-- adding to basket feels kinda hard sometimes (Fitt's law yadda yadda)
-- not intuitive how to unshow selected basket by clicking it again
 - holes left when removing photos from basket
+- pagination is super frustrating
+
+
+## Tougher usability/optimization issues or nits with simple workarounds ##
+
+- import is slow when thousands already imported (use folder last-modifieds?)
+- movies (well, *.thm) imported, perhaps need ignored files and extensions per-source? (see above)
+- export utility ends up as "left over" file, making user garbage collect
+- exported originals should get file mod date set to timestamp
+
+- not intuitive how to unshow selected basket (only by clicking its name again)
+- you have to select photos multiple times to add to multiple baskets
+- adding to basket click feels kinda hard sometimes (Fitt's law yadda yadda)
+- no indication of how many photos are in a basket
+
+
+## Ponies ##
 
 - dashboard could be more useful (stats, sparklines, etc.)
 - single photo mode with prev/next might be nice (different app?)
+- geotagging (separate app)
+- direct Flickr/etc. integration (upload, sync metadata...)
