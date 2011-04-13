@@ -80,7 +80,7 @@ class External(object):
         line = sys.stdin.readline()
         while line:
             try:
-                response = self.process(json.loads(line))
+                response = self.process(json.loads(line.decode('utf_8')))
             except Exception, e:
                 response = {'code':500, 'json':{'error':True, 'reason':"Internal error processing request (%s)" % e}}
             sys.stdout.write("%s\n" % json.dumps(response))
