@@ -3,7 +3,6 @@
 ## Bad bugs, fixes likely easy ##
 
 - 275 pictures makes too long of URL to download exporter (need to POST instead)
-- baskets swap positions when adding photos (easy to add into wrong one)
 
 
 ## Moderate pain and/or moderate difficulty to fix ##

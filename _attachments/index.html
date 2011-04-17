@@ -284,7 +284,6 @@
                     basketDoc.modified = (new Date).toISOString();
                     db.write(basketDoc);
                     basket.querySelector("h1").innerText = newName;
-                    baskets.insertBefore(basket, document.getElementById('_selection_basket').nextElementSibling);
                 }, false);
                 
                 basket.querySelector(".add").addEventListener("click", function () {
@@ -301,7 +300,6 @@
                     });
                     basketDoc.modified = (new Date).toISOString();
                     db.write(basketDoc);
-                    baskets.insertBefore(basket, document.getElementById('_selection_basket').nextElementSibling);
                 }, false);
                 
                 basket.querySelector(".remove").addEventListener("click", function () {
@@ -318,7 +316,6 @@
                     });
                     basketDoc.modified = (new Date).toISOString();
                     db.write(basketDoc);
-                    baskets.insertBefore(basket, document.getElementById('_selection_basket').nextElementSibling);
                 }, false);
                 
                 basket.querySelector(".delete").addEventListener("click", function () {
