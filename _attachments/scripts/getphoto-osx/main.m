@@ -169,6 +169,9 @@ int main(int argc, char* argv[]) {
             NSDictionary* exif = [info valueForKey:(id)kCGImagePropertyExifDictionary];
             
             NSString* timestamp = [exif valueForKey:(id)kCGImagePropertyExifDateTimeOriginal];
+            if (!timestamp) {
+                timestamp = [[info valueForKey:(id)kCGImagePropertyTIFFDictionary] valueForKey:(id)kCGImagePropertyTIFFDateTime];
+            }
             if (timestamp) {
                 NSDateFormatter* tiffFormat = [NSDateFormatter tl_tiffDateFormatter];
                 [tiffFormat setTimeZone:tz];
