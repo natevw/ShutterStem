@@ -29,7 +29,7 @@
             .frame {
                 width: 256px; height: 256px; margin: 32px 8px; float: left;
                 display: -webkit-box; -webkit-box-align: center; -webkit-box-pack: center;
-                -webkit-transition: -webkit-transform 0.15s linear 0.1s;
+                -webkit-transition: -webkit-transform 0.15s linear;
             }
             .image {
                 max-width: 256px; max-height: 256px; border: 6px solid white;
@@ -122,12 +122,17 @@
                     image.classList = new ClassList(image);
                 }
                 
+                var enlarge;
                 image.addEventListener("mousedown", function (e) {
                     e.preventDefault();     // prevents image dragging
                     image.classList.toggle("selected");
-                    frame.classList.add("enlarged");
+                    enlarge = window.setTimeout(function () {
+                        frame.classList.add("enlarged");
+                        image.classList.toggle("selected");
+                    }, 250);
                 }, false);
                 image.addEventListener("mouseup", function () {
+                    window.clearTimeout(enlarge);
                     frame.classList.remove("enlarged");
                 }, false);
                 image.parentNode.addEventListener("click", function (e) {

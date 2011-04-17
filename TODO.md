@@ -13,7 +13,6 @@
 - import/export progress is barely implemented
 - installation process is painful
 - photos along edge cut off when previewed
-- photos selected when just previewing
 - holes left when removing photos from basket
 - pagination is super frustrating
 
