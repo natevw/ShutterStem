@@ -122,7 +122,8 @@
                     image.classList = new ClassList(image);
                 }
                 
-                image.addEventListener("mousedown", function () {
+                image.addEventListener("mousedown", function (e) {
+                    e.preventDefault();     // prevents image dragging
                     image.classList.toggle("selected");
                     frame.classList.add("enlarged");
                 }, false);

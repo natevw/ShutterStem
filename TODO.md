@@ -6,7 +6,6 @@
 - 275 pictures makes too long of URL to download exporter (need to POST instead)
 - trouble exporting basket named "Italy ✈"
 - baskets swap positions when adding photos (easy to add into wrong one)
-- moving mouse cursor when previewing a photo ends up selecting/dragging its thumbnail
 
 
 ## Moderate pain and/or moderate difficulty to fix ##
