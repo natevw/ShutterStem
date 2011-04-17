@@ -81,10 +81,11 @@ class Exporter(object):
                     self._removed_count += 1
                     self._log.append({'id':id, 'ok':True, 'msg':"Removed %s." % os.path.basename(path)})
         
-        self._export = Thread(target=export, name="Export to %s" % folder)
+        safe_folder = folder.encode('ascii', 'replace')     # thread names must be ASCII-only
+        self._export = Thread(target=export, name="Export to %s" % safe_folder)
         self._export.daemon = True
         self._export.start()
-        self._unexport = Thread(target=unexport, name="Remove exported files from %s" % folder)
+        self._unexport = Thread(target=unexport, name="Remove exported files from %s" % safe_folder)
     
     def cancel(self, remove=True):
         self._cancelled = True

@@ -152,15 +152,16 @@ class Importer(object):
                     break
                 self._db.remove(doc)
         
-        self._find_files = Thread(target=find_new_files, name="Find new files (%s)" % self._source['_id'])
+        safe_name = self._source['_id'].encode('ascii', 'replace')      # thread names must be ASCII-only
+        self._find_files = Thread(target=find_new_files, name="Find new files (%s)" % safe_name)
         self._find_files.daemon = True
         self._find_files.start()
-        self._get_file_docs = Thread(target=get_file_docs, name="Prepare image documents (%s)" % self._source['_id'])
+        self._get_file_docs = Thread(target=get_file_docs, name="Prepare image documents (%s)" % safe_name)
         self._get_file_docs.daemon = True
         self._get_file_docs.start()
-        self._upload_docs = Thread(target=upload_docs, name="Upload image documents (%s)" % self._source['_id'])
+        self._upload_docs = Thread(target=upload_docs, name="Upload image documents (%s)" % safe_name)
         self._upload_docs.daemon = True
-        self._delete_docs = Thread(target=delete_docs, name="Remove documents from cancelled import (%s)" % self._source['_id'])
+        self._delete_docs = Thread(target=delete_docs, name="Remove documents from cancelled import (%s)" % safe_name)
     
     def begin(self):
         if self._cancelled or self._done or self._upload_docs.isAlive():

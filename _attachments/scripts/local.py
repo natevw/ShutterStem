@@ -44,7 +44,7 @@ class LocalHelper(couch.External):
     def check_utility(self, utility_path, csrf_token):
         with open(utility_path, 'rb') as f:
             first_chunk = f.read(4096)  # token required in first 4k
-            if first_chunk.find("<!-- SHUTTERSTEM-TOKEN(%s)TOKEN-SHUTTERSTEM -->" % csrf_token) == -1:
+            if first_chunk.decode('utf_8').find("<!-- SHUTTERSTEM-TOKEN(%s)TOKEN-SHUTTERSTEM -->" % csrf_token) == -1:
                 raise Exception()
     
     
