@@ -91,7 +91,14 @@
 			isa = PBXProject;
 			buildConfigurationList = D8F2E3B412CEA000003AEA15 /* Build configuration list for PBXProject "getphoto-osx" */;
 			compatibilityVersion = "Xcode 2.4";
+			developmentRegion = English;
 			hasScannedForEncodings = 0;
+			knownRegions = (
+				English,
+				Japanese,
+				French,
+				German,
+			);
 			mainGroup = D8F2E3AF12CEA000003AEA15;
 			productRefGroup = D8F2E3BE12CEA033003AEA15 /* Products */;
 			projectDirPath = "";
