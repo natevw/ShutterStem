@@ -2,11 +2,12 @@
 
 ## Bad bugs, fixes likely easy ##
 
-- 275 pictures makes too long of URL to download exporter (need to POST instead)
+- ???
 
 
 ## Moderate pain and/or moderate difficulty to fix ##
 
+- 275 pictures makes too long of URL to download exporter (need to POST instead)
 - import/export progress is barely implemented
 - installation process is painful
 - photos along edge cut off when previewed
@@ -29,7 +30,8 @@
 
 ## Ponies ##
 
-- reorder photos in basket (manual and by date)
+- archived baskets
+- reorder photos in basket (manually and by date)
 - dashboard could be more useful (stats, sparklines, etc.)
 - single photo mode with prev/next might be nice (different app?)
 - geotagging (separate app)
