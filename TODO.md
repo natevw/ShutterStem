@@ -34,6 +34,7 @@
 
 ## Ponies ##
 
+- reorder photos in basket (manual and by date)
 - dashboard could be more useful (stats, sparklines, etc.)
 - single photo mode with prev/next might be nice (different app?)
 - geotagging (separate app)
