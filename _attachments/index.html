@@ -315,7 +315,8 @@
                     var basketDoc = db.read(basketRow.id);
                     basketDoc.photos = basketDoc.photos.filter(function (photo) {
                         if (photo._id in selectedIds) {
-                            var frame = document.getElementById(photo._id).parentNode;
+                            var frame = document.getElementById(photo._id).parentNode.parentNode;
+                            console.log(frame);
                             frame.parentNode.removeChild(frame);
                             return false;
                         } else {

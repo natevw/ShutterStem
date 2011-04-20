@@ -7,7 +7,6 @@
 
 ## Moderate pain and/or moderate difficulty to fix ##
 
-- holes left when removing photos from basket
 - import/export progress is barely implemented
 - 275 pictures makes too long of URL to download exporter (need to POST instead)
 - installation process is painful
