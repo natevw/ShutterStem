@@ -7,11 +7,10 @@
 
 ## Moderate pain and/or moderate difficulty to fix ##
 
-- 275 pictures makes too long of URL to download exporter (need to POST instead)
-- import/export progress is barely implemented
-- installation process is painful
-- photos along edge cut off when previewed
 - holes left when removing photos from basket
+- import/export progress is barely implemented
+- 275 pictures makes too long of URL to download exporter (need to POST instead)
+- installation process is painful
 - pagination is super frustrating
 
 

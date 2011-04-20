@@ -18,13 +18,14 @@
             }
             #baskets {
                 max-height: 95%;
-                width: 135px;  padding: 20px;
+                width: 100px;  padding: 5px;
                 overflow: auto;
             }
             #thumbnails {
                 max-height: 95%;
                 -webkit-box-flex: 1.0;
                 overflow: auto;
+                padding: 128px;
             }
             .frame {
                 width: 256px; height: 256px; margin: 32px 8px; float: left;
@@ -38,6 +39,12 @@
             .selected { border: 6px solid blue; }
             
             .frame.enlarged { -webkit-transform: scale(2); -moz-transform: scale(2); }
+            .frame.enlarged .image {
+                -webkit-box-shadow: 5px 5px 50px 5px #000; -moz-box-shadow: 5px 5px 50px 5px #000;
+            }
+            
+            /* hack to preserve padding for bottom thumbnails, not sure why it's necessary */
+            #next { padding-bottom: 192px; }
             
             .basket { clear: both; margin: 1em 0em; color: grey; }
             #_selection_basket { color: lightgray; }
@@ -47,7 +54,7 @@
             .basket.displayed h1 { font-weight: bold; }
             
             .basket ul { margin: 0em; padding: 0em; }
-            .basket li { margin: 0em 0.25em; }
+            .basket li { margin: 0em 0.25em; list-style-type: none; }
             .basket.displayed .add { display: none; }
             .basket .remove { display: none; }
             .basket.displayed .remove { display: list-item; }
@@ -180,6 +187,7 @@
                         return;
                     }
                     var to_next = document.createElement("div");
+                    to_next.id = "next";
                     to_next.className = "frame subtly_clickable";
                     to_next.innerText = "Next →";
                     to_next.addEventListener("click", function () {
