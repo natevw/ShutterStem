@@ -25,6 +25,7 @@
 - adding to basket click feels kinda hard sometimes (Fitt's law yadda yadda)
 - no indication of how many photos are in a basket
 - no date info available for photo/baskets
+- get rid of padding by setting left/top/bottom/right class alongside enlarge via js when necessary
 
 
 ## Ponies ##
