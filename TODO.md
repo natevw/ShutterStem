@@ -24,6 +24,7 @@
 - you have to select photos multiple times to add to multiple baskets
 - adding to basket click feels kinda hard sometimes (Fitt's law yadda yadda)
 - no indication of how many photos are in a basket
+- no date info available for photo/baskets
 
 
 ## Ponies ##
