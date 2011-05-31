@@ -80,7 +80,7 @@
             
             var folder, subfolder, full_path;
             function updatePath() {
-                full_path = (subfolder) ? [folder, subfolder].join('/') : folder;
+                full_path = (subfolder) ? [folder, subfolder.replace(/[/]/g, ':')].join('/') : folder;
                 Array.prototype.forEach.call(document.querySelectorAll('.export_path'), function (el) {
                     el.textContent = full_path;
                 });
