@@ -15,6 +15,7 @@
 
 ## Tougher usability/optimization issues or nits with simple workarounds ##
 
+- import/export confusing to normals
 - import is slow when thousands already imported (use folder last-modifieds?)
 - movies (well, *.thm) imported, perhaps need ignored files and extensions per-source? (see above)
 - export utility ends up as "left over" file, making user garbage collect
@@ -26,6 +27,7 @@
 - no indication of how many photos are in a basket
 - no date info available for photo/baskets
 - get rid of padding by setting left/top/bottom/right class alongside enlarge via js when necessary
+- basket names are hard to read
 
 
 ## Ponies ##
