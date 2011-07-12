@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>d3.js sandbox</title>
+    <script src="d3.min.js"></script>
+    <script src="fermata.min.js"></script>
+    <script>
+        var photos = fermata.api({url:"http://localhost:5984"})(['photos/_design/shutterstem']);
+        photos(['_view','by_date'])({group:true, group_level:1}).get(function (e,d) {
+            var timeStat = d3.select('body').selectAll('div.day')
+                .data(d.rows);
+            timeStat.enter().append('div').classed('day', true)
+                .text(function (d) { return d.key.join("-") + " " + d.value; });
+            
+            photos(['_view','by_date'])({group:true, group_level:3}).get(function (e,d) {
+                timeStat = d3.select('body').selectAll('div.day')
+                    .data(d.rows)
+                    .text(function (d) { return d.key.join("-") + " " + d.value; });
+                timeStat.enter().append('div').classed('day', true)
+                    .text(function (d) { return d.key.join("-") + " " + d.value; });
+                timeStat.exit().remove();
+            });
+        });
+    </script>
+</head>
+<body>
+    
+</body>
+</html>
