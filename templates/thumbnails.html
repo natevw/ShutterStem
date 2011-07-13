@@ -31,15 +31,19 @@
     <script src="{{ app_url }}/d3.min.js"></script>
     <script src="{{ app_url }}/fermata.min.js"></script>
     <script>
+        setTimeout(function () {
+        
         // TODO: get app_url from HTML attribute for proper escaped character handling
         var app = fermata.api({url:"{{ app_url }}"});
-        app(['_view','by_date'])({reduce:false, limit:150}).get(function (e,d) {
-        
+        app(['_view','by_date'])({reduce:false, limit:150, skip:2}).get(function (e,d) {
             var thumbnails = d3.select('#thumbnails').selectAll('div.frame')
-                .data(d.rows);
+                .data(d.rows, function (d) { return (d) ? d.id : this.id; });
             thumbnails.enter().append('div').classed('frame', true)
                 .append('img').classed('image', true).attr('src', function (d) { return "{{ app_url }}/../../" + d.id + '/thumbnail/512.jpg'; });
+            thumbnails.exit().remove();
         });
+        
+        }, 5000);
     </script>
 </head>
 <body>
