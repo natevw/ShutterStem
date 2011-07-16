@@ -14,7 +14,7 @@
         photos(['_view','by_date'])({group:true, group_level:3}).get(function (e,d) {
             var rowSeconds = function (r) {
                 var a = r.key;
-                var d = new Date(a[0], a[1] || 0, a[2] || 1, a[3] || null, a[4] || null, a[5] || null);
+                var d = new Date(a[0], a[1] - 1, a[2], a[3] || null, a[4] || null, a[5] || null);
                 return d.getTime() / 1000;
             };
             var rowCount = function (r) {
