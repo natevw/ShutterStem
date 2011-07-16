@@ -10,6 +10,24 @@
 <body>
     
     <script>
+        // allow function to insert objects as an array is copied (kind of opposite to Array.prototype.filter)
+        Array.prototype.expand = function (callback, thisObject) {
+            var expanded = [], prevItem, insertItem;
+            this.forEach(function (nextItem) {
+                while ((insertItem = callback.call(thisObject, prevItem, nextItem)) !== undefined) {
+                    prevItem = insertItem;
+                    expanded.push(insertItem);
+                }
+                prevItem = nextItem;
+                expanded.push(prevItem);
+            });
+            while ((insertItem = callback.call(thisObject, prevItem, undefined)) !== undefined) {
+                prevItem = insertItem;
+                expanded.push(prevItem);
+            }
+            return expanded;
+        };
+        
         var photos = fermata.api({url:"http://localhost:5984"})(['photos', '_design/shutterstem']);
         photos(['_view','by_date'])({group:true, group_level:3}).get(function (e,d) {
             var rowSeconds = function (r) {
@@ -31,38 +49,18 @@
                 .x(function (r) { return scaleX(rowSeconds(r)); })
                 .y(function (r) { return scaleY(rowCount(r)); });
             
+            d.rows = d.rows.expand(function (prev, next) {
+                if (!prev || !next) return;
+                var tomorrow = new Date(rowSeconds(prev) * 1000 + 86400000);
+                var wantNextKey = [tomorrow.getUTCFullYear(), tomorrow.getUTCMonth() + 1, tomorrow.getUTCDate()];
+                if (next.key.join() != wantNextKey.join()) return {
+                    key: wantNextKey,
+                    value: 0
+                }
+            });
+            
             var timeline = d3.select('body').append('svg:svg').attr('width', "100%").attr('height', "100px");
             timeline.append('svg:path').data([d.rows]).attr('d', line).attr('fill', "none").attr('stroke', "black").attr('stroke-width', "0.25");
-            photos(['_view','by_date'])({group:true, group_level:2}).get(function (e,d) {
-                var rowCount = function (r) {
-                    return r.value / (365/12);
-                };
-                var line = d3.svg.line()
-                    .x(function (r) { return scaleX(rowSeconds(r)); })
-                    .y(function (r) { return scaleY(rowCount(r)); })
-                    .interpolate('step-after');
-                timeline.append('svg:path').data([d.rows]).attr('d', line).attr('fill', "none").attr('stroke', "green").attr('stroke-width', "1").attr('stroke-opacity', '0.5');
-            });
-            photos(['_view','by_date'])({group:true, group_level:1}).get(function (e,d) {
-                var rowCount = function (r) {
-                    return r.value / 365;
-                };
-                var line = d3.svg.line()
-                    .x(function (r) { return scaleX(rowSeconds(r)); })
-                    .y(function (r) { return scaleY(rowCount(r)); })
-                    .interpolate('step-after');
-                //timeline.append('svg:path').data([d.rows]).attr('d', line).attr('fill', "none").attr('stroke', "blue").attr('stroke-width', "1").attr('stroke-opacity', '0.5');;
-            });
-            
-            
-            //console.log(maxPhotos);
-            
-            var timeStat = d3.select('body').selectAll('div.day')
-                .data(d.rows)
-                .text(function (d) { return d.key.join("-") + " " + d.value; });
-            timeStat.enter().append('div').classed('day', true)
-                .text(function (d) { return d.key.join("-") + " " + d.value; });
-            timeStat.exit().remove();
         });
     </script>
 </body>
