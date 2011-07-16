@@ -4,30 +4,12 @@
     <meta charset="utf-8">
     <title>d3.js sandbox</title>
     <script src="d3.min.js"></script>
-    <!--<script src="../../../Others'/d3/d3.js"></script>-->
+    <script src="../../../Others'/d3/d3.js"></script>
     <script src="fermata.min.js"></script>
 </head>
 <body>
     
     <script>
-        // allow function to insert objects as an array is copied (kind of opposite to Array.prototype.filter)
-        Array.prototype.expand = function (callback, thisObject) {
-            var expanded = [], prevItem, insertItem;
-            this.forEach(function (nextItem) {
-                while ((insertItem = callback.call(thisObject, prevItem, nextItem)) !== undefined) {
-                    prevItem = insertItem;
-                    expanded.push(insertItem);
-                }
-                prevItem = nextItem;
-                expanded.push(prevItem);
-            });
-            while ((insertItem = callback.call(thisObject, prevItem, undefined)) !== undefined) {
-                prevItem = insertItem;
-                expanded.push(prevItem);
-            }
-            return expanded;
-        };
-        
         var photos = fermata.api({url:"http://localhost:5984"})(['photos', '_design/shutterstem']);
         photos(['_view','by_date'])({group:true, group_level:3}).get(function (e,d) {
             var rowSeconds = function (r) {
@@ -39,29 +21,22 @@
                 return r.value;
             };
             
+            var UNIT = 10000;
             var scaleX = d3.scale.linear()
                 .domain([d3.min(d.rows, rowSeconds), d3.max(d.rows, rowSeconds)])
-                .range([0, 10000]);
+                .range([0, UNIT]);
             var scaleY = d3.scale.linear()
                  .domain([0, d3.max(d.rows, rowCount)])
-                 .range([10000, 0]);
-            var line = d3.svg.line()
-                .x(function (r) { return scaleX(rowSeconds(r)); })
-                .y(function (r) { return scaleY(rowCount(r)); });
-            
-            d.rows = d.rows.expand(function (prev, next) {
-                if (!prev || !next) return;
-                var tomorrow = new Date(rowSeconds(prev) * 1000 + 86400000);
-                var wantNextKey = [tomorrow.getUTCFullYear(), tomorrow.getUTCMonth() + 1, tomorrow.getUTCDate()];
-                if (next.key.join() != wantNextKey.join()) return {
-                    key: wantNextKey,
-                    value: 0
-                }
-            });
+                 .range([UNIT, 0]);
             
             var timeline = d3.select('body').append('svg:svg').attr('width', "100%").attr('height', "100px")
-                .attr('viewBox', "0 0 10000 10000").attr('preserveAspectRatio', "none");
-            timeline.append('svg:path').data([d.rows]).attr('d', line).attr('fill', "none").attr('stroke', "black").attr('stroke-width', "2.5");
+                .attr('viewBox', "0 0 " + UNIT + " " + UNIT).attr('preserveAspectRatio', "none");
+            
+            var dailyBars = timeline.selectAll('.dailyCount').data(d.rows);
+            dailyBars.enter().append('svg:line').classed('dailyCount', true)
+                .attr('x1', function (r) { return scaleX(rowSeconds(r)); }).attr('x2', function (r) { return scaleX(rowSeconds(r)); })
+                .attr('y1', UNIT).attr('y2', function (r) { return scaleY(rowCount(r)); })
+                .attr('stroke', "black").attr('stroke-width', 0.00025 * UNIT);
         });
     </script>
 </body>
