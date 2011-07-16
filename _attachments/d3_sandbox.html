@@ -41,10 +41,10 @@
             
             var scaleX = d3.scale.linear()
                 .domain([d3.min(d.rows, rowSeconds), d3.max(d.rows, rowSeconds)])
-                .range([0, 800]);
+                .range([0, 10000]);
             var scaleY = d3.scale.linear()
                  .domain([0, d3.max(d.rows, rowCount)])
-                 .range([100, 0]);
+                 .range([10000, 0]);
             var line = d3.svg.line()
                 .x(function (r) { return scaleX(rowSeconds(r)); })
                 .y(function (r) { return scaleY(rowCount(r)); });
@@ -59,8 +59,9 @@
                 }
             });
             
-            var timeline = d3.select('body').append('svg:svg').attr('width', "100%").attr('height', "100px");
-            timeline.append('svg:path').data([d.rows]).attr('d', line).attr('fill', "none").attr('stroke', "black").attr('stroke-width', "0.25");
+            var timeline = d3.select('body').append('svg:svg').attr('width', "100%").attr('height', "100px")
+                .attr('viewBox', "0 0 10000 10000").attr('preserveAspectRatio', "none");
+            timeline.append('svg:path').data([d.rows]).attr('d', line).attr('fill', "none").attr('stroke', "black").attr('stroke-width', "2.5");
         });
     </script>
 </body>
