@@ -6,26 +6,64 @@
     <script src="d3.min.js"></script>
     <!--<script src="../../../Others'/d3/d3.js"></script>-->
     <script src="fermata.min.js"></script>
-    <script>
-        var photos = fermata.api({url:"http://localhost:5984"})(['photos/_design/shutterstem']);
-        photos(['_view','by_date'])({group:true, group_level:1}).get(function (e,d) {
-            var timeStat = d3.select('body').selectAll('div.day')
-                .data(d.rows);
-            timeStat.enter().append('div').classed('day', true)
-                .text(function (d) { return d.key.join("-") + " " + d.value; });
-            
-            photos(['_view','by_date'])({group:true, group_level:3}).get(function (e,d) {
-                timeStat = d3.select('body').selectAll('div.day')
-                    .data(d.rows)
-                    .text(function (d) { return d.key.join("-") + " " + d.value; });
-                timeStat.enter().append('div').classed('day', true)
-                    .text(function (d) { return d.key.join("-") + " " + d.value; });
-                timeStat.exit().remove();
-            });
-        });
-    </script>
 </head>
 <body>
     
+    <script>
+        var photos = fermata.api({url:"http://localhost:5984"})(['photos', '_design/shutterstem']);
+        photos(['_view','by_date'])({group:true, group_level:3}).get(function (e,d) {
+            var rowSeconds = function (r) {
+                var a = r.key;
+                var d = new Date(a[0], a[1] || 0, a[2] || 1, a[3] || null, a[4] || null, a[5] || null);
+                return d.getTime() / 1000;
+            };
+            var rowCount = function (r) {
+                return r.value;
+            };
+            
+            var scaleX = d3.scale.linear()
+                .domain([d3.min(d.rows, rowSeconds), d3.max(d.rows, rowSeconds)])
+                .range([0, 800]);
+            var scaleY = d3.scale.linear()
+                 .domain([0, d3.max(d.rows, rowCount)])
+                 .range([100, 0]);
+            var line = d3.svg.line()
+                .x(function (r) { return scaleX(rowSeconds(r)); })
+                .y(function (r) { return scaleY(rowCount(r)); });
+            
+            var timeline = d3.select('body').append('svg:svg').attr('width', "100%").attr('height', "100px");
+            timeline.append('svg:path').data([d.rows]).attr('d', line).attr('fill', "none").attr('stroke', "black").attr('stroke-width', "0.25");
+            photos(['_view','by_date'])({group:true, group_level:2}).get(function (e,d) {
+                var rowCount = function (r) {
+                    return r.value / (365/12);
+                };
+                var line = d3.svg.line()
+                    .x(function (r) { return scaleX(rowSeconds(r)); })
+                    .y(function (r) { return scaleY(rowCount(r)); })
+                    .interpolate('step-after');
+                timeline.append('svg:path').data([d.rows]).attr('d', line).attr('fill', "none").attr('stroke', "green").attr('stroke-width', "1").attr('stroke-opacity', '0.5');
+            });
+            photos(['_view','by_date'])({group:true, group_level:1}).get(function (e,d) {
+                var rowCount = function (r) {
+                    return r.value / 365;
+                };
+                var line = d3.svg.line()
+                    .x(function (r) { return scaleX(rowSeconds(r)); })
+                    .y(function (r) { return scaleY(rowCount(r)); })
+                    .interpolate('step-after');
+                //timeline.append('svg:path').data([d.rows]).attr('d', line).attr('fill', "none").attr('stroke', "blue").attr('stroke-width', "1").attr('stroke-opacity', '0.5');;
+            });
+            
+            
+            //console.log(maxPhotos);
+            
+            var timeStat = d3.select('body').selectAll('div.day')
+                .data(d.rows)
+                .text(function (d) { return d.key.join("-") + " " + d.value; });
+            timeStat.enter().append('div').classed('day', true)
+                .text(function (d) { return d.key.join("-") + " " + d.value; });
+            timeStat.exit().remove();
+        });
+    </script>
 </body>
 </html>
