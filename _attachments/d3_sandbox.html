@@ -6,8 +6,17 @@
     <script src="d3.min.js"></script>
     <script src="../../../Others'/d3/d3.js"></script>
     <script src="fermata.min.js"></script>
+    <style>
+        html { height: 100%; }
+        body { margin: 0px; background: black; height: 100%; }
+        #nav { margin: 0px; height: 100px; width: 100%; overflow: auto; position: fixed; }
+        #nav svg { display: block; }
+        #content { height: 500%; width: 100%; background-image: -webkit-linear-gradient(bottom, #2F2727, #1a82f7); }
+    </style>
 </head>
 <body>
+    <div id="nav"></div>
+    <div id="content"></div>
     
     <script>
         var photos = fermata.api({url:"http://localhost:5984"})(['photos', '_design/shutterstem']);
@@ -29,14 +38,14 @@
                  .domain([0, d3.max(d.rows, rowCount)])
                  .range([UNIT, 0]);
             
-            var timeline = d3.select('body').append('svg:svg').attr('width', "100%").attr('height', "100px")
+            var timeline = d3.select('#nav').append('svg:svg').attr('width', "400%").attr('height', "100%")
                 .attr('viewBox', "0 0 " + UNIT + " " + UNIT).attr('preserveAspectRatio', "none");
             
             var dailyBars = timeline.selectAll('.dailyCount').data(d.rows);
             dailyBars.enter().append('svg:line').classed('dailyCount', true)
                 .attr('x1', function (r) { return scaleX(rowSeconds(r)); }).attr('x2', function (r) { return scaleX(rowSeconds(r)); })
-                .attr('y1', UNIT).attr('y2', function (r) { return scaleY(rowCount(r)); })
-                .attr('stroke', "black").attr('stroke-width', 0.00025 * UNIT);
+                .attr('y1', function (r) { return UNIT - scaleY(rowCount(r)); }).attr('y2', 0)
+                .attr('stroke', "white").attr('stroke-width', 0.00025 * UNIT);
         });
     </script>
 </body>
