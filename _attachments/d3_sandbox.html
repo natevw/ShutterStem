@@ -6,12 +6,20 @@
     <script src="d3.min.js"></script>
     <script src="../../../Others'/d3/d3.js"></script>
     <script src="fermata.min.js"></script>
+    
+    <meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0">
     <style>
         html { height: 100%; }
         body { margin: 0px; background: black; height: 100%; }
-        #nav { margin: 0px; height: 100px; width: 100%; overflow: auto; position: fixed; }
+        #nav {
+            margin: 0px; height: 100px; width: 100%;
+            overflow: auto; position: fixed;
+            background-image: -webkit-linear-gradient(top, rgba(0,0,0,0.9) 25%, transparent);
+        }
         #nav svg { display: block; }
-        #content { height: 500%; width: 100%; background-image: -webkit-linear-gradient(bottom, #2F2727, #1a82f7); }
+        #content { height: 500%; width: 100%; background-color: black; }
+        .frame { display: block; float: left; width: 64px; height: 64px; margin: 1em; }
+        .photo { border: 2px solid white; }
     </style>
 </head>
 <body>
@@ -19,8 +27,9 @@
     <div id="content"></div>
     
     <script>
-        var photos = fermata.api({url:"http://localhost:5984"})(['photos', '_design/shutterstem']);
-        photos(['_view','by_date'])({group:true, group_level:3}).get(function (e,d) {
+        var photoDB = fermata.api({url:"http://localhost:5984"})('photos');
+        var photosIndexed = photoDB(['_design/shutterstem', '_view']);
+        photosIndexed('by_date')({group_level:3}).get(function (e,d) {
             var rowSeconds = function (r) {
                 var a = r.key;
                 var d = new Date(a[0], a[1] - 1, a[2], a[3] || null, a[4] || null, a[5] || null);
@@ -38,7 +47,7 @@
                  .domain([0, d3.max(d.rows, rowCount)])
                  .range([UNIT, 0]);
             
-            var timeline = d3.select('#nav').append('svg:svg').attr('width', "400%").attr('height', "100%")
+            var timeline = d3.select('#nav').append('svg:svg').attr('width', "800%").attr('height', "100%")
                 .attr('viewBox', "0 0 " + UNIT + " " + UNIT).attr('preserveAspectRatio', "none");
             
             var dailyBars = timeline.selectAll('.dailyCount').data(d.rows);
@@ -46,6 +55,14 @@
                 .attr('x1', function (r) { return scaleX(rowSeconds(r)); }).attr('x2', function (r) { return scaleX(rowSeconds(r)); })
                 .attr('y1', function (r) { return UNIT - scaleY(rowCount(r)); }).attr('y2', 0)
                 .attr('stroke', "white").attr('stroke-width', 0.00025 * UNIT);
+        });
+        
+        photosIndexed(['by_date'])({reduce:false, limit:500, include_docs:true}).get(function (e,d) {
+            var platen = d3.select('#content'),
+                thumbs = platen.selectAll('.frame').data(d.rows);
+            
+            thumbs.enter().append('div').classed('frame', true)
+                .append('img').classed('photo', true).attr('src', function (d) { return photoDB([d.id, 'thumbnail/64.jpg'])(); });
         });
     </script>
 </body>
