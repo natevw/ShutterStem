@@ -45,7 +45,7 @@
                 .range([0, UNIT]);
             var scaleY = d3.scale.linear()
                  .domain([0, d3.max(d.rows, rowCount)])
-                 .range([UNIT, 0]);
+                 .range([0, UNIT]);
             
             var timeline = d3.select('#nav').append('svg:svg').attr('width', "800%").attr('height', "100%")
                 .attr('viewBox', "0 0 " + UNIT + " " + UNIT).attr('preserveAspectRatio', "none");
@@ -53,7 +53,7 @@
             var dailyBars = timeline.selectAll('.dailyCount').data(d.rows);
             dailyBars.enter().append('svg:line').classed('dailyCount', true)
                 .attr('x1', function (r) { return scaleX(rowSeconds(r)); }).attr('x2', function (r) { return scaleX(rowSeconds(r)); })
-                .attr('y1', function (r) { return UNIT - scaleY(rowCount(r)); }).attr('y2', 0)
+                .attr('y1', 0).attr('y2', function (r) { return scaleY(rowCount(r)); })
                 .attr('stroke', "white").attr('stroke-width', 0.00025 * UNIT);
         });
         
