@@ -28,7 +28,7 @@ Couch.prototype.http = function (method, obj, path, query, callback) {
             }
         }
     } else {
-        req.response = JSON.parse(req.responseText);
+        req.responseObj = JSON.parse(req.responseText);
     }
     return req;
 };
@@ -39,7 +39,7 @@ Couch.prototype.get = function (path, query, callback) {
         });
     } else {
         var req = this.http("GET", null, path, query);
-        return (req.status === 200) ? req.response : null;
+        return (req.status === 200) ? req.responseObj : null;
     }
 };
 
@@ -50,14 +50,14 @@ Couch.prototype.read = function (id) {
     } else if (req.status !== 200) {
         throw Error(req.statusText);
     }
-    return req.response;
+    return req.responseObj;
 }
 Couch.prototype.write = function (doc) {
     var req = this.http("PUT", doc, doc._id);
     if (req.status !== 201) {
         throw Error(req.statusText);
     }
-    doc._rev = req.response.rev;
+    doc._rev = req.responseObj.rev;
 }
 Couch.prototype.remove = function (doc) {
     var req = this.http("DELETE", null, doc._id, {'rev':doc._rev});
@@ -65,7 +65,7 @@ Couch.prototype.remove = function (doc) {
         throw Error(req.statusText);
     }
     doc._deleted = true;
-    doc._rev = req.response.rev;
+    doc._rev = req.responseObj.rev;
 }
 
 
