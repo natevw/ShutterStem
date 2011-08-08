@@ -10,7 +10,7 @@
     <meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0">
     <style>
         html { height: 100%; }
-        body { height: 100%; }
+        sdadsfbody { min-height: 2560000px; }
         button { display: block; }
         .dailyGroup { display: inline; border: 2px dotted red; }
         .dailyGroup.cycle { border: 2px dotted blue; }
@@ -33,6 +33,36 @@
                     }
                 });
         });
+        
+        function findMaxHeight() {
+            function test(height) {
+                document.body.style.height = height + "px";
+                return document.body.offsetHeight == height;
+            }
+            var currentHeight = 1;
+            while (true) {
+                if (test(currentHeight)) {
+                    currentHeight *= 2;
+                } else {
+                    break;
+                }
+            }
+            var minHeight = currentHeight / 2, maxHeight = currentHeight;
+            while (true) {
+                currentHeight = (minHeight + maxHeight) / 2;
+                if (test(currentHeight)) {
+                    minHeight = currentHeight;
+                } else {
+                    maxHeight = currentHeight;
+                }
+                if (maxHeight - minHeight < 2) {
+                    break;
+                }
+            }
+            return currentHeight;
+        }
+        
+        
     </script>
 </body>
 </html>
