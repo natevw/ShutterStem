@@ -34,35 +34,6 @@
                 });
         });
         
-        function findMaxHeight() {
-            function test(height) {
-                document.body.style.height = height + "px";
-                return document.body.offsetHeight == height;
-            }
-            var currentHeight = 1;
-            while (true) {
-                if (test(currentHeight)) {
-                    currentHeight *= 2;
-                } else {
-                    break;
-                }
-            }
-            var minHeight = currentHeight / 2, maxHeight = currentHeight;
-            while (true) {
-                currentHeight = (minHeight + maxHeight) / 2;
-                if (test(currentHeight)) {
-                    minHeight = currentHeight;
-                } else {
-                    maxHeight = currentHeight;
-                }
-                if (maxHeight - minHeight < 2) {
-                    break;
-                }
-            }
-            return currentHeight;
-        }
-        
-        
     </script>
 </body>
 </html>
