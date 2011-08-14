@@ -57,8 +57,7 @@
                 .attr('stroke', "white").attr('stroke-width', 0.00025 * UNIT);
             
             timeline.on("click", function () {
-                var bounds = this.getBoundingClientRect();
-                console.log(d3.event.clientX - bounds.left, d3.event.clientY - bounds.top);
+                var bounds = this.getBoundingClientRect();  
                 var seconds = scaleX.invert((UNIT / this.scrollWidth) * (d3.event.clientX - bounds.left));
                 console.log(new Date(seconds*1000));
             });
