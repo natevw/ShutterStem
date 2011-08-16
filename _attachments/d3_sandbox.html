@@ -57,15 +57,27 @@
                 .attr('stroke', "white").attr('stroke-width', 0.00025 * UNIT);
             
             timeline.on("click", function () {
-                var bounds = this.getBoundingClientRect();  
-                var seconds = scaleX.invert((UNIT / this.scrollWidth) * (d3.event.clientX - bounds.left));
-                console.log(new Date(seconds*1000));
+                var bounds = this.getBoundingClientRect(),
+                    seconds = scaleX.invert((UNIT / this.scrollWidth) * (d3.event.clientX - bounds.left)),
+                    startDate = new Date(seconds*1000),
+                    startKey = [startDate.getUTCFullYear(), startDate.getUTCMonth() + 1, startDate.getUTCDate()];
+                console.log(startKey);
+
+                photosIndexed(['by_date'])({reduce:false, limit:500, $startkey:startKey}).get(function (e,d) {
+            var platen = d3.select('#content'),
+                thumbs = platen.selectAll('.frame').data(d.rows, function (d) { return d.id; });
+            
+            thumbs.enter().append('div').classed('frame', true)
+                .append('img').classed('photo', true).attr('src', function (d) { return photoDB([d.id, 'thumbnail/64.jpg'])(); });
+            thumbs.exit().remove();
+        });
+                
             });
         });
         
-        photosIndexed(['by_date'])({reduce:false, limit:500, include_docs:true}).get(function (e,d) {
+        photosIndexed(['by_date'])({reduce:false, limit:500}).get(function (e,d) {
             var platen = d3.select('#content'),
-                thumbs = platen.selectAll('.frame').data(d.rows);
+                thumbs = platen.selectAll('.frame').data(d.rows, function (d) { return d.id; });
             
             thumbs.enter().append('div').classed('frame', true)
                 .append('img').classed('photo', true).attr('src', function (d) { return photoDB([d.id, 'thumbnail/64.jpg'])(); });
