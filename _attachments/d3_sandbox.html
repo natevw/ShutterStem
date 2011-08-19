@@ -63,15 +63,16 @@
                     startKey = [startDate.getUTCFullYear(), startDate.getUTCMonth() + 1, startDate.getUTCDate()];
                 console.log(startKey);
 
-                photosIndexed(['by_date'])({reduce:false, limit:500, $startkey:startKey}).get(function (e,d) {
-            var platen = d3.select('#content'),
-                thumbs = platen.selectAll('.frame').data(d.rows, function (d) { return d.id; });
-            
-            thumbs.enter().append('div').classed('frame', true)
-                .append('img').classed('photo', true).attr('src', function (d) { return photoDB([d.id, 'thumbnail/64.jpg'])(); });
-            thumbs.exit().remove();
-        });
-                
+                photosIndexed(['by_date'])({reduce:false, limit:250, $startkey:startKey}).get(function (e,d) {
+                    var platen = d3.select('#content'),
+                        thumbs = platen.selectAll('.frame').data(d.rows, function (d) { return d.id; });
+                    
+                    thumbs.enter().append('div').classed('frame', true)
+                        .append('img').classed('photo', true).attr('src', function (d) { return photoDB([d.id, 'thumbnail/64.jpg'])(); });
+                    thumbs.exit().remove();
+                    
+                    platen.selectAll('.frame').sort(function (a, b) { return d3.ascending(rowSeconds(a), rowSeconds(b)); });
+                });
             });
         });
         
