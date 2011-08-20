@@ -17,6 +17,9 @@
             background-image: -webkit-linear-gradient(top, rgba(0,0,0,0.9) 25%, transparent);
         }
         #nav svg { display: block; }
+        .dailyCount { stroke: white; stroke-width: 2.5; }
+        #waterDrop { stroke: none; fill: blue; }
+        
         #content { height: 500%; width: 100%; background-color: black; }
         .frame { display: block; float: left; width: 64px; height: 64px; margin: 1em; }
         .photo { border: 2px solid white; }
@@ -39,30 +42,35 @@
                 return r.value;
             };
             
-            var UNIT = 10000;
+            var W = 8000, H = 100;
             var scaleX = d3.scale.linear()
                 .domain([d3.min(d.rows, rowSeconds), d3.max(d.rows, rowSeconds)])
-                .range([0, UNIT]);
+                .range([0, W]);
             var scaleY = d3.scale.linear()
                  .domain([0, d3.max(d.rows, rowCount)])
-                 .range([0, UNIT]);
+                 .range([0, H]);
             
-            var timeline = d3.select('#nav').append('svg:svg').attr('width', "800%").attr('height', "100%")
-                .attr('viewBox', "0 0 " + UNIT + " " + UNIT).attr('preserveAspectRatio', "none");
+            var timeline = d3.select('#nav').append('svg:svg').attr('width', W).attr('height', H);
             
             var dailyBars = timeline.selectAll('.dailyCount').data(d.rows);
             dailyBars.enter().append('svg:line').classed('dailyCount', true)
-                .attr('x1', function (r) { return scaleX(rowSeconds(r)); }).attr('x2', function (r) { return scaleX(rowSeconds(r)); })
-                .attr('y1', 0).attr('y2', function (r) { return scaleY(rowCount(r)); })
-                .attr('stroke', "white").attr('stroke-width', 0.00025 * UNIT);
+                .attr('x1', function (r) { return scaleX(rowSeconds(r)); }).attr('x2', function (r) { return d3.select(this).attr('x1'); })
+                .attr('y1', 0).attr('y2', function (r) { return scaleY(rowCount(r)); });
             
             timeline.on("click", function () {
-                var bounds = this.getBoundingClientRect(),
-                    seconds = scaleX.invert((UNIT / this.scrollWidth) * (d3.event.clientX - bounds.left)),
+                var bounds = this.getClientRects()[0],      // this.getBoundingClientRect() is crazy buggy in Safari 5.1, especially when adding waterDrop
+                    seconds = scaleX.invert((W / this.scrollWidth) * (d3.event.clientX - bounds.left)),
                     startDate = new Date(seconds*1000),
                     startKey = [startDate.getUTCFullYear(), startDate.getUTCMonth() + 1, startDate.getUTCDate()];
+                
+                var waterDrop = timeline.selectAll('#waterDrop').data([startKey])
+                    .attr('cx', function (r) { return scaleX(rowSeconds({key:r})); });
+                waterDrop.enter().append('svg:circle').attr('id', "waterDrop")
+                    .attr('cy', H  / 10).attr('r', 2.5)
+                    .attr('cx', function (r) { return scaleX(rowSeconds({key:r})); });
+                
                 console.log(startKey);
-
+                
                 photosIndexed(['by_date'])({reduce:false, limit:250, $startkey:startKey}).get(function (e,d) {
                     var platen = d3.select('#content'),
                         thumbs = platen.selectAll('.frame').data(d.rows, function (d) { return d.id; });
