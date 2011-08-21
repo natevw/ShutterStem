@@ -59,7 +59,7 @@
             
             timeline.on("click", function () {
                 var bounds = this.getClientRects()[0],      // this.getBoundingClientRect() is crazy buggy in Safari 5.1, especially when adding waterDrop
-                    seconds = scaleX.invert((W / this.scrollWidth) * (d3.event.clientX - bounds.left)),
+                    seconds = scaleX.invert(d3.event.clientX - bounds.left),
                     startDate = new Date(seconds*1000),
                     startKey = [startDate.getUTCFullYear(), startDate.getUTCMonth() + 1, startDate.getUTCDate()];
                 
