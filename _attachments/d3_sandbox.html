@@ -53,7 +53,7 @@
             var timeline = d3.select('#nav').append('svg:svg').attr('width', W).attr('height', H);
             
             var dailyBars = timeline.selectAll('.dailyCount').data(d.rows);
-            dailyBars.enter().append('svg:line').classed('dailyCount', true)
+            dailyBars.enter().append('svg:line').attr('class', "").classed('dailyCount', true) // (need .class to workaround weird iOS 4.2 selector issue)
                 .attr('x1', function (r) { return scaleX(rowSeconds(r)); }).attr('x2', function (r) { return d3.select(this).attr('x1'); })
                 .attr('y1', 0).attr('y2', function (r) { return scaleY(rowCount(r)); });
             
