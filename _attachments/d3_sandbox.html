@@ -17,7 +17,7 @@
             background-image: -webkit-linear-gradient(top, rgba(0,0,0,0.9) 25%, transparent);
         }
         #nav svg { display: block; }
-        .dailyCount { stroke: white; stroke-width: 2.5; }
+        .dailyCount { stroke-width: 2.5; }
         #waterDrop { stroke: none; fill: blue; }
         
         #content { width: 100%; background-color: black; }
@@ -36,12 +36,20 @@
         var photosIndexed = photoDB(['_design/shutterstem', '_view']);
         photosIndexed('by_date')({group_level:3}).get(function (e,d) {
             var rowSeconds = function (r) {
-                var a = r.key;
-                var d = new Date(a[0], a[1] - 1, a[2], a[3] || null, a[4] || null, a[5] || null);
+                var a = r.key,
+                    d = new Date(a[0], a[1] - 1, a[2], a[3] || null, a[4] || null, a[5] || null);
                 return d.getTime() / 1000;
             };
             var rowCount = function (r) {
                 return r.value;
+            };
+            var rowSeason = function (r) {
+                var seconds = rowSeconds(r),
+                    d = new Date(seconds * 1000),
+                    y0 = new Date(d.getFullYear(), 0, 1),
+                    y1 = new Date(d.getFullYear() + 1, 0, 1),
+                    θ = (d - y0) / (y1 - y0);
+                return Math.cos(θ * 2 * Math.PI) / 2 + 0.5;
             };
             
             var W = 8000, H = 100;
@@ -51,13 +59,16 @@
             var scaleY = d3.scale.linear()
                  .domain([0, d3.max(d.rows, rowCount)])
                  .range([0, H]);
+            var scaleSeason = d3.scale.linear()
+                .range(['darkgoldenrod', 'lightsteelblue']);
             
             var timeline = d3.select('#nav').append('svg:svg').attr('width', W).attr('height', H);
             
             var dailyBars = timeline.selectAll('.dailyCount').data(d.rows);
             dailyBars.enter().append('svg:line').attr('class', "").classed('dailyCount', true) // (need .class to workaround weird iOS 4.2 selector issue)
                 .attr('x1', function (r) { return scaleX(rowSeconds(r)); }).attr('x2', function (r) { return d3.select(this).attr('x1'); })
-                .attr('y1', 0).attr('y2', function (r) { return scaleY(rowCount(r)); });
+                .attr('y1', 0).attr('y2', function (r) { return scaleY(rowCount(r)); })
+                .attr('stroke', function (r) { return scaleSeason(rowSeason(r)); });
             
             timeline.on("click", function () {
                 var bounds = this.getClientRects()[0],      // this.getBoundingClientRect() is crazy buggy in Safari 5.1, especially when adding waterDrop
