@@ -35,23 +35,6 @@
         var photoDB = fermata.api({url:"http://localhost:5984"})('photos');
         var photosIndexed = photoDB(['_design/shutterstem', '_view']);
         photosIndexed('by_date')({group_level:3}).get(function (e,d) {
-            var rowSeconds = function (r) {
-                var a = r.key,
-                    d = new Date(a[0], a[1] - 1, a[2], a[3] || null, a[4] || null, a[5] || null);
-                return d.getTime() / 1000;
-            };
-            var rowCount = function (r) {
-                return r.value;
-            };
-            var rowSeason = function (r) {
-                var seconds = rowSeconds(r),
-                    d = new Date(seconds * 1000),
-                    y0 = new Date(d.getFullYear(), 0, 1),
-                    y1 = new Date(d.getFullYear() + 1, 0, 1),
-                    θ = (d - y0) / (y1 - y0);
-                return Math.cos(θ * 2 * Math.PI) / 2 + 0.5;
-            };
-            
             var W = 8000, H = 100;
             var scaleX = d3.scale.linear()
                 .domain([d3.min(d.rows, rowSeconds), d3.max(d.rows, rowSeconds)])
@@ -71,8 +54,7 @@
                 .attr('stroke', function (r) { return scaleSeason(rowSeason(r)); });
             
             timeline.on("click", function () {
-                var bounds = this.getClientRects()[0],      // this.getBoundingClientRect() is crazy buggy in Safari 5.1, especially when adding waterDrop
-                    seconds = scaleX.invert(d3.event.clientX - bounds.left),
+                var seconds = scaleX.invert(d3.svg.mouse(this)[0]),
                     startDate = new Date(seconds*1000),
                     startKey = [startDate.getUTCFullYear(), startDate.getUTCMonth() + 1, startDate.getUTCDate()];
                 
@@ -85,34 +67,56 @@
                 console.log(startKey);
                 
                 photosIndexed(['by_date'])({reduce:false, limit:100, $startkey:startKey}).get(function (e,d) {
-                    
-                    var platen = d3.select('#content'),
-                        thumbs = platen.selectAll('.frame').data(d.rows, function (d) { return d.id; });
-                    
-                    thumbs.enter().append('div').classed('frame', true)
-                        .append('img').classed('photo', true).attr('src', function (d) { return photoDB([d.id, 'thumbnail/64.jpg'])(); });
-                    thumbs.exit().remove();
-                    
-                    // quick-and-dirty scrollbar padding
-                    var Wp = 64, Hp = 64, MAX = 100000;
-                    var photosPerRow = platen.property('clientWidth') / Wp,
-                        topPadding = Math.min(Hp * d.offset / photosPerRow, MAX),
-                        botPadding = Math.min(Hp * (d.total_rows - d.rows.length - d.offset) / photosPerRow, MAX);
-                    d3.select("#top_padding").style('height', topPadding + "px");
-                    d3.select("#bot_padding").style('height', botPadding + "px");
-                    
-                    platen.selectAll('.frame').sort(function (a, b) { return d3.ascending(rowSeconds(a), rowSeconds(b)); });
-                    platen.selectAll('.frame')[0][0].scrollIntoView();
+                    updatePhotos(d);
                 });
             });
         });
         
-        photosIndexed(['by_date'])({reduce:false, limit:100}).get(function (e,d) {
+        var rowSeconds = function (r) {
+            var a = r.key,
+                d = new Date(a[0], a[1] - 1, a[2], a[3] || null, a[4] || null, a[5] || null);
+            return d.getTime() / 1000;
+        };
+        var rowCount = function (r) {
+            return r.value;
+        };
+        var rowSeason = function (r) {
+            var seconds = rowSeconds(r),
+                d = new Date(seconds * 1000),
+                y0 = new Date(d.getFullYear(), 0, 1),
+                y1 = new Date(d.getFullYear() + 1, 0, 1),
+                θ = (d - y0) / (y1 - y0);
+            return Math.cos(θ * 2 * Math.PI) / 2 + 0.5;
+        };
+            
+        function updatePhotos(d) {
             var platen = d3.select('#content'),
                 thumbs = platen.selectAll('.frame').data(d.rows, function (d) { return d.id; });
             
             thumbs.enter().append('div').classed('frame', true)
-                .append('img').classed('photo', true).attr('src', function (d) { return photoDB([d.id, 'thumbnail/64.jpg'])(); }); 
+                .append('img').classed('photo', true).attr('src', function (d) { return photoDB([d.id, 'thumbnail/64.jpg'])(); });
+            thumbs.exit().remove();
+            
+            // quick-and-dirty scrollbar padding
+            var Wp = 64, Hp = 64, MAX = 100000;
+            var photosPerRow = platen.property('clientWidth') / Wp,
+                topPadding = Math.min(Hp * d.offset / photosPerRow, MAX),
+                botPadding = Math.min(Hp * (d.total_rows - d.rows.length - d.offset) / photosPerRow, MAX);
+            d3.select("#top_padding").style('height', topPadding + "px");
+            d3.select("#bot_padding").style('height', botPadding + "px");
+            
+            thumbs = thumbs.sort(function (a, b) { return d3.ascending(rowSeconds(a), rowSeconds(b)); });
+            thumbs.node().scrollIntoView();
+            
+            d3.select(window).on('scroll', function () {
+                // TODO: once day counts are fetched, can calculate start date based on top position (relative to thumbs.node()?)
+                //console.log(this.scrollY / Hp);
+            });
+        }
+        
+        // this initial set should eventually be done server-side
+        photosIndexed(['by_date'])({reduce:false, limit:100}).get(function (e,d) {
+            updatePhotos(d);
         });
     </script>
 </body>
