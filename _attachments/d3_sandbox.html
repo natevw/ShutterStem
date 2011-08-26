@@ -104,14 +104,13 @@
                 botPadding = Math.min(Hp * (d.total_rows - d.rows.length - d.offset) / photosPerRow, MAX);
             d3.select("#top_padding").style('height', topPadding + "px");
             d3.select("#bot_padding").style('height', botPadding + "px");
+            d3.select(window).on('X-scroll', function () {
+                // TODO: once day counts are fetched, can calculate start date based on top position (relative to thumbs.node()?)
+                console.log(this.scrollY / Hp);
+            });
             
             thumbs = thumbs.sort(function (a, b) { return d3.ascending(rowSeconds(a), rowSeconds(b)); });
             thumbs.node().scrollIntoView();
-            
-            d3.select(window).on('scroll', function () {
-                // TODO: once day counts are fetched, can calculate start date based on top position (relative to thumbs.node()?)
-                //console.log(this.scrollY / Hp);
-            });
         }
         
         // this initial set should eventually be done server-side
