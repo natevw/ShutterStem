@@ -105,8 +105,15 @@
             d3.select("#top_padding").style('height', topPadding + "px");
             d3.select("#bot_padding").style('height', botPadding + "px");
             d3.select(window).on('X-scroll', function () {
-                // TODO: once day counts are fetched, can calculate start date based on top position (relative to thumbs.node()?)
-                console.log(this.scrollY / Hp);
+                // update set of active photos if it needs a more reasonable number of extra images balancing below+above viewport
+                // do not panic for large jumps: simply pick a starting date+skip based on count of frames away from active set?
+                // also: always adjust waterDrop! (based on how much of top row has exited the viewport)
+                // and then, update the URL too: http://www.w3.org/TR/html5/history.html (make sure to handle popstate then!)
+                // y'know...why not just do everything based on setting a startdate+skip in the URL every few seconds during scroll?
+                // that would make URL updates roughly correspond to AJAX requests, although not sure if URL should get exact offset as load
+                
+                // This goes back to platen idea of simplying managing N rectangles. Now that we've found the elusive mapping between index<->key:
+                // use the reasonably grouped _count reduction that always gets fetched to make mapping a matter of binary search and a bit o'skip=X
             });
             
             thumbs = thumbs.sort(function (a, b) { return d3.ascending(rowSeconds(a), rowSeconds(b)); });
