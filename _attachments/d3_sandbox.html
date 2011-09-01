@@ -114,6 +114,10 @@
                 
                 // This goes back to platen idea of simplying managing N rectangles. Now that we've found the elusive mapping between index<->key:
                 // use the reasonably grouped _count reduction that always gets fetched to make mapping a matter of binary search and a bit o'skip=X
+                
+                // var halide = new Platen(fetchDelegate, itemsCallback)
+                // halide.updateURL(queryInfo, viewportCallback)
+                // halide.updateViewport(scrollSizeInfo, urlCallback)
             });
             
             thumbs = thumbs.sort(function (a, b) { return d3.ascending(rowSeconds(a), rowSeconds(b)); });
