@@ -98,7 +98,7 @@
             thumbs.exit().remove();
             
             // quick-and-dirty scrollbar padding
-            var Wp = 64, Hp = 64, MAX = 100000;
+            var Wp = 64, Hp = 64, MAX = Number.MAX_VALUE || 100000;
             var photosPerRow = platen.property('clientWidth') / Wp,
                 topPadding = Math.min(Hp * d.offset / photosPerRow, MAX),
                 botPadding = Math.min(Hp * (d.total_rows - d.rows.length - d.offset) / photosPerRow, MAX);
@@ -119,6 +119,23 @@
                 // halide.updateURL(queryInfo, viewportCallback)
                 // halide.updateViewport(scrollSizeInfo, urlCallback)
             });
+            
+            function Platen() {}
+            Platen.prototype.updateURL = function () {};
+            Platen.prototype.updateViewport = function () {
+                // [[[CONTENT HEIGHT]]] -> [[SAFE HEIGHT (v2.0)]] -> [VISIBLE HEIGHT]
+                
+                var blocksPerRow = Math.floor(viewport.width / block.width),
+                    rowsOfBlocks = Math.ceil(blocksCount / blocksPerRow),
+                    contentHeight = block.height * rowsOfBlocks,
+                    indexOfTopRow = contentHeight * (scroll.top / viewport.height),
+                    indexOfBlock = blocksPerRow * indexOfTopRow,
+                    indexOfKey = overview.keyIndex(indexOfBlock),
+                    offsetInKey = indexOfBlock - overview.offsetOfKey(indexOfKey),
+                    query = {$startkey: overiew[indexOfKey], skip: offsetInKey};
+                    // BOOOOOring! enough wasting time on pseudocode — start by refactoring EXISTING stuff (data fetches, nav jumps) into persistent platen object
+            };
+            
             
             thumbs = thumbs.sort(function (a, b) { return d3.ascending(rowSeconds(a), rowSeconds(b)); });
             thumbs.node().scrollIntoView();
