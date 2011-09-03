@@ -1,0 +1,36 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Polymaps sandbox</title>
+    <script src="d3.min.js"></script>
+    <script src="../../../Others'/d3/d3.js"></script>
+    <script src="fermata.min.js"></script>
+    <script src="../../../&yet/fermata/fermata.js"></script>
+    <script src="polymaps.min.js"></script>
+    
+    <meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0">
+    <style>
+        #map { position: absolute; top: 0; bottom: 0; left: 0; right: 0; margin: auto; height: 90%; width: 90%; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <script>
+        var po = org.polymaps,
+            map = po.map().container(d3.select("#map").append("svg:svg").node());
+        map.add(po.interact());
+        map.add(po.image()
+            .url(po.url("http://{S}tile.cloudmade.com"
+            + "/51664f123b50414da85e963f92c721f0"
+            + "/998/256/{Z}/{X}/{Y}.png")
+            .hosts(["a.", "b.", "c.", ""])));
+        
+        navigator.geolocation.getCurrentPosition(function (p) {
+            map.center({lat:p.coords.latitude, lon:p.coords.longitude}).zoom(18);
+        });
+        
+    </script>
+</body>
+</html>
