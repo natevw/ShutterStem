@@ -152,24 +152,22 @@
             }
             d3.select(window).on('scroll', function () {
                 if (autoscrolling || !overviewOffsets) return;
-                
-                var itemOffset = photosPerRow * (this.scrollY / Hp),
-                    overviewIndex = d3.bisect(overviewOffsets, itemOffset),
-                    overview = overviewRows[overviewIndex],
-                    overOffset = overviewOffsets[overviewIndex] - overview.value,
-                    startKey = overview.key,
-                    skip = Math.floor(itemOffset - overOffset);
-                
                 clearTimeout(throttled);
                 throttled = setTimeout(function () {
+                    var itemOffset = photosPerRow * (this.scrollY / Hp),
+                        overviewIndex = d3.bisect(overviewOffsets, itemOffset),
+                        overview = overviewRows[overviewIndex],
+                        overOffset = overviewOffsets[overviewIndex] - overview.value,
+                        startKey = overview.key,
+                        skip = Math.floor(itemOffset - overOffset);
                     updateURL(startKey, skip);
-                }, 100);
+                }, 250);
             });
         }
         
         // this initial set should eventually be done server-side
         photosIndexed(['by_date'])({reduce:false, limit:100}).get(function (e,d) {
-            updatePhotos(d, true);
+            updatePhotos(d);
         });
     </script>
 </body>
