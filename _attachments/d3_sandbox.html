@@ -36,7 +36,7 @@
     <div id="bot_padding"></div>
     
     <script>
-        var overviewRows, overviewOffsets, activePhotos;
+        var overviewRows, overviewOffsets, overviewSeconds, activePhotos;
         
         var photoDB = fermata.json("http://localhost:5984")('photos');
         var photosIndexed = photoDB(['_design/shutterstem', '_view']);
@@ -44,24 +44,23 @@
             var runningTotal = 0;
             overviewRows = d.rows;
             overviewOffsets = overviewRows.map(function (row) {
-                var offset = runningTotal;
-                runningTotal += row.value;
-                return offset;
+                return runningTotal += row.value;
             });
+            overviewSeconds = overviewRows.map(rowSeconds);
             updateOverview(d);
         });
         
         var updateDrop;
-        function updateURL(startKey) {
-            var query = {$startkey:startKey, limit:100, reduce:false};
+        function updateURL(startKey, skip, scroll) {
+            var query = {$startkey:startKey, skip:skip, limit:100, reduce:false};
             photosIndexed(['by_date'])(query).get(function (e,d) {
-                updatePhotos(d);
+                updatePhotos(d, scroll);
             });
             
             //var url = fermata.raw({base:".", path:["d3_sandbox.html"], query:query})();
             //history.replaceState(null, null, url);
-            history.replaceState(null, null, "?startkey=" + JSON.stringify(startKey));
-            updateDrop(startKey);
+            history.replaceState(null, null, "?startkey=" + JSON.stringify(startKey) + "&skip=" + skip);
+            updateDrop(startKey, skip);
         }
         
         var rowSeconds = function (r) {
@@ -92,7 +91,8 @@
             var scaleSeason = d3.scale.linear()
                 .range(['darkgoldenrod', 'lightsteelblue']);
             
-            var timeline = d3.select('#nav').append('svg:svg').attr('width', W).attr('height', H);
+            var nav = d3.select('#nav'),
+                timeline = nav.append('svg:svg').attr('width', W).attr('height', H);
             
             var dailyBars = timeline.selectAll('.dailyCount').data(d.rows);
             dailyBars.enter().append('svg:line').attr('class', "").classed('dailyCount', true) // (need .class to workaround weird iOS 4.2 selector issue)
@@ -100,29 +100,37 @@
                 .attr('y1', 0).attr('y2', function (r) { return scaleY(rowCount(r)); })
                 .attr('stroke', function (r) { return scaleSeason(rowSeason(r)); });
             
-            updateDrop = function (startKey) {
-                var waterDrop = timeline.selectAll('#waterDrop').data([startKey])
-                        .attr('cx', function (r) { return scaleX(rowSeconds({key:r})); });
-                    waterDrop.enter().append('svg:circle').attr('id', "waterDrop")
-                        .attr('cy', H  / 10).attr('r', 2.5)
-                        .attr('cx', function (r) { return scaleX(rowSeconds({key:r})); });
+            updateDrop = function (startKey, skip) {
+                var waterDrop = timeline.selectAll('#waterDrop').data([{key:startKey, value:skip}]);
+                    waterDrop.enter().append('svg:circle').attr('id', "waterDrop").attr('r', 2.5);
+                    waterDrop.attr('cx', function (r) { return scaleX(rowSeconds(r)); }).attr('cy', function (r) { return scaleY(rowCount(r)); });
+                nav.transition().duration(1000).tween('scroll', function () {
+                    var i = d3.interpolate(nav.property('scrollLeft'), waterDrop.attr('cx') - nav.property('clientWidth') / 2);
+                    return function (t) { this.scrollLeft = i(t); }
+                });
             };
             
             timeline.on("click", function () {
-                var seconds = scaleX.invert(d3.svg.mouse(this)[0]),
-                    startDate = new Date(seconds*1000),
-                    startKey = [startDate.getUTCFullYear(), startDate.getUTCMonth() + 1, startDate.getUTCDate()];
-                updateURL(startKey);
+                var mouse = d3.svg.mouse(this),
+                    secondsAcross = scaleX.invert(mouse[0]),
+                    itemsDown = scaleY.invert(mouse[1]),
+                    overviewIndex = d3.bisect(overviewSeconds, secondsAcross),
+                    overview = overviewRows[overviewIndex],
+                    wasTarget = (overviewSeconds[overviewIndex] < secondsAcross + 24*60*60),
+                    startKey = overview.key,
+                    skip = (wasTarget) ? Math.min(Math.floor(itemsDown), overview.value - 1) : 0;
+                updateURL(startKey, skip, true);
             });
         }
         
-        function updatePhotos(d) {
+        function updatePhotos(d, scroll) {
             var platen = d3.select('#content'),
                 thumbs = platen.selectAll('.frame').data(d.rows, function (d) { return d.id; });
             
             thumbs.enter().append('div').classed('frame', true)
                 .append('img').classed('photo', true).attr('src', function (d) { return photoDB([d.id, 'thumbnail/64.jpg'])(); });
             thumbs.exit().remove();
+            thumbs = thumbs.sort(function (a, b) { return d3.ascending(rowSeconds(a), rowSeconds(b)); });
             
             // set up padding
             var Wp = 96, Hp = 96 - 16;
@@ -135,30 +143,33 @@
             d3.select("#bot_padding").style('height', botPadding + "px");
             
             var autoscrolling, throttled;
+            if (scroll) {
+                autoscrolling = true;
+                thumbs.node().scrollIntoView();
+                setTimeout(function () {
+                    autoscrolling = false;
+                }, 0);
+            }
             d3.select(window).on('scroll', function () {
                 if (autoscrolling || !overviewOffsets) return;
                 
-                var newOffset = photosPerRow * Math.floor(this.scrollY / Hp),
-                    overviewIndex = d3.bisectLeft(overviewOffsets, newOffset),
-                    startKey = overviewRows[overviewIndex].key;
+                var itemOffset = photosPerRow * (this.scrollY / Hp),
+                    overviewIndex = d3.bisect(overviewOffsets, itemOffset),
+                    overview = overviewRows[overviewIndex],
+                    overOffset = overviewOffsets[overviewIndex] - overview.value,
+                    startKey = overview.key,
+                    skip = Math.floor(itemOffset - overOffset);
                 
                 clearTimeout(throttled);
                 throttled = setTimeout(function () {
-                    updateURL(startKey);
-                }, 500);
+                    updateURL(startKey, skip);
+                }, 100);
             });
-            
-            thumbs = thumbs.sort(function (a, b) { return d3.ascending(rowSeconds(a), rowSeconds(b)); });
-            autoscrolling = true;
-            thumbs.node().scrollIntoView();
-            setTimeout(function () {
-                autoscrolling = false;
-            }, 0);
         }
         
         // this initial set should eventually be done server-side
         photosIndexed(['by_date'])({reduce:false, limit:100}).get(function (e,d) {
-            updatePhotos(d);
+            updatePhotos(d, true);
         });
     </script>
 </body>
