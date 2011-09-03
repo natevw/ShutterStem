@@ -133,7 +133,7 @@
             thumbs = thumbs.sort(function (a, b) { return d3.ascending(rowSeconds(a), rowSeconds(b)); });
             
             // set up padding
-            var Wp = 96, Hp = 96 - 16;
+            var Wp = 96, Hp = 96;
             var photosPerRow = Math.floor(platen.property('clientWidth') / Wp),
                 topPadding = Hp * Math.floor(d.offset / photosPerRow),
                 rowPadding = Wp * (d.offset - photosPerRow * topPadding / Hp),
