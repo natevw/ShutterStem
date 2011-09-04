@@ -11,11 +11,14 @@
     
     <meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0">
     <style>
-        #map { position: absolute; top: 0; bottom: 0; left: 0; right: 0; margin: auto; height: 90%; width: 90%; }
+        #map { position: absolute; top: 0; bottom: 0; left: 0; right: 0; margin: auto; height: 80%; width: 90%; }
+        #track_file { border: 3px solid green; -webkit-border-radius: 5px; padding: 10px; }
+        #track_file.drop { background: lightgreen; }
     </style>
 </head>
 <body>
     <div id="map"></div>
+    <div id="track_file">GPX pls!</div>
     
     <script>
         var po = org.polymaps,
@@ -27,9 +30,28 @@
             + "/998/256/{Z}/{X}/{Y}.png")
             .hosts(["a.", "b.", "c.", ""])));
         
+        /*
         navigator.geolocation.getCurrentPosition(function (p) {
             map.center({lat:p.coords.latitude, lon:p.coords.longitude}).zoom(18);
         });
+        */
+        
+        // see https://github.com/natevw/ShutterStem/blob/old_master/webviewer/templates/iphoto_import.html
+        
+        function stopEvent() { var e = d3.event; e.stopPropagation(); e.preventDefault(); }
+        d3.select("#track_file")
+            .on("dragenter", stopEvent)
+            .on("dragover", stopEvent)
+            .on("drop", function () {
+                stopEvent();
+                
+                // Safari has no FileReader, so we need to reflect through Couch, where we conveniently convert from XML...
+                var file = d3.event.dataTransfer.files[0];
+                fermata.raw({base:"http://localhost:5984/dev/_design/shutterstem-t3/_update/convert_gpx"}).post(file, function (e,d) {
+                    d = JSON.parse(d.data);
+                    console.log(d);
+                });
+            });
         
     </script>
 </body>
