@@ -5,6 +5,7 @@
     <title>Polymaps sandbox</title>
     <script src="d3.min.js"></script>
     <script src="../../../Others'/d3/d3.js"></script>
+    <script src="../../../Others'/d3/d3.geo.js"></script>
     <script src="fermata.min.js"></script>
     <script src="../../../&yet/fermata/fermata.js"></script>
     <script src="polymaps.min.js"></script>
@@ -47,9 +48,29 @@
                 
                 // Safari has no FileReader, so we need to reflect through Couch, where we conveniently convert from XML...
                 var file = d3.event.dataTransfer.files[0];
-                fermata.raw({base:"http://localhost:5984/dev/_design/shutterstem-t3/_update/convert_gpx"}).post(file, function (e,d) {
-                    d = JSON.parse(d.data);
-                    console.log(d);
+                fermata.raw({base:"http://localhost:5984/dev/_design/shutterstem-t3/_update/convert_gpx"}).post({'Content-Length':file.size}, file, function (e,d) {
+                    var f = JSON.parse(d.data).map(function (p) {
+                        return {
+                            type: "Feature",
+                            properties: {time:Date.parse(p.time), ele:p.ele},
+                            geometry: {
+                                type: "Point",
+                                coordinates: [p.lon, p.lat]
+                            }
+                        };
+                    });
+                    
+                    var eleMin = d3.min(f, function (d) { return d.properties.ele; }),
+                        eleMax = d3.max(f, function (d) { return d.properties.ele; }),
+                        eleScale = d3.scale.linear().domain([eleMin, eleMax]).range([3, 0.125]),
+                        timeStart = d3.min(f, function (d) { return d.properties.time; }),
+                        timeEnd = d3.max(f, function (d) { return d.properties.time; }),
+                        timeScale = d3.scale.linear().domain([timeStart, timeEnd]).range(["red", "blue"]);
+                        style = po.stylist()
+                            .attr("r", function (d) { return eleScale(d.properties.ele); })
+                            .attr("stroke", function (d) { return timeScale(d.properties.time); }).attr("fill", "none"),
+                        l = po.geoJson().features(f).on("load", style);
+                    map.add(l).extent(d3.geo.bounds({type:"FeatureCollection", features:f}).map(function (c) { return {lon:c[0], lat:c[1]}; }));
                 });
             });
         
