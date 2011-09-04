@@ -19,7 +19,7 @@
 </head>
 <body>
     <div id="map"></div>
-    <div id="track_file">GPX pls!</div>
+    <div id="track_file">Drop in GPX pls!</div>
     
     <script>
         var po = org.polymaps,
@@ -62,7 +62,7 @@
                     
                     var eleMin = d3.min(f, function (d) { return d.properties.ele; }),
                         eleMax = d3.max(f, function (d) { return d.properties.ele; }),
-                        eleScale = d3.scale.linear().domain([eleMin, eleMax]).range([3, 0.125]),
+                        eleScale = d3.scale.linear().domain([eleMin, eleMax]).range([2, 0.125]),
                         timeStart = d3.min(f, function (d) { return d.properties.time; }),
                         timeEnd = d3.max(f, function (d) { return d.properties.time; }),
                         timeScale = d3.scale.linear().domain([timeStart, timeEnd]).range(["red", "blue"]);
