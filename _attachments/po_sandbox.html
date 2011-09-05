@@ -37,6 +37,28 @@
         });
         */
         
+        function dateAsArrayUTC(date) {
+            return [
+                date.getUTCFullYear(),      // 0
+                date.getUTCMonth() + 1,     // 1
+                date.getUTCDate(),          // 2
+                date.getUTCHours(),         // 3
+                date.getUTCMinutes(),       // 4
+                date.getUTCSeconds() + (date.getUTCMilliseconds() / 1000)
+            ];
+        }
+        function dateFromArrayUTC(arr) {
+            var d = new Date();
+            d.setUTCFullYear(arr[0] || 0);
+            d.setUTCMonth(arr[1] - 1 || 0);
+            d.setUTCDate(arr[2] || 1);
+            d.setUTCHours(arr[3] || 0);
+            d.setUTCMinutes(arr[4] || 0);
+            d.setUTCSeconds(Math.floor(arr[5]) || 0);
+            d.setUTCMilliseconds(1000 * (arr[5] - Math.floor(arr[5])) || 0);
+            return d;
+        }
+        
         function stopEvent() { var e = d3.event; e.stopPropagation(); e.preventDefault(); }
         d3.select("#track_file")
             .on("dragenter", stopEvent)
@@ -48,7 +70,28 @@
                 // see also https://github.com/natevw/ShutterStem/blob/old_master/webviewer/templates/iphoto_import.html
                 var file = d3.event.dataTransfer.files[0];
                 fermata.raw({base:"http://localhost:5984/dev/_design/shutterstem-t3/_update/convert_gpx"}).post({'Content-Length':file.size}, file, function (e,d) {
-                    var coords = JSON.parse(d.data).map(function (p) { return [p.lon, p.lat, p.ele, Date.parse(p.time)]; }).sort(function (a,b) { return d3.ascending(a[3], b[3]); });
+                    var coords = JSON.parse(d.data).map(function (p) { return [p.lon, p.lat, p.ele, Date.parse(p.time)]; }).sort(function (a,b) { return d3.ascending(a[3], b[3]); }),
+                        coordTimes = coords.map(function (c) { return c[3]; });
+                    
+                    function locationForTime(t, window) {
+                        var i = d3.bisectLeft(coordTimes, t);
+                        return coords[i];
+                    }
+                    
+                    var photosIndexed = fermata.json("http://localhost:5984/photos/_design/shutterstem/_view"),
+                        searchWindow = 0.5 * 60 * 1000,
+                        startDate = new Date(coordTimes[0] - searchWindow),
+                        endDate = new Date(coordTimes[coordTimes.length - 1] + searchWindow);
+                    photosIndexed('by_date')({reduce:false, $startkey:dateAsArrayUTC(startDate), $endkey:dateAsArrayUTC(endDate)}).get(function (e,d) {
+                        var photos = d.rows.map(function (row) {
+                            var t = dateFromArrayUTC(row.key).getTime(),
+                                l = locationForTime(t);
+                            return {type: "Feature", properties: {id:row.id}, geometry: {type:"Point", coordinates:l} };
+                        });
+                        var l = po.geoJson().features(photos).on('load', po.stylist().attr('fill', "green").attr('stroke', "red").attr('r', "2px"));
+                        map.add(l);
+                    });
+                    
                     
                     // for display, this groups into "tracks" sorta like https://github.com/calftrail/Geotagalog/blob/master/TLNMEAFileConversion.m#L115
                     var segments = [], currentSegment = [], prevCoord;
