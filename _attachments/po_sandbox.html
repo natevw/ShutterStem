@@ -37,8 +37,6 @@
         });
         */
         
-        // see https://github.com/natevw/ShutterStem/blob/old_master/webviewer/templates/iphoto_import.html
-        
         function stopEvent() { var e = d3.event; e.stopPropagation(); e.preventDefault(); }
         d3.select("#track_file")
             .on("dragenter", stopEvent)
@@ -47,30 +45,33 @@
                 stopEvent();
                 
                 // Safari has no FileReader, so we need to reflect through Couch, where we conveniently convert from XML...
+                // see also https://github.com/natevw/ShutterStem/blob/old_master/webviewer/templates/iphoto_import.html
                 var file = d3.event.dataTransfer.files[0];
                 fermata.raw({base:"http://localhost:5984/dev/_design/shutterstem-t3/_update/convert_gpx"}).post({'Content-Length':file.size}, file, function (e,d) {
-                    var f = JSON.parse(d.data).map(function (p) {
-                        return {
-                            type: "Feature",
-                            properties: {time:Date.parse(p.time), ele:p.ele},
-                            geometry: {
-                                type: "Point",
-                                coordinates: [p.lon, p.lat]
-                            }
-                        };
+                    var coords = JSON.parse(d.data).map(function (p) { return [p.lon, p.lat, p.ele, Date.parse(p.time)]; }).sort(function (a,b) { return d3.ascending(a[3], b[3]); });
+                    
+                    // for display, this groups into "tracks" sorta like https://github.com/calftrail/Geotagalog/blob/master/TLNMEAFileConversion.m#L115
+                    var segments = [], currentSegment = [], prevCoord;
+                    coords.forEach(function (coord) {
+                        var timeDiff;
+                        if (prevCoord && (coord[3] - prevCoord[3]) > 60*1000) {
+                            segments.push(currentSegment);
+                            currentSegment = [];
+                        }
+                        currentSegment.push(coord);
+                        prevCoord = coord;
+                    });
+                    if (currentSegment.length) {
+                        segments.push(currentSegment);
+                    }
+                    var tracks = segments.map(function (seg) {
+                        var geometry = (seg.length > 2) ? {type:"LineString", coordinates:seg} : {type:"Point", coordinates:seg[0]};
+                        return {type: "Feature", properties: null, geometry: geometry};
                     });
                     
-                    var eleMin = d3.min(f, function (d) { return d.properties.ele; }),
-                        eleMax = d3.max(f, function (d) { return d.properties.ele; }),
-                        eleScale = d3.scale.linear().domain([eleMin, eleMax]).range([2, 0.125]),
-                        timeStart = d3.min(f, function (d) { return d.properties.time; }),
-                        timeEnd = d3.max(f, function (d) { return d.properties.time; }),
-                        timeScale = d3.scale.linear().domain([timeStart, timeEnd]).range(["red", "blue"]);
-                        style = po.stylist()
-                            .attr("r", function (d) { return eleScale(d.properties.ele); })
-                            .attr("stroke", function (d) { return timeScale(d.properties.time); }).attr("fill", "none"),
-                        l = po.geoJson().features(f).on("load", style);
-                    map.add(l).extent(d3.geo.bounds({type:"FeatureCollection", features:f}).map(function (c) { return {lon:c[0], lat:c[1]}; }));
+                    var l = po.geoJson().features(tracks).on('load', po.stylist().attr('fill', "none").attr('stroke', "blue").attr('stroke-miterlimit', 1)),
+                        b = d3.geo.bounds({type:"FeatureCollection", features:tracks}).map(function (c) { return {lon:c[0], lat:c[1]}; });
+                    map.add(l).extent(b).zoomBy(-0.25);
                 });
             });
         
