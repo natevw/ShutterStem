@@ -77,26 +77,31 @@
                     
                     function locationForTime(t, window) {
                         var i = d3.bisectLeft(coordTimes, t);
+                        i = Math.min(i, coordTimes.length - 1);
                         return coords[i];
                     }
                     
                     var photoDB = fermata.json("http://localhost:5984/photos"),
                         photosIndexed = photoDB(["_design/shutterstem", "_view"]),
-                        searchWindow = 0.5 * 60 * 1000,
+                        searchWindow = 12 * 60 * 1000,
                         startDate = new Date(coordTimes[0] - searchWindow),
                         endDate = new Date(coordTimes[coordTimes.length - 1] + searchWindow);
                     photosIndexed('by_date')({reduce:false, $startkey:dateAsArrayUTC(startDate), $endkey:dateAsArrayUTC(endDate)}).get(function (e,d) {
                         console.log(d.rows.length);
                         var photos = d.rows.map(function (row) {
                             var t = dateFromArrayUTC(row.key).getTime(),
-                                l = locationForTime(t - 7*60*60*1000);  // TODO: this timezone offset shouldn't be necessary!
+                                l = locationForTime(t - 6*60*60*1000);  // TODO: this timezone offset shouldn't be necessary!
                             return {type: "Feature", properties: {id:row.id}, geometry: {type:"Point", coordinates:l} };
                         });
                         var l = po.geoJson().features(photos)
                             .on('load', po.stylist().attr('fill', "green").attr('stroke', "red").attr('r', "2px"))
                             .on('load', function (e) {
                                 e.features.forEach(function (f) {
-                                    d3.select(f.element).on("mouseover", function () { d3.select("#thumb").property("src", photoDB(f.data.properties.id)("thumbnail")("64.jpg")()); });
+                                    d3.select(f.element).on("mouseover", function () {
+                                        d3.select("#thumb")
+                                            .property('src', photoDB(f.data.properties.id)("thumbnail")("64.jpg")())
+                                            .style('display', "block").style('position', "absolute").style('top', d3.event.pageY + "px").style('left', d3.event.pageX + "px");
+                                    }); //.on("mouseout", function () { d3.select("#thumb").style('display', "none") });
                                 })
                             });
                         map.add(l);
