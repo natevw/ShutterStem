@@ -20,6 +20,7 @@
 <body>
     <div id="map"></div>
     <div id="track_file">Drop in GPX pls!</div>
+    <img id="thumb">
     
     <script>
         var po = org.polymaps,
@@ -65,6 +66,7 @@
             .on("dragover", stopEvent)
             .on("drop", function () {
                 stopEvent();
+                this.style.display = "none";
                 
                 // Safari has no FileReader, so we need to reflect through Couch, where we conveniently convert from XML...
                 // see also https://github.com/natevw/ShutterStem/blob/old_master/webviewer/templates/iphoto_import.html
@@ -78,17 +80,25 @@
                         return coords[i];
                     }
                     
-                    var photosIndexed = fermata.json("http://localhost:5984/photos/_design/shutterstem/_view"),
+                    var photoDB = fermata.json("http://localhost:5984/photos"),
+                        photosIndexed = photoDB(["_design/shutterstem", "_view"]),
                         searchWindow = 0.5 * 60 * 1000,
                         startDate = new Date(coordTimes[0] - searchWindow),
                         endDate = new Date(coordTimes[coordTimes.length - 1] + searchWindow);
                     photosIndexed('by_date')({reduce:false, $startkey:dateAsArrayUTC(startDate), $endkey:dateAsArrayUTC(endDate)}).get(function (e,d) {
+                        console.log(d.rows.length);
                         var photos = d.rows.map(function (row) {
                             var t = dateFromArrayUTC(row.key).getTime(),
-                                l = locationForTime(t);
+                                l = locationForTime(t - 7*60*60*1000);  // TODO: this timezone offset shouldn't be necessary!
                             return {type: "Feature", properties: {id:row.id}, geometry: {type:"Point", coordinates:l} };
                         });
-                        var l = po.geoJson().features(photos).on('load', po.stylist().attr('fill', "green").attr('stroke', "red").attr('r', "2px"));
+                        var l = po.geoJson().features(photos)
+                            .on('load', po.stylist().attr('fill', "green").attr('stroke', "red").attr('r', "2px"))
+                            .on('load', function (e) {
+                                e.features.forEach(function (f) {
+                                    d3.select(f.element).on("mouseover", function () { d3.select("#thumb").property("src", photoDB(f.data.properties.id)("thumbnail")("64.jpg")()); });
+                                })
+                            });
                         map.add(l);
                     });
                     
@@ -112,7 +122,8 @@
                         return {type: "Feature", properties: null, geometry: geometry};
                     });
                     
-                    var l = po.geoJson().features(tracks).on('load', po.stylist().attr('fill', "none").attr('stroke', "blue").attr('stroke-miterlimit', 1)),
+                    var l = po.geoJson().features(tracks)
+                        .on('load', po.stylist().attr('fill', "none").attr('stroke', "blue").attr('stroke-miterlimit', 1)),
                         b = d3.geo.bounds({type:"FeatureCollection", features:tracks}).map(function (c) { return {lon:c[0], lat:c[1]}; });
                     map.add(l).extent(b).zoomBy(-0.25);
                 });
