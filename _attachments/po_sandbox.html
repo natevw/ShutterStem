@@ -12,19 +12,21 @@
     
     <meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0">
     <style>
-        #map { position: absolute; top: 0; bottom: 0; left: 0; right: 0; margin: auto; height: 80%; width: 90%; }
+        #map { position: absolute; top: 75px; bottom: 10%; left: 0; right: 0; margin: auto; width: 90%; }
         #track_file { border: 3px solid green; -webkit-border-radius: 5px; padding: 10px; }
         #track_file.drop { background: lightgreen; }
+        #timeline {
+            position: absolute; border: 1px solid red;
+            top: 90%; height: 8%;
+            left: 0; right: 0; margin-left: auto; margin-right: auto; width: 90%;
+        }
     </style>
 </head>
 <body>
-    <div id="map"></div>
-    <div id="track_file">Drop in GPX pls!</div>
-    <img id="thumb">
-    
     <script>
         var po = org.polymaps,
-            map = po.map().container(d3.select("#map").append("svg:svg").node());
+            body = d3.select("body"),
+            map = po.map().container(body.append('div').attr('id', "map").append("svg:svg").node());
         map.add(po.interact());
         map.add(po.image()
             .url(po.url("http://{S}tile.cloudmade.com"
@@ -61,12 +63,13 @@
         }
         
         function stopEvent() { var e = d3.event; e.stopPropagation(); e.preventDefault(); }
-        d3.select("#track_file")
+        body.append('div').attr('id', "track_file").text("Drop in GPX pls!")
             .on("dragenter", stopEvent)
             .on("dragover", stopEvent)
             .on("drop", function () {
                 stopEvent();
                 this.style.display = "none";
+                body.append('img').attr('id', "thumb");
                 
                 // Safari has no FileReader, so we need to reflect through Couch, where we conveniently convert from XML...
                 // see also https://github.com/natevw/ShutterStem/blob/old_master/webviewer/templates/iphoto_import.html
@@ -105,6 +108,9 @@
                                 })
                             });
                         map.add(l);
+                        
+                        var timeline = body.append('svg:svg').attr('id', "timeline");
+                        
                     });
                     
                     
