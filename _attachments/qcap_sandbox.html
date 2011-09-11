@@ -10,12 +10,13 @@
     
     <style>
         #prev, #next { max-width: 64px; max-height: 64px; }
-        #main {}
+        #main { position: absolute; left: 0; right: 0; margin: auto; bottom: 0; }
+        #mainframe { position: relative; display: inline-block; width: 512px; height: 512px; }
         #description { width: 640px; }
     </style>
 </head>
 <body>
-    <img id="prev"><img id="main"><img id="next"><br>
+    <img id="prev"><div id="mainframe"><img id="main"></div><img id="next"><br>
     <form>
     <input id="description" type="text" placeholder="Briefly describe this photo."><button>Next</button>
     </form>
@@ -23,14 +24,23 @@
     <script>
         var photoDB = fermata.json("http://localhost:5984")('photos');
         var photosIndexed = photoDB(['_design/shutterstem', '_view']);
-        photosIndexed('by_date')({reduce:false, skip: 251, limit:3}).get(function (e, d) {
-            function setPhoto(el, row) {
-                d3.select("#" + el).node().src = photoDB(row.id)(["thumbnail/512.jpg"])();
-            }
-            setPhoto("prev", d.rows[0]);
-            setPhoto("main", d.rows[1]);
-            setPhoto("next", d.rows[2]);
-        });
+        
+        var key, doc;
+        function updatePhotos(query) {
+            query.reduce = false;
+            query.limit = 3;
+            photosIndexed('by_date')(query).get(function (e, d) {
+                if (query.descending) {
+                    d.rows.reverse();
+                }
+                d3.selectAll("img").data(d.rows).property('src', function (row) { return photoDB(row.id)(["thumbnail/512.jpg"])(); });
+                key = d.rows[1].key;
+                doc = d.rows[1].id;
+            });
+        }
+        updatePhotos({});
+        d3.select("#prev").on('click', function () { updatePhotos({$startkey:key, startkey_docid:doc, descending:true}); });
+        d3.select("#next").on('click', function () { updatePhotos({$startkey:key, startkey_docid:doc, descending:false}); });
     </script>
 </body>
 </html>
