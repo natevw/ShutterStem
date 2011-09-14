@@ -20,13 +20,30 @@
             top: 90%; height: 8%;
             left: 0; right: 0; margin-left: auto; margin-right: auto; width: 90%;
         }
+        #controls {
+            position:absolute; bottom: 0px;
+            left: 0; right: 0; margin-left: auto; margin-right: auto; width: 90%;
+        }
+        #timezone, #adjuster { position: relative; top: 4px; }
+        #timezone { width: 20%; }
+        #adjuster { width: 50%; }
     </style>
 </head>
 <body>
+    <div id="track_file">Drop in GPX pls!</div>
+    <div id="map"></div>
+    <img id="thumb">
+    <div id="timeline"></div>
+    <div id="controls">
+        <label>Timezone <input id="timezone" type="range" min="-12" max="12" step="1" value="0"></label>
+        <label id="tz_val" for="timezone">0h</label> : <label id="aj_val" for="adjuster">0m</label>
+        <label><input id="adjuster" type="range" min="-30" max="30" value="0" disabled> Adjustment</label>
+    </div>
+    
+    
     <script>
         var po = org.polymaps,
-            body = d3.select("body"),
-            map = po.map().container(body.append('div').attr('id', "map").append("svg:svg").node());
+            map = po.map().container(d3.select('#map').append("svg:svg").node());
         map.add(po.interact());
         map.add(po.image()
             .url(po.url("http://{S}tile.cloudmade.com"
@@ -63,54 +80,66 @@
         }
         
         function stopEvent() { var e = d3.event; e.stopPropagation(); e.preventDefault(); }
-        body.append('div').attr('id', "track_file").text("Drop in GPX pls!")
+        d3.select('#track_file')
             .on("dragenter", stopEvent)
             .on("dragover", stopEvent)
             .on("drop", function () {
                 stopEvent();
-                this.style.display = "none";
-                body.append('img').attr('id', "thumb");
                 
                 // Safari has no FileReader, so we need to reflect through Couch, where we conveniently convert from XML...
                 // see also https://github.com/natevw/ShutterStem/blob/old_master/webviewer/templates/iphoto_import.html
                 var file = d3.event.dataTransfer.files[0];
+                d3.select(this).text(file.name);
                 fermata.raw({base:"http://localhost:5984/dev/_design/shutterstem-t3/_update/convert_gpx"}).post({'Content-Length':file.size}, file, function (e,d) {
                     var coords = JSON.parse(d.data).map(function (p) { return [p.lon, p.lat, p.ele, Date.parse(p.time)]; }).sort(function (a,b) { return d3.ascending(a[3], b[3]); }),
                         coordTimes = coords.map(function (c) { return c[3]; });
-                    
-                    function locationForTime(t, window) {
-                        var i = d3.bisectLeft(coordTimes, t);
-                        i = Math.min(i, coordTimes.length - 1);
-                        return coords[i];
-                    }
                     
                     var photoDB = fermata.json("http://localhost:5984/photos"),
                         photosIndexed = photoDB(["_design/shutterstem", "_view"]),
                         searchWindow = 12 * 60 * 1000,
                         startDate = new Date(coordTimes[0] - searchWindow),
-                        endDate = new Date(coordTimes[coordTimes.length - 1] + searchWindow);
+                        endDate = new Date(coordTimes[coordTimes.length - 1] + searchWindow),
+                        photoData = null;
                     photosIndexed('by_date')({reduce:false, $startkey:dateAsArrayUTC(startDate), $endkey:dateAsArrayUTC(endDate)}).get(function (e,d) {
-                        console.log(d.rows.length);
+                        photoData = d;
+                        showPhotos(photoData, 0);
+                    });
+                    
+                    var photoLayer = po.geoJson()
+                        .on('load', po.stylist().attr('fill', "green").attr('stroke', "red").attr('r', "2px"))
+                        .on('load', function (e) {
+                            e.features.forEach(function (f) {
+                                d3.select(f.element).on("mouseover", function () {
+                                    d3.select("#thumb")
+                                        .property('src', photoDB(f.data.properties.id)("thumbnail")("64.jpg")())
+                                        .style('display', "block").style('position', "absolute").style('top', (d3.event.pageY - 64 - 4) + "px").style('left', (d3.event.pageX - 32) + "px");
+                                }).on("mouseout", function () { d3.select("#thumb").style('display', "none") });
+                            })
+                        }),
+                        timeline = d3.select('#timeline').append('svg:svg');
+                    map.add(photoLayer);
+                    function locationForTime(t, window) {
+                        var i = d3.bisectLeft(coordTimes, t);
+                        i = Math.min(i, coordTimes.length - 1);
+                        return coords[i];
+                    }
+                    function showPhotos(d, offset) {
                         var photos = d.rows.map(function (row) {
                             var t = dateFromArrayUTC(row.key).getTime(),
-                                l = locationForTime(t - 6*60*60*1000);  // TODO: this timezone offset shouldn't be necessary!
+                                l = locationForTime(t - offset);
                             return {type: "Feature", properties: {id:row.id}, geometry: {type:"Point", coordinates:l} };
                         });
-                        var l = po.geoJson().features(photos)
-                            .on('load', po.stylist().attr('fill', "green").attr('stroke', "red").attr('r', "2px"))
-                            .on('load', function (e) {
-                                e.features.forEach(function (f) {
-                                    d3.select(f.element).on("mouseover", function () {
-                                        d3.select("#thumb")
-                                            .property('src', photoDB(f.data.properties.id)("thumbnail")("64.jpg")())
-                                            .style('display', "block").style('position', "absolute").style('top', d3.event.pageY + "px").style('left', d3.event.pageX + "px");
-                                    }); //.on("mouseout", function () { d3.select("#thumb").style('display', "none") });
-                                })
-                            });
-                        map.add(l);
-                        
-                        var timeline = body.append('svg:svg').attr('id', "timeline");
-                        
+                        photoLayer.features(photos);
+                    };
+                    d3.select('#timezone').on('change', function () {
+                        var tzOffset = this.value, adjOffset = d3.select('#adjuster').property('value');
+                        d3.select('#tz_val').text( ((tzOffset < 0) ? '-' : '+') + Math.abs(tzOffset) + 'h')
+                        showPhotos(photoData, tzOffset*60*60*1000 + adjOffset*60*1000);
+                    });
+                    d3.select('#adjuster').on('change', function () {
+                        var tzOffset = d3.select('#timezone').property('value'), adjOffset = this.value;
+                        d3.select('#aj_val').text( ((adjOffset < 0) ? '-' : '+') + Math.abs(adjOffset) + 'm')
+                        showPhotos(photoData, tzOffset*60*60*1000 + adjOffset*60*1000);
                     });
                     
                     
@@ -133,10 +162,10 @@
                         return {type: "Feature", properties: null, geometry: geometry};
                     });
                     
-                    var l = po.geoJson().features(tracks)
+                    var trackLayer = po.geoJson().features(tracks)
                         .on('load', po.stylist().attr('fill', "none").attr('stroke', "blue").attr('stroke-miterlimit', 1)),
                         b = d3.geo.bounds({type:"FeatureCollection", features:tracks}).map(function (c) { return {lon:c[0], lat:c[1]}; });
-                    map.add(l).extent(b).zoomBy(-0.25);
+                    map.add(trackLayer).extent(b).zoomBy(-0.25);
                 });
             });
         
