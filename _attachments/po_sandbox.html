@@ -166,7 +166,7 @@
                     });
                     
                     var trackLayer = po.geoJson().features(tracks)
-                        .on('load', po.stylist().attr('fill', "none").attr('stroke', "blue").attr('stroke-miterlimit', 1)),
+                        .on('load', po.stylist().attr('fill', "none").attr('stroke', "blue").attr('stroke-miterlimit', 1).attr('r', 2.5)),
                         b = d3.geo.bounds({type:"FeatureCollection", features:tracks}).map(function (c) { return {lon:c[0], lat:c[1]}; });
                     map.add(trackLayer).extent(b).zoomBy(-0.25);
                     
