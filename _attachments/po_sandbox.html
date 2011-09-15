@@ -16,7 +16,7 @@
         #track_file { border: 3px solid green; -webkit-border-radius: 5px; padding: 10px; }
         #track_file.drop { background: lightgreen; }
         #timeline {
-            position: absolute; border: 1px solid red;
+            position: absolute; border: 1px dotted gray;
             top: 90%; height: 8%;
             left: 0; right: 0; margin-left: auto; margin-right: auto; width: 90%;
         }
@@ -101,12 +101,13 @@
                         endDate = new Date(coordTimes[coordTimes.length - 1] + searchWindow),
                         photoData = null;
                     photosIndexed('by_date')({reduce:false, $startkey:dateAsArrayUTC(startDate), $endkey:dateAsArrayUTC(endDate)}).get(function (e,d) {
+                        console.log(d.rows.length);
                         photoData = d;
                         showPhotos(photoData, 0);
                     });
                     
                     var photoLayer = po.geoJson()
-                        .on('load', po.stylist().attr('fill', "green").attr('stroke', "red").attr('r', "2px"))
+                        .on('load', po.stylist().attr('fill', "green").attr('stroke', "red").attr('r', 2))
                         .on('load', function (e) {
                             e.features.forEach(function (f) {
                                 d3.select(f.element).on("mouseover", function () {
@@ -115,8 +116,7 @@
                                         .style('display', "block").style('position', "absolute").style('top', (d3.event.pageY - 64 - 4) + "px").style('left', (d3.event.pageX - 32) + "px");
                                 }).on("mouseout", function () { d3.select("#thumb").style('display', "none") });
                             })
-                        }),
-                        timeline = d3.select('#timeline').append('svg:svg');
+                        });
                     map.add(photoLayer);
                     function locationForTime(t, window) {
                         var i = d3.bisectLeft(coordTimes, t);
@@ -130,6 +130,9 @@
                             return {type: "Feature", properties: {id:row.id}, geometry: {type:"Point", coordinates:l} };
                         });
                         photoLayer.features(photos);
+                        var photoTimes = timeline.selectAll('.photo').data(photos);
+                        photoTimes.enter().append('svg:circle').classed('photo', true).attr('r', 2).attr('fill', "green").attr('stroke', "red");
+                        photoTimes.attr('cx', function (d) { return timeScaleX(d.geometry.coordinates[3]); }).attr('cy', function (d) { return timeScaleY(d.geometry.coordinates[2]); });
                     };
                     d3.select('#timezone').on('change', function () {
                         var tzOffset = this.value, adjOffset = d3.select('#adjuster').property('value');
@@ -166,6 +169,25 @@
                         .on('load', po.stylist().attr('fill', "none").attr('stroke', "blue").attr('stroke-miterlimit', 1)),
                         b = d3.geo.bounds({type:"FeatureCollection", features:tracks}).map(function (c) { return {lon:c[0], lat:c[1]}; });
                     map.add(trackLayer).extent(b).zoomBy(-0.25);
+                    
+                    var locationLayer = po.geoJson().on('load', po.stylist().attr('fill', "yellow").attr('stroke', "orange").attr('r', 5)),
+                        timeline = d3.select('#timeline').append('svg:svg'),
+                        trackGraph = timeline.selectAll('.track').data(tracks),
+                        timeScaleX = d3.scale.linear().domain([coordTimes[0], coordTimes[coordTimes.length - 1]]).range([0, timeline.property('clientWidth')]),
+                        timeScaleY = d3.scale.linear().domain([0, 2500]).range([timeline.property('clientHeight'), 0]),
+                        trackLine = d3.svg.line()
+                            .x(function (coord) { return timeScaleX(coord[3]); })
+                            .y(function (coord) { return timeScaleY(coord[2]); });
+                    trackGraph.enter().append('svg:path').classed('track', true);
+                    trackGraph.attr('d', function (d) { return trackLine(d.geometry.coordinates); }).attr('fill', "none").attr('stroke', "blue");
+                    timeline.on("mousemove", function () {
+                        var time = timeScaleX.invert(d3.svg.mouse(this)[0]),
+                            coord = locationForTime(time);
+                        locationLayer.features([
+                            {type: "Feature", properties: null, geometry: {type:"Point", coordinates:coord}}
+                        ]);
+                    }).on("mouseout", function () { locationLayer.features([]); });
+                    map.add(locationLayer);
                 });
             });
         
