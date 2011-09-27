@@ -96,7 +96,7 @@
                     
                     var photoDB = fermata.json("http://localhost:5984/photos"),
                         photosIndexed = photoDB(["_design/shutterstem", "_view"]),
-                        searchWindow = 12 * 60 * 1000,
+                        searchWindow = 12 * 60 * 60 * 1000,
                         startDate = new Date(coordTimes[0] - searchWindow),
                         endDate = new Date(coordTimes[coordTimes.length - 1] + searchWindow),
                         photoData = null;
@@ -121,7 +121,7 @@
                     function locationForTime(t, window) {
                         var i = d3.bisectLeft(coordTimes, t);
                         i = Math.min(i, coordTimes.length - 1);
-                        return coords[i];
+                        return coords[i].map(function (c,i) { return (i === 3) ? t : c; });
                     }
                     function showPhotos(d, offset) {
                         var photos = d.rows.map(function (row) {
