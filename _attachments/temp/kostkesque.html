@@ -1,0 +1,69 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Kostkesque</title>
+    <script src="../d3.min.js"></script>
+    <script src="../fermata.min.js"></script>
+    <script>
+        var _dbURL = "http://localhost:5984/photos";
+        var _edit = function (doc) {
+            if (!doc['com.shutterstem.image']) return;
+            
+            var pathInfo = doc.identifiers.path;
+            if (pathInfo && pathInfo.name.indexOf("DCIM/") === 0) {
+                pathInfo.name = pathInfo.name.slice("DCIM/".length);
+            }
+        };
+        
+        var dbURL = "http://localhost:5984/loctest";
+        var edit = function (doc) {
+            if (!doc['com.stemstorage.loclog.track']) return;
+            
+            if (doc.points[1] && doc.points[0].time > doc.points[1].time) {
+                    doc.points[0].time = new Date(Date.parse(doc.points[0].time) - 24*60*60*1000).toISOString().replace(".000", '');
+            }
+        };
+        
+        
+        function deepCopy(doc) {
+            return JSON.parse(JSON.stringify(doc));
+        }
+        function deepEqual(docA, docB) {
+            return JSON.stringify(docA) == JSON.stringify(docB);
+        }
+        function extend(obj, props) {
+            Object.keys(props).forEach(function (key) { obj[key] = props[key]; });
+            return obj;
+        }
+        
+        var updateCount = 0;
+        var db = fermata.json(dbURL);
+        function updateBatch(startKey) {
+            var query = (startKey) ? {$startkey:startKey, skip:1} : {};
+            db('_all_docs', {include_docs:true, limit:1000})(query).get(function (e, d) {
+                var lastId = null;
+                d.rows.forEach(function (row) {
+                    var editDoc = deepCopy(row.doc);
+                    edit(editDoc);
+                    if (!deepEqual(row.doc, editDoc)) {
+                        updateCount += 1;
+                        console.log("Updating", row.id);
+                        db(row.id).put(editDoc, function (e,d) { if (e) console.log(e); });
+                    }
+                    lastId = row.id;
+                });
+                if (d.rows.length) {
+                    setTimeout(function () { updateBatch(lastId); }, 0);
+                } else {
+                    console.log("Done updating", updateCount, "documents");
+                }
+            });
+        }
+        updateBatch(null);
+    </script>
+</head>
+<body>
+    
+</body>
+</html>
