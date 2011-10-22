@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>ShutterStem — Baskets</title>
+    <script src="d3.min.js"></script>
+    <script src="../../../Others'/d3/d3.js"></script>
+    <script src="fermata.min.js"></script>
+    <script src="../../../&yet/fermata/fermata.js"></script>
+    
+    <style>
+    </style>
+</head>
+<body>
+    <a href>← View another basket</a>
+    <h1>A set of interesting photos</h1>
+    <a href>Rename basket</a>
+    <div style="border: 1px solid black">
+    N photos are selected across ShutterStem. <a href>∅ Forget selection</a><br>
+    P are in this basket. <a href>↑ Remove selection</a><br>
+    M are not in this basket. <a href>Add selection ↓</a><br>
+    </div>
+    There are B photos below. <a href>Select all</a> <a href>Unselect basket</a><br>
+    
+    
+    
+    <script>
+        // (could emit individual photos from basket if pagination necessary)
+        var photoDB = fermata.json("http://localhost:5984")('photos');
+        var photosIndexed = photoDB(['_design/shutterstem', '_view']);
+        photosIndexed('in_baskets')({reduce:false, limit:100}).get(function (e,d) {
+            // [basket_sort, photo_idx] -> photo_id (basket_id)
+            
+        });
+    </script>
+</body>
+</html>
