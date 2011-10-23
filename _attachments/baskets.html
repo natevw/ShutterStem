@@ -10,34 +10,90 @@
     <script src="ssselection.js"></script>
     
     <style>
+        #global_selection { border: 1px solid black; width: 450px; padding: 0.5em; }
+        .photo { margin: 5px; }
+        .photo.selected { border: 2px solid blue; margin: 3px; }
     </style>
 </head>
 <body>
     <a href>← View another basket</a>
     <h1>A set of interesting photos</h1>
     <a href>Rename basket</a>
-    <div style="border: 1px solid black">
-    N photos are selected across ShutterStem. <a href>∅ Forget selection</a><br>
-    P are in this basket. <a href>↑ Remove selection</a><br>
-    M are not in this basket. <a href>Add selection ↓</a><br>
+    
+    <div id="global_selection">
+        <span class="total_are">N photos are</span> selected across ShutterStem. <a href class="forget_selection">∅ Forget selection</a><br>
+        <span class="are_in">P are</span> in this basket. <a href class="remove_selection">↑ Remove selection</a><br>
+        <span class="are_not">M are not</span> in this basket. <a href class="add_selection">Add selection ↓</a><br>
     </div>
-    There are B photos below. <a href>Select all</a> <a href>Unselect basket</a><br>
+    There <span class="in_basket">are B photos</a> below. <a href class="select_all">Select all</a> <a href class="select_none">Unselect basket</a>
     
-    
+    <div id="basket_photos"></div>
     
     <script>
-        var selection = new ShutterStemSelection();
-        d3.select(window).on('shutterstem-selectionchange', function () {
-            console.log(selection.getArray());
+        var photoDB = fermata.json("http://localhost:5984")('photos'),
+            selection = new ShutterStemSelection()
+            basketPhotos = [];
+        
+        function updateSelection() {
+            var selected = selection.getArray(),
+                numIn = 0, numOut;
+            
+            d3.selectAll('.photo').classed('selected', function (d) {
+                var selected = selection.contains(d);
+                if (selected) numIn += 1;
+                return selected;
+            });
+            numOut = selected.length - numIn;
+            
+            d3.select('#global_selection .total_are').text(function () {
+                return (selected.length == 1) ? "1 photo is" : (selected.length + " photos are");
+            });
+            d3.select('#global_selection .are_in').text(function () {
+                return (numIn == 1) ? "1 is" : (numIn + " are");
+            });
+            d3.select('#global_selection .are_not').text(function () {
+                return (numOut == 1) ? "1 is not" : (numOut + " are not");
+            });
+        }
+        d3.select(window).on('shutterstem-selectionchange', updateSelection);
+        updateSelection();
+        
+        function updateBasket() {
+            var photos = d3.select('#basket_photos').selectAll('.photo').data(basketPhotos, function (d) { return d; })
+            photos.enter().append('img').classed('photo', true).attr('src', function (d) { return photoDB([d, 'thumbnail/64.jpg'])(); })
+                .on('click', function (d) {
+                    selection.toggle(d);
+                    d3.event.preventDefault();
+                });
+            photos.exit().remove();
+            updateSelection();
+        }
+        updateBasket();
+        
+        d3.selectAll('.forget_selection').on('click', function () {
+            selection.clear();
+            d3.event.preventDefault();
+        });
+        d3.selectAll('.remove_selection').on('click', function () {
+            basketPhotos = basketPhotos.filter(function (d) { return !selection.contains(d); });
+            updateBasket();
+            d3.event.preventDefault();
+        });
+        d3.selectAll('.add_selection').on('click', function () {
+            var already = {};
+            basketPhotos = basketPhotos.concat(selection.getArray()).filter(function (d) { var was = already[d]; already[d] = true; return !was; });
+            updateBasket();
+            d3.event.preventDefault();
+        });
+        d3.selectAll('.select_all').on('click', function () {
+            basketPhotos.forEach(function (d) { selection.set(d, true); });
+            d3.event.preventDefault();
+        });
+        d3.selectAll('.select_none').on('click', function () {
+            basketPhotos.forEach(function (d) { selection.set(d, false); });
+            d3.event.preventDefault();
         });
         
-        // (could emit individual photos from basket if pagination necessary)
-        var photoDB = fermata.json("http://localhost:5984")('photos');
-        var photosIndexed = photoDB(['_design/shutterstem', '_view']);
-        photosIndexed('in_baskets')({reduce:false, limit:100}).get(function (e,d) {
-            // [basket_sort, photo_idx] -> photo_id (basket_id)
-            
-        });
     </script>
 </body>
 </html>

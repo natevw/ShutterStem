@@ -7,6 +7,7 @@
     <script src="../../../Others'/d3/d3.js"></script>
     <script src="fermata.min.js"></script>
     <script src="../../../&yet/fermata/fermata.js"></script>
+    <script src="ssselection.js"></script>
     
     <meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0">
     <style>
@@ -25,6 +26,7 @@
         #row_padding { float: left; height: 64px; margin: 16px 0px; }
         .frame { display: block; float: left; width: 64px; height: 64px; margin: 16px; }
         .photo { border: 2px solid white; }
+        .photo.selected { border: 3px solid blue; }
     </style>
 </head>
 <body>
@@ -37,6 +39,10 @@
     
     <script>
         var overviewRows, overviewOffsets, overviewSeconds, activePhotos;
+        var selection = new ShutterStemSelection();
+        d3.select(window).on('shutterstem-selectionchange', function () {
+            d3.selectAll('.photo').classed('selected', function (d) { return selection.contains(d.id); });
+        });
         
         var photoDB = fermata.json("http://localhost:5984")('photos');
         var photosIndexed = photoDB(['_design/shutterstem', '_view']);
@@ -129,7 +135,12 @@
             
             thumbs.enter().append('div').classed('frame', true)
                 .append('a').attr('href', function (d) { return photoDB([d.id, 'thumbnail/512.jpg'])(); })
-                .append('img').classed('photo', true).attr('src', function (d) { return photoDB([d.id, 'thumbnail/64.jpg'])(); });
+                .append('img').classed('photo', true).attr('src', function (d) { return photoDB([d.id, 'thumbnail/64.jpg'])(); })
+                .classed('selected', function (d) { return selection.contains(d.id); }).on('click', function (d) {
+                    var selected = selection.toggle(d.id);
+                    d3.select(this).classed('selected', selected);
+                    d3.event.preventDefault();
+                });
             thumbs.exit().remove();
             thumbs = thumbs.sort(function (a, b) { return d3.ascending(rowSeconds(a), rowSeconds(b)); });
             
