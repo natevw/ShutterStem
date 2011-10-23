@@ -7,6 +7,7 @@
     <script src="../../../Others'/d3/d3.js"></script>
     <script src="fermata.min.js"></script>
     <script src="../../../&yet/fermata/fermata.js"></script>
+    <script src="ssselection.js"></script>
     
     <style>
         #prev, #next { width: 64px; }
@@ -20,6 +21,11 @@
     <div id="results"></div>
     
     <script>
+        var selection = new ShutterStemSelection();
+        d3.select(window).on('shutterstem-selectionchange', function () {
+            console.log(selection.getArray());
+        });
+        
         var photoDB = fermata.json("http://localhost:5984")('photos');
         var photosIndexed = photoDB(['_design/shutterstem-t3', '_view']);
         var LIMIT = 100;
