@@ -1,0 +1,137 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>ShutterStem — "{{name}}" basket</title>
+    <script src="{{app_url}}/d3.min.js"></script>
+    <script src="{{app_url}}/fermata.min.js"></script>
+    <script src="{{app_url}}/ssselection.js"></script>
+    
+    <style>
+        #global_selection { border: 1px solid black; width: 450px; padding: 0.5em; }
+        .photo { margin: 5px; }
+        .photo.selected { border: 2px solid blue; margin: 3px; }
+        .edit_only, .js_only { display: none; }
+        .editing div.edit_only { display: block; }
+        .editing a.edit_only { display: inline; }
+        .editing .edit_basket { display: none; }
+    </style>
+</head>
+<body>
+    <a href="{{app_url}}/_list/baskets/in_baskets?descending=true">← View another basket</a>
+    <h1 class="basket_name">{{name}}</h1>
+    <a href class="rename_basket edit_only">Rename basket</a>
+    
+    <div id="global_selection" class="edit_only">
+        <span class="total_are">N photos are</span> selected across ShutterStem. <a href class="forget_selection">∅ Forget selection</a><br>
+        <span class="are_in">P are</span> in this basket. <a href class="remove_selection">↑ Remove selection</a><br>
+        <span class="are_not">M are not</span> in this basket. <a href class="add_selection">Add selection ↓</a><br>
+    </div>
+    There <span class="in_basket">are {{photoCount}} photos</a> below. <a href class="select_all js_only">Select all</a> <a href class="select_none js_only">Unselect basket</a><br/>
+    <a href class="edit_basket js_only">Edit</a>
+    <a href class="save_basket edit_only">Save changes</a>
+    <a href class="cancel_edit edit_only">Cancel editing</a>
+    
+    <div id="basket_photos">
+        {{{ photos }}}
+    </div>
+    
+    <script id="basket_doc" type="text/plain" data-json="{{ doc_source }}"></script>
+    <script>
+        var basket = JSON.parse( d3.select("#basket_doc").attr('data-json') );
+        d3.select('#basket_photos').selectAll('.photo').data(basket.photos);
+        d3.selectAll('.js_only').classed('js_only', false);
+        
+        var photoDB = fermata.json("{{{db_url}}}"),
+            selection = new ShutterStemSelection();
+        
+        d3.selectAll('.edit_basket').on('click', function () {
+            d3.select(document.body).classed('editing', true);
+            d3.event.preventDefault();
+        });
+        d3.selectAll('.rename_basket').on('click', function () {
+            var newName = prompt("Name this basket:", basket.name);
+            if (!newName) {
+                return;
+            }
+            basket.name = newName;
+            d3.selectAll('.basket_name').text(newName);
+            d3.event.preventDefault();
+        });
+        d3.selectAll('.save_basket').on('click', function () {
+            basket.modified = (new Date).toISOString();
+            // save allowing (/ignoring) any potential conflict
+            photoDB('_bulk_docs').post({all_or_nothing:true, docs:[basket]}, function (e, d) {
+                location.reload();
+            });
+            d3.event.preventDefault();
+        });
+        d3.selectAll('.cancel_edit').on('click', function () {
+            location.reload();
+            d3.event.preventDefault();
+        });
+        
+        function updateSelection() {
+            var selected = selection.getArray(),
+                numIn = 0, numOut;
+            
+            d3.selectAll('.photo').classed('selected', function (d) {
+                var selected = selection.contains(d._id);
+                if (selected) numIn += 1;
+                return selected;
+            });
+            numOut = selected.length - numIn;
+            
+            d3.select('#global_selection .total_are').text(function () {
+                return (selected.length == 1) ? "1 photo is" : (selected.length + " photos are");
+            });
+            d3.select('#global_selection .are_in').text(function () {
+                return (numIn == 1) ? "1 is" : (numIn + " are");
+            });
+            d3.select('#global_selection .are_not').text(function () {
+                return (numOut == 1) ? "1 is not" : (numOut + " are not");
+            });
+        }
+        d3.select(window).on('shutterstem-selectionchange', updateSelection);
+        updateSelection();
+        
+        function updateBasket() {
+            var photos = d3.select('#basket_photos').selectAll('.photo').data(basket.photos, function (d) { return d._id; })
+            photos.enter().append('img').classed('photo', true).attr('src', function (d) { return photoDB([d._id, 'thumbnail/64.jpg'])(); })
+            photos.on('click', function (d) {
+                    selection.toggle(d._id);
+                    d3.event.preventDefault();
+                });
+            photos.exit().remove();
+            updateSelection();
+        }
+        updateBasket();
+        
+        d3.selectAll('.forget_selection').on('click', function () {
+            selection.clear();
+            d3.event.preventDefault();
+        });
+        d3.selectAll('.remove_selection').on('click', function () {
+            basket.photos = basket.photos.filter(function (d) { return !selection.contains(d._id); });
+            updateBasket();
+            d3.event.preventDefault();
+        });
+        d3.selectAll('.add_selection').on('click', function () {
+            var already = {},
+                selectedPhotos = selection.getArray().map(function (p) { return {"net.stemstorage.reference":true, _id:p}; });
+            basket.photos = basket.photos.concat(selectedPhotos).filter(function (d) { var was = already[d._id]; already[d._id] = true; return !was; });
+            updateBasket();
+            d3.event.preventDefault();
+        });
+        d3.selectAll('.select_all').on('click', function () {
+            basket.photos.forEach(function (d) { selection.set(d._id, true); });
+            d3.event.preventDefault();
+        });
+        d3.selectAll('.select_none').on('click', function () {
+            basket.photos.forEach(function (d) { selection.set(d._id, false); });
+            d3.event.preventDefault();
+        });
+        
+    </script>
+</body>
+</html>
