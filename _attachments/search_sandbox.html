@@ -31,7 +31,7 @@
         var LIMIT = 100;
         
         d3.select("#query").on('input', function () {
-            photosIndexed('by_word', {reduce:false, $key:this.value, limit:LIMIT}).get(function (e,d) {
+            photosIndexed('by_words', {reduce:false, $key:this.value, limit:LIMIT}).get(function (e,d) {
                 var result_items = d3.select("#results").selectAll(".result").data(d.rows);
                 result_items.enter().append('img').classed('result', true);
                 result_items.attr('src', function (d) { return photoDB(d.id)('thumbnail')('64.jpg')(); });
