@@ -7,7 +7,5 @@ function (doc) {
     var date = exports;
     
     var createdSeconds = date.newDate(doc.created).getTime() / 1000;
-    doc.photos.forEach(function (photo, idx) {
-        emit([createdSeconds, doc._id, idx], photo);   // include_docs follows ref!
-    });
+    emit(createdSeconds, {name:doc.name, photoCount:doc.photos.length});
 }
