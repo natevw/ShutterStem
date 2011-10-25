@@ -45,6 +45,24 @@
         var photoDB = fermata.json("{{{db_url}}}"),
             selection = new ShutterStemSelection();
         
+        if (!basket.created) {
+            // .rename_basket
+            var newName = prompt("Create a basket named:", basket.name);
+            if (!newName) {
+                var basketsURL = d3.select('a').attr('href');
+                location.replace(basketsURL);
+            }
+            basket.name = newName;
+            d3.selectAll('.basket_name').text(newName);
+            
+            // .add_selection
+            basket.photos = selection.getArray().map(function (p) { return {"net.stemstorage.reference":true, _id:p}; });
+            updateBasket();
+            
+            // .edit_basket
+            d3.select(document.body).classed('editing', true);
+        }
+        
         d3.selectAll('.edit_basket').on('click', function () {
             d3.select(document.body).classed('editing', true);
             d3.event.preventDefault();
@@ -59,11 +77,21 @@
             d3.event.preventDefault();
         });
         d3.selectAll('.save_basket').on('click', function () {
-            basket.modified = (new Date).toISOString();
-            // save allowing (/ignoring) any potential conflict
-            photoDB('_bulk_docs').post({all_or_nothing:true, docs:[basket]}, function (e, d) {
-                location.reload();
-            });
+            if (basket.created) {
+                basket.modified = (new Date).toISOString();
+                // save allowing (/ignoring) any potential conflict
+                photoDB('_bulk_docs').post({all_or_nothing:true, docs:[basket]}, function (e, d) {
+                    location.reload();
+                });
+            } else {
+                basket.created = (new Date).toISOString();
+                basket._id = 'bskt-' + Math.round(Math.random() * 1e16);
+                photoDB.post(basket, function (e, d) {
+                    var basketURL = location.pathname.split('/').filter(function (p,i) { return !i || p; }).concat(d.id).join('/');
+                    location.replace(basketURL);
+                });
+            }
+            
             d3.event.preventDefault();
         });
         d3.selectAll('.cancel_edit').on('click', function () {

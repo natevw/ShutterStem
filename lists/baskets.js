@@ -7,6 +7,6 @@ function (head, req) {
         while (row = getRow()) {
             baskets += fs.to_html(template, {app_url:app_url, id:row.id, name:row.value.name, photoCount:''+row.value.photoCount});
         }
-        return fs.to_html(ddoc.templates.baskets, {baskets:baskets});
+        return fs.to_html(ddoc.templates.baskets, {app_url:app_url, baskets:baskets});
     });
 }

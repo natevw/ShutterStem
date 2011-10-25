@@ -5,6 +5,11 @@ function (doc, req) {
         var db_url = '/' + req.info.db_name,
             app_url = fs.to_html("{{{db_url}}}/{{{id}}}", {db_url:db_url, id:ddoc._id});
         var photos = "", template = "<img id='{{id}}' class='photo' src='/{{{db}}}/{{{id}}}/thumbnail/64.jpg'>";
+        if (!doc) doc = {
+            'com.shutterstem.basket': true,
+            name: "New Basket",
+            photos: []
+        };
         doc.photos.forEach(function (photoRef) {
             photos += fs.to_html(template, {db:req.info.db_name, id:photoRef._id});
         });
