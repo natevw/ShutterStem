@@ -11,6 +11,8 @@
         #global_selection { border: 1px solid black; width: 450px; padding: 0.5em; }
         .photo { margin: 5px; }
         .photo.selected { border: 2px solid blue; margin: 3px; }
+        #extra_photos .photo { max-width: 16px; max-height: 16px; }
+        #extra_photos .photo.selected { border: none; margin: 3px; }
         .edit_only, .js_only { display: none; }
         .editing div.edit_only { display: block; }
         .editing a.edit_only { display: inline; }
@@ -23,9 +25,10 @@
     <a href class="rename_basket edit_only">Rename basket</a>
     
     <div id="global_selection" class="edit_only">
-        <span class="total_are">N photos are</span> selected across ShutterStem. <a href class="forget_selection">∅ Forget selection</a><br>
-        <span class="are_in">P are</span> in this basket. <a href class="remove_selection">↑ Remove selection</a><br>
+        Across ShutterStem, <span class="total_are">N photos are</span> selected. <a href class="forget_selection">∅ Forget selection</a><br>
         <span class="are_not">M are not</span> in this basket. <a href class="add_selection">Add selection ↓</a><br>
+        <div id="extra_photos"></div>
+        <span class="are_in">P are</span> in this basket. <a href class="remove_selection">↑ Remove selection</a><br>
     </div>
     There <span class="in_basket">are {{photoCount}} photos</a> below. <a href class="select_all js_only">Select all</a> <a href class="select_none js_only">Unselect basket</a><br/>
     <a href class="edit_basket js_only">Edit</a>
@@ -101,14 +104,23 @@
         
         function updateSelection() {
             var selected = selection.getArray(),
-                numIn = 0, numOut;
-            
-            d3.selectAll('.photo').classed('selected', function (d) {
+                basketed = {},
+                numIn = 0;
+            d3.select('#basket_photos').selectAll('.photo').classed('selected', function (d) {
                 var selected = selection.contains(d._id);
-                if (selected) numIn += 1;
+                if (selected) {
+                    numIn += 1;
+                    basketed[d._id] = true;
+                }
                 return selected;
             });
-            numOut = selected.length - numIn;
+            
+            var unbasketed = selected.filter(function (id) { return !basketed[id]; }),
+                numOut = unbasketed.length;
+            var unphotos = d3.select("#extra_photos").selectAll(".photo").data(unbasketed, function (d) { return d; });
+            unphotos.enter().append('img').classed('photo', true).classed('selected', true)
+                .attr('src', function (d) { return photoDB([d, 'thumbnail/64.jpg'])(); });
+            unphotos.exit().remove();
             
             d3.select('#global_selection .total_are').text(function () {
                 return (selected.length == 1) ? "1 photo is" : (selected.length + " photos are");
@@ -124,7 +136,7 @@
         updateSelection();
         
         function updateBasket() {
-            var photos = d3.select('#basket_photos').selectAll('.photo').data(basket.photos, function (d) { return d._id; })
+            var photos = d3.select('#basket_photos').selectAll('.photo').data(basket.photos, function (d) { return d._id; });
             photos.enter().append('img').classed('photo', true).attr('src', function (d) { return photoDB([d._id, 'thumbnail/64.jpg'])(); })
             photos.on('click', function (d) {
                     selection.toggle(d._id);
