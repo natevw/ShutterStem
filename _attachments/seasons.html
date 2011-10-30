@@ -44,7 +44,8 @@
             d3.selectAll('.photo').classed('selected', function (d) { return selection.contains(d.id); });
         });
         
-        var photoDB = fermata.json("http://localhost:5984")('photos');
+        var server = (location.protocol.slice(0,4) == 'file') ? "http://localhost:5984" : '';
+        var photoDB = fermata.json(server)('photos');
         var photosIndexed = photoDB(['_design/shutterstem', '_view']);
         photosIndexed('by_date')({group_level:3}).get(function (e,d) {
             var runningTotal = 0;
