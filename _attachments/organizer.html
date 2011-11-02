@@ -203,7 +203,6 @@
                 <h1 class="subtly_clickable">{{ value }}</h1>
                 <ul>
                     <li class="rename clickable">Rename
-                    <li class="export clickable">Export
                     <li class="add clickable">Add selection
                     <li class="remove clickable">Remove selection
                     <li class="delete clickable">Delete basket
@@ -221,7 +220,6 @@
             <h1 id="selection">Selection</h1>
             <ul>
                 <li class="create clickable">Save as basket
-                <li class="export clickable">Export
                 <li class="all clickable">Select all 
                 <li class="clear clickable">Clear
             </ul>
@@ -295,7 +293,7 @@
                 } else {
                     var to_import = document.createElement("div");
                     to_import.className = "frame";
-                    to_import.innerHTML="<a href='dashboard.html' target='DashboardWindow'>Import more...</a>";
+                    to_import.innerHTML="<a href='launcher.html'>Other apps...</a>";
                     thumbnails.appendChild(to_import);
                 }
                 
@@ -366,11 +364,6 @@
                     img.classList.remove("selected");
                 });
             });
-            selection_basket.querySelector(".export").addEventListener("click", function () {
-                var images = selectedPhotos('[]').join(",");
-                var info = {type:"export", name:"selected images", images:images, random:Math.random()};
-                window.location.href = db.urlFor(["_design/shutterstem", "_show/utility"], info);
-            }, false);
             
             var baskets = document.getElementById('baskets');
             function addBasket(basketRow, i) {
@@ -394,14 +387,7 @@
                         showLastPhotos();
                     }
                 }, false);
-                
-                basket.querySelector(".export").addEventListener("click", function () {
-                    var basketDoc = db.read(basketRow.id);
-                    var images = basketDoc.photos.map(function (photo) { return photo._id; }).join(",");
-                    var info = {type:"export", name:basketDoc.name, images:images, random:Math.random()};
-                    window.location.href = db.urlFor(["_design/shutterstem", "_show/utility"], info);
-                }, false);
-                
+                                
                 basket.querySelector(".rename").addEventListener("click", function () {
                     var basketDoc = db.read(basketRow.id);
                     var newName = prompt("Name this basket:", basketDoc.name);
