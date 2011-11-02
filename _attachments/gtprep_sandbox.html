@@ -20,7 +20,7 @@
         var overviewRows, overviewOffsets, overviewSeconds;
         
         var photoDB = fermata.json("http://localhost:5984")('photos');
-        var photosIndexed = photoDB(['_design/shutterstem', '_view']);
+        var photosIndexed = photoDB(['_design/shutterstem-t3', '_view']);
         photosIndexed('by_date')({group_level:3}).get(function (e,d) {
             var runningTotal = 0;
             overviewRows = d.rows;

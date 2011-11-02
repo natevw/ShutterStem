@@ -305,7 +305,7 @@
                     query.$startkey = start.key;
                     query.startkey_docid = start.id;
                 }
-                db.get("_design/shutterstem/_view/by_date", query, function (response) {
+                db.get("_design/shutterstem-t3/_view/by_date", query, function (response) {
                     var nextRow;
                     if (response.total_rows - response.offset - options.count > 0) {
                         nextRow = response.rows.pop();
@@ -479,7 +479,7 @@
                     baskets.insertBefore(basket, document.getElementById('_selection_basket').nextElementSibling);
                 }
             }
-            db.get("_design/shutterstem/_view/baskets", {descending:true}, function (response) {
+            db.get("_design/shutterstem-t3/_view/baskets", {descending:true}, function (response) {
                 response.rows.forEach(addBasket);
             });
             

@@ -23,7 +23,7 @@
     
     <script>
         var photoDB = fermata.json("http://localhost:5984")('photos');
-        var photosIndexed = photoDB(['_design/shutterstem', '_view']);
+        var photosIndexed = photoDB(['_design/shutterstem-t3', '_view']);
         
         var key, doc;
         function updatePhotos(query) {

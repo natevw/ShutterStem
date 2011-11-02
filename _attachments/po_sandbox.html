@@ -95,7 +95,7 @@
                         coordTimes = coords.map(function (c) { return c[3]; });
                     
                     var photoDB = fermata.json("http://localhost:5984/photos"),
-                        photosIndexed = photoDB(["_design/shutterstem", "_view"]),
+                        photosIndexed = photoDB(["_design/shutterstem-t3", "_view"]),
                         searchWindow = 12 * 60 * 60 * 1000,
                         startDate = new Date(coordTimes[0] - searchWindow),
                         endDate = new Date(coordTimes[coordTimes.length - 1] + searchWindow),
