@@ -283,7 +283,6 @@
             }
             
             function showPhotos(prev, start, options) {
-                localStorage['shutterstem-lastShow'] = JSON.stringify({prev:prev, start:start, options:options});
                 thumbnails.innerHTML = "";
                 if (start) {
                     var to_prev = document.createElement("div");
@@ -333,19 +332,7 @@
                 });
             
             }
-            function showLastPhotos() {
-                var lastShow;
-                try {
-                    lastShow = JSON.parse(localStorage['shutterstem-lastShow']);
-                } catch (e) {}
-                if (lastShow) {
-                    delete lastShow.options.show_last;
-                    showPhotos(lastShow.prev, lastShow.start, lastShow.options);
-                } else {
-                    showPhotos(null, null, {count:25});
-                }
-            }
-            showLastPhotos();
+            showPhotos(null, null, {count:25});
             
             
             var selection_basket = document.getElementById('_selection_basket');
