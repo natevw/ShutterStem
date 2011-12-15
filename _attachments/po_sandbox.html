@@ -11,6 +11,8 @@
     <style>
         #map { width: 100%; height: 450px; }
         #timeline { width: 100%; height: 75px; border: 1px solid gray; }
+        #thumbnails { width: 100%; margin: 5px 0; padding: 0; list-style: none; white-space: nowrap; overflow: auto; }
+        #thumbnails li { display: inline; margin: 4px; }
     </style>
 </head>
 <body>
@@ -83,7 +85,7 @@
                     e.features.forEach(function (f) {
                         d3.select(f.element).on("mouseover", function () {
                             d3.select("#thumb")
-                                .property('src', photoDB(f.data.properties.id)("thumbnail")("64.jpg")())
+                                .attr('src', photoDB(f.data.properties.id)("thumbnail")("64.jpg")())
                                 .style('display', "block").style('position', "absolute").style('top', (d3.event.pageY - 64 - 4) + "px").style('left', (d3.event.pageX - 32) + "px");
                         }).on("mouseout", function () { d3.select("#thumb").style('display', "none") });
                     })
@@ -94,6 +96,8 @@
                 i = Math.min(i, coordTimes.length - 1);
                 return coords[i].map(function (c,i) { return (i === 3) ? t : c; });
             }
+            
+            var timeline, thumbnailView = d3.select("#thumbnails");
             function showPhotos(d, offset) {
                 var photos = d.rows.map(function (row) {
                     var t = dateFromArrayUTC(row.key).getTime(),
@@ -104,6 +108,10 @@
                 var photoTimes = timeline.selectAll('.photo').data(photos);
                 photoTimes.enter().append('svg:circle').classed('photo', true).attr('r', 2).attr('fill', "green").attr('stroke', "red");
                 photoTimes.attr('cx', function (d) { return timeScaleX(d.geometry.coordinates[3]); }).attr('cy', function (d) { return timeScaleY(d.geometry.coordinates[2]); });
+                
+                var photoThumbs = thumbnailView.selectAll('.photo').data(photos);
+                console.log(photoThumbs);
+                photoThumbs.enter().append('li').append('img').classed('photo', true).attr('src', function (f) { return photoDB(f.properties.id)("thumbnail")("64.jpg")(); });
             };
             d3.select('#timezone').on('change', function () {
                 var tzOffset = this.value, adjOffset = d3.select('#adjuster').property('value');
