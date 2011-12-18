@@ -26,9 +26,12 @@
 </head>
 <body>
     <div id="controls">
-        <label>Timezone <input id="timezone" type="range" min="-12" max="12" step="1" value="0"></label>
-        <label id="tz_val" for="timezone">0h</label> : <label id="aj_val" for="adjuster">0m</label>
-        <label><input id="adjuster" type="range" min="-30" max="30" value="0" disabled> Adjustment</label>
+        <label>Timezone correction:<input id="timezone_slider" type="range" min="-12" max="12" step="1" value="0"></label>
+        <label id="timezone_display" for="timezone_slider"></label>
+        <br>
+        <label>Clock adjustment: <input id="seconds_slider" type="range" min="-59" max="59" value="0" disabled></label>
+        <label id="seconds_display" for="seconds_slider"></label>
+        <label>and <input id="minutes_stepper" type="number" size="3" min="0" max="89" value="0">m</label>
     </div>
     <div id="map"></div>
     <svg id="timeline"></svg>
@@ -38,16 +41,116 @@
     <script>
         // stub to facilitate quicker local iteration
         var req = new XMLHttpRequest();
-        req.open('GET', "http://localhost:5984/photos/_design/shutterstem-t3/_view/by_date?reduce=false&startkey=[2007,7,1]&limit=500", false);
+        req.open('GET', "http://localhost:5984/photos/_design/shutterstem-t3/_view/by_date?reduce=false&startkey=[2007,7,1]&limit=22", false);
         req.send();
         d3.select("#setup").attr('data-photo_query', req.response);
     </script>
     
     <script>
         var setupEl = d3.select("#setup"),
-            photo_query = JSON.parse(setupEl.attr('data-photo_query')),
             photo_db = setupEl.attr('data-photo_db')
-            location_db = setupEl.attr('data-location_db');
+            location_db = setupEl.attr('data-location_db'),
+            photo_query = JSON.parse(setupEl.attr('data-photo_query'));
+        
+        var adj_h = 0, adj_m = 0, adj_s = 0;
+        function updateAdjustments() {
+            function signed(n) {
+                if (n) {
+                    return ((n < 0) ? '-' : '+') + Math.abs(n);
+                } else return '0';
+            }
+            d3.select('#timezone_display').text(signed(adj_h) + 'h');
+            d3.select('#minutes_stepper').property('value', adj_m);
+            d3.select('#seconds_display').text(signed(adj_s) + 's');
+        }
+        updateAdjustments();
+        
+        var delayed_reload;
+        d3.select('#timezone_slider').on('input', function () {
+            adj_h = parseInt(this.value, 10);
+            updateAdjustments();
+            redrawPhotoMarkers();
+            
+            clearTimeout(delayed_reload);
+            delayed_reload = setTimeout(function () {
+                setTimeScale('redraw');
+                reloadGeodata();
+            }, 1500);
+        });
+        d3.select('#seconds_slider').on('input', function () {
+            adj_s = parseInt(this.value, 10);
+            updateAdjustments();
+            redrawPhotoMarkers();
+        });
+        d3.select('#minutes_stepper').on('input', function () {
+            adj_m = parseInt(this.value, 10);
+            updateAdjustments();
+            redrawPhotoMarkers();
+        });
+        
+        
+        var photoDB = fermata.json(photo_db),
+            photos = photo_query.rows.map(function (r) { return {id:r.id, key:r.key, time:dateFromArrayUTC(r.key).getTime()}; });
+        
+        var thumbnails = d3.select("#thumbnails").selectAll('.photo').data(photos);
+        thumbnails.enter().append('li').append('img').attr('src', function (d) { return photoDB(d.id)(["thumbnail/64.jpg"])(); });
+        
+        
+            
+        var timeline = d3.select("#timeline").attr('viewBox', "0 0 1000 100").attr('preserveAspectRatio', "none"),
+            timelineAltitudesLayer = timeline.append('svg:g'),
+            timelineMarkersLayer = timeline.append('svg:g');
+        
+        
+        var minTime, maxTime, timeScaleX, timeScaleY = d3.scale.log().domain([500, 12500]).range([100, 0]);
+        function setTimeScale(redraw) {
+            var PADDING = 1.5, HOURS_TO_MSEC = 60 * 60 * 1000;
+            minTime = photos[0].time + (adj_h - PADDING) * HOURS_TO_MSEC;
+            maxTime = photos[photos.length - 1].time + (adj_h + PADDING) * HOURS_TO_MSEC;
+            timeScaleX = d3.scale.linear().domain([minTime, maxTime]).range([0, 1000]);
+            if (redraw) {
+                if (coords) redrawAltitudes();
+                redrawPhotoMarkers();
+            }
+        }
+        setTimeScale();
+                
+        
+        var po = org.polymaps,
+            map = po.map().container(d3.select('#map').append("svg:svg").node());
+        //map.add(po.interact());
+        map.add(po.image()
+            .url(po.url("http://{S}tile.cloudmade.com"
+            + "/51664f123b50414da85e963f92c721f0"
+            + "/998/256/{Z}/{X}/{Y}.png")
+            .hosts(["a.", "b.", "c.", ""])));
+        
+        var coords, coordTimes;
+        function redrawPhotoMarkers() {
+            var s_adj_m = (adj_s < 0) ? -adj_m : adj_m,
+                timeOffset = ((adj_h * 60 + s_adj_m) * 60 + adj_s) * 1000,
+                timelineMarkers = timelineMarkersLayer.selectAll('.photo').data(photos);
+            timelineMarkers.enter().append('svg:circle').classed('photo', true).attr('r', 3)
+            timelineMarkers.attr('cx', function (d) { return timeScaleX(d.time + timeOffset); }).attr('cy', 50);
+        }
+        function redrawAltitudes() {
+            var timelineAltitudes = timelineAltitudesLayer.selectAll('.coord').data(coords);
+            timelineAltitudes.enter().append('svg:circle').classed('coord', true).attr('r',1);
+            timelineAltitudes.attr('cx', function (d) { return timeScaleX(d[3]); })
+                .attr('cy', function (d) { return timeScaleY(d[2]+500); });
+        }
+        redrawPhotoMarkers();
+        
+        var coordDB = fermata.json(location_db),
+            coordsIndexed = coordDB(["_design/loclog", "_view"]);
+        function reloadGeodata() {
+            coordsIndexed('by_time', {reduce:false, $startkey:dateAsArrayUTC(minTime), $endkey:dateAsArrayUTC(maxTime)}).get(function (e,d) {
+                coords = d.rows.map(function (r) { var c = r.value; c[3] = dateFromArrayUTC(r.key).getTime(); return c; }),
+                    coordTimes = coords.map(function (c) { return c[3]; });
+                redrawAltitudes();
+            });
+        };
+        reloadGeodata();
         
         function dateAsArrayUTC(date) {
             date instanceof Date || (date = new Date(date));
@@ -72,46 +175,7 @@
             return d;
         }
         
-        var photoDB = fermata.json(photo_db),
-            photos = photo_query.rows.map(function (r) { return {id:r.id, key:r.key, time:dateFromArrayUTC(r.key).getTime()}; });
         
-        var thumbnails = d3.select("#thumbnails").selectAll('.photo').data(photos);
-        thumbnails.enter().append('li').append('img').attr('src', function (d) { return photoDB(d.id)(["thumbnail/64.jpg"])(); });
-        
-        var MAX_ADJUSTMENT = 1.5 * 60 * 60 * 1000,
-            minTime = photos[0].time - MAX_ADJUSTMENT,
-            maxTime = photos[photos.length - 1].time + MAX_ADJUSTMENT;
-            
-        var timeline = d3.select("#timeline").attr('viewBox', "0 0 1000 100").attr('preserveAspectRatio', "none"),
-            timelineAltitudes = timeline.append('svg:g'),
-            timelineMarkers = timeline.append('svg:g');
-        
-        var timeScaleX = d3.scale.linear().domain([minTime, maxTime]).range([0, 1000]),
-            timeScaleY = d3.scale.log().domain([500, 12500]).range([100, 0]);
-        timelineMarkers = timelineMarkers.selectAll('.photo').data(photos)
-        timelineMarkers.enter().append('svg:circle').classed('photo', true).attr('r', 3).attr('cx', function (d) { return timeScaleX(d.time); }).attr('cy', 50);
-        
-        var po = org.polymaps,
-            map = po.map().container(d3.select('#map').append("svg:svg").node());
-        //map.add(po.interact());
-        map.add(po.image()
-            .url(po.url("http://{S}tile.cloudmade.com"
-            + "/51664f123b50414da85e963f92c721f0"
-            + "/998/256/{Z}/{X}/{Y}.png")
-            .hosts(["a.", "b.", "c.", ""])));
-        
-        var coordDB = fermata.json(location_db),
-            coordsIndexed = coordDB(["_design/loclog", "_view"]);
-        coordsIndexed('by_time', {reduce:false, $startkey:dateAsArrayUTC(minTime), $endkey:dateAsArrayUTC(maxTime)}).get(function (e,d) {
-            var coords = d.rows.map(function (r) { var c = r.value; c[3] = dateFromArrayUTC(r.key).getTime(); return c; }),
-                coordTimes = coords.map(function (c) { return c[3]; });
-            
-            timelineAltitudes = timelineAltitudes.selectAll('.coord').data(coords);
-            timelineAltitudes.enter().append('svg:circle').classed('coord', true).attr('r',1)
-                .attr('cx', function (d) { return timeScaleX(d[3]); })
-                .attr('cy', function (d) { return timeScaleY(d[2]+500); });
-            console.log("Rendering", coords.length, "coordinates");
-        });
         
     </script>
 </body>
