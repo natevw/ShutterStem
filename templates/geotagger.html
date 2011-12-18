@@ -102,12 +102,8 @@
         
         var coordDB = fermata.json(location_db),
             coordsIndexed = coordDB(["_design/loclog", "_view"]);
-        //coordsIndexed('by_utc', {reduce:false, $startkey:dateAsArrayUTC(minTime), $endkey:dateAsArrayUTC(maxTime)}).get(function (e,d) {
-            //var coords = d.rows.map(function (p) { p = p.value; return [p.lon, p.lat, p.ele, Date.parse(p.time)]; }),
-        //coordsIndexed('by_time', {reduce:false, $startkey:dateAsArrayUTC(minTime), $endkey:dateAsArrayUTC(maxTime)}).get(function (e,d) {
-            //var coords = d.rows.map(function (r) { var c = r.value; c[3] = dateFromArrayUTC(r.key).getTime(); return c; }),
-        coordsIndexed(['../_list', 'compact/by_time'], {reduce:false, $startkey:dateAsArrayUTC(minTime), $endkey:dateAsArrayUTC(maxTime)}).get(function (e,d) {
-            var coords = d.map(function (c) { c[3] = dateFromArrayUTC(c[3]).getTime(); return c; }),
+        coordsIndexed('by_time', {reduce:false, $startkey:dateAsArrayUTC(minTime), $endkey:dateAsArrayUTC(maxTime)}).get(function (e,d) {
+            var coords = d.rows.map(function (r) { var c = r.value; c[3] = dateFromArrayUTC(r.key).getTime(); return c; }),
                 coordTimes = coords.map(function (c) { return c[3]; });
             
             timelineAltitudes = timelineAltitudes.selectAll('.coord').data(coords);
@@ -116,10 +112,6 @@
                 .attr('cy', function (d) { return timeScaleY(d[2]+500); });
             console.log("Rendering", coords.length, "coordinates");
         });
-        
-        //coordsIndexed('by_utc', {reduce:false, limit:24*60*60}).get(function (e,d) {});
-        //coordsIndexed('by_time', {reduce:false, limit:24*60*60}).get(function (e,d) {});
-        //coordsIndexed(['../_list', 'compact', 'by_time'], {reduce:false, limit:24*60*60}).get(function (e,d) { console.log(d.length); });
         
     </script>
 </body>
