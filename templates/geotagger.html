@@ -41,7 +41,7 @@
     <script>
         // stub to facilitate quicker local iteration
         var req = new XMLHttpRequest();
-        req.open('GET', "http://localhost:5984/photos/_design/shutterstem-t3/_view/by_date?reduce=false&startkey=[2007,7,1]&limit=22", false);
+        req.open('GET', "http://localhost:5984/photos/_design/shutterstem-t3/_view/by_date?reduce=false&startkey=[2007,7,1]&limit=50", false);
         req.send();
         d3.select("#setup").attr('data-photo_query', req.response);
     </script>
@@ -75,7 +75,7 @@
             delayed_reload = setTimeout(function () {
                 setTimeScale('redraw');
                 reloadGeodata();
-            }, 1500);
+            }, 500);
         });
         d3.select('#seconds_slider').on('input', function () {
             adj_s = parseInt(this.value, 10);
@@ -95,8 +95,6 @@
         var thumbnails = d3.select("#thumbnails").selectAll('.photo').data(photos);
         thumbnails.enter().append('li').append('img').attr('src', function (d) { return photoDB(d.id)(["thumbnail/64.jpg"])(); });
         
-        
-            
         var timeline = d3.select("#timeline").attr('viewBox', "0 0 1000 100").attr('preserveAspectRatio', "none"),
             timelineAltitudesLayer = timeline.append('svg:g'),
             timelineMarkersLayer = timeline.append('svg:g');
@@ -132,12 +130,14 @@
                 timelineMarkers = timelineMarkersLayer.selectAll('.photo').data(photos);
             timelineMarkers.enter().append('svg:circle').classed('photo', true).attr('r', 3)
             timelineMarkers.attr('cx', function (d) { return timeScaleX(d.time + timeOffset); }).attr('cy', 50);
+            timelineMarkers.exit().remove()
         }
         function redrawAltitudes() {
             var timelineAltitudes = timelineAltitudesLayer.selectAll('.coord').data(coords);
             timelineAltitudes.enter().append('svg:circle').classed('coord', true).attr('r',1);
             timelineAltitudes.attr('cx', function (d) { return timeScaleX(d[3]); })
                 .attr('cy', function (d) { return timeScaleY(d[2]+500); });
+            timelineAltitudes.exit().remove()
         }
         redrawPhotoMarkers();
         
