@@ -107,7 +107,7 @@
             maxTime = photos[photos.length - 1].time + (adj_h + PADDING) * HOURS_TO_MSEC;
             timeScaleX = d3.scale.linear().domain([minTime, maxTime]).range([0, 1000]);
             if (redraw) {
-                if (coords) redrawAltitudes();
+                if (coords) redrawGeodata();
                 redrawPhotoMarkers();
             }
         }
@@ -115,13 +115,17 @@
                 
         
         var po = org.polymaps,
-            map = po.map().container(d3.select('#map').append("svg:svg").node());
+            map = po.map().container(d3.select('#map').append("svg:svg").node()),
+            geodataLayer = po.geoJson().on('load', po.stylist().attr('r', 1).attr('class', "coord")),
+            photoLayer = po.geoJson().on('load', po.stylist().attr('r', 3).attr('class', "photo"));
         //map.add(po.interact());
         map.add(po.image()
             .url(po.url("http://{S}tile.cloudmade.com"
             + "/51664f123b50414da85e963f92c721f0"
             + "/998/256/{Z}/{X}/{Y}.png")
             .hosts(["a.", "b.", "c.", ""])));
+        map.add(geodataLayer);
+        map.add(photoLayer);
         
         var coords, coordTimes;
         function redrawPhotoMarkers() {
@@ -129,15 +133,31 @@
                 timeOffset = ((adj_h * 60 + s_adj_m) * 60 + adj_s) * 1000,
                 timelineMarkers = timelineMarkersLayer.selectAll('.photo').data(photos);
             timelineMarkers.enter().append('svg:circle').classed('photo', true).attr('r', 3)
-            timelineMarkers.attr('cx', function (d) { return timeScaleX(d.time + timeOffset); }).attr('cy', 50);
-            timelineMarkers.exit().remove()
+            timelineMarkers
+                .attr('cx', function (d) { return timeScaleX(d.time + timeOffset); })
+                .attr('cy', coords ? function (d) { d._p = positionForTime(d.time + timeOffset); return timeScaleY(d._p[2]+500); } : 50);
+            timelineMarkers.exit().remove();
+            
+            if (coords) photoLayer.features(photos.map(function (d) {
+                return {type: "Feature", properties: {id:d.id}, geometry: {type:"Point", coordinates:d._p} };
+            }));
         }
-        function redrawAltitudes() {
+        function redrawGeodata() {
             var timelineAltitudes = timelineAltitudesLayer.selectAll('.coord').data(coords);
             timelineAltitudes.enter().append('svg:circle').classed('coord', true).attr('r',1);
             timelineAltitudes.attr('cx', function (d) { return timeScaleX(d[3]); })
                 .attr('cy', function (d) { return timeScaleY(d[2]+500); });
             timelineAltitudes.exit().remove()
+            
+            var coordFeatures = coords.map(function (d) { return {type:"Feature", properties:null, geometry:{type:"Point", coordinates:d}} }),
+                b = d3.geo.bounds({type:"FeatureCollection", features:coordFeatures}).map(function (c) { return {lon:c[0], lat:c[1]}; });
+            geodataLayer.features(coordFeatures);
+            map.extent(b).zoomBy(-0.25);
+        }
+        function positionForTime(t) {
+            var i = d3.bisectLeft(coordTimes, t);
+            i = Math.min(i, coordTimes.length - 1);
+            return coords[i].map(function (c,i) { return (i === 3) ? t : c; });
         }
         redrawPhotoMarkers();
         
@@ -147,7 +167,8 @@
             coordsIndexed('by_time', {reduce:false, $startkey:dateAsArrayUTC(minTime), $endkey:dateAsArrayUTC(maxTime)}).get(function (e,d) {
                 coords = d.rows.map(function (r) { var c = r.value; c[3] = dateFromArrayUTC(r.key).getTime(); return c; }),
                     coordTimes = coords.map(function (c) { return c[3]; });
-                redrawAltitudes();
+                redrawGeodata();
+                redrawPhotoMarkers();
             });
         };
         reloadGeodata();
@@ -174,9 +195,6 @@
             d.setUTCMilliseconds(1000 * (arr[5] - Math.floor(arr[5])) || 0);
             return d;
         }
-        
-        
-        
     </script>
 </body>
 </html>
