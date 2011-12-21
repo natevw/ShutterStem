@@ -3,17 +3,17 @@
 <head>
     <meta charset="utf-8">
     <title>ShutterStem Geotagger</title>
-    <!--
     <script src="d3.min.js"></script>
     <script src="d3.geo.min.js"></script>
     <script src="fermata.min.js"></script>
     <script src="polymaps.min.js"></script>
-    -->
     
+    <!--
     <script src="../_attachments/d3.min.js"></script>
     <script src="../_attachments/d3.geo.min.js"></script>
     <script src="../_attachments/fermata.min.js"></script>
     <script src="../_attachments/polymaps.min.js"></script>
+    -->
     
     <style>
         #map { width: 100%; height: 450px; }
@@ -41,9 +41,13 @@
     <script>
         // stub to facilitate quicker local iteration
         var req = new XMLHttpRequest();
-        req.open('GET', "http://localhost:5984/photos/_design/shutterstem-t3/_view/by_date?reduce=false&startkey=[2007,7,1]&limit=50", false);
+        var server = (location.protocol.slice(0,4) == 'file') ? "http://localhost:5984" : '';
+        req.open('GET', server + "/photos/_design/shutterstem-t3/_view/by_date?reduce=false&startkey=[2007,7,1]&limit=50", false);
         req.send();
+        d3.select("#setup").attr('data-photo_db', server + "/photos");
+        d3.select("#setup").attr('data-location_db', server + "/loctest");
         d3.select("#setup").attr('data-photo_query', req.response);
+        
     </script>
     
     <script>
