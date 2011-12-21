@@ -26,6 +26,9 @@
     </style>
 </head>
 <body>
+    <ol id="thumbnails"></ol>
+    <svg id="timeline"></svg>
+    <div id="map"></div>
     <div id="controls">
         <label>Timezone correction:<input id="timezone_slider" type="range" min="-12" max="12" step="1" value="0"></label>
         <label id="timezone_display" for="timezone_slider"></label>
@@ -35,9 +38,8 @@
         <label>and <input id="minutes_stepper" type="number" size="3" min="0" max="89" value="0">m</label>
     </div>
     <button id="save_button" type="button">Save</button><span id="save_error"></span>
-    <div id="map"></div>
-    <svg id="timeline"></svg>
-    <ol id="thumbnails"></ol>
+    
+    
     
     <script id="setup" data-photo_db="http://localhost:5984/photos" data-location_db="http://localhost:5984/loctest" data-photo_rows="{{ photo_rows }}"></script>
     <script>
