@@ -22,6 +22,7 @@
         #thumbnails li { display: inline; margin: 4px; }
         svg .photo { fill: gray; }
         svg .coord { fill: blue; }
+        #seconds_slider { display: block; width: 100%; }
         #save_error { color: red; }
     </style>
 </head>
@@ -30,16 +31,14 @@
     <svg id="timeline"></svg>
     <div id="map"></div>
     <div id="controls">
-        <label>Timezone correction:<input id="timezone_slider" type="range" min="-12" max="12" step="1" value="0"></label>
-        <label id="timezone_display" for="timezone_slider"></label>
-        <br>
-        <label>Clock adjustment: <input id="seconds_slider" type="range" min="-59" max="59" value="0" disabled></label>
-        <label id="seconds_display" for="seconds_slider"></label>
-        <label>and <input id="minutes_stepper" type="number" size="3" min="0" max="89" value="0">m</label>
+        <input id="seconds_slider" type="range" min="-59" max="59" step="0.1" value="0" list="second_ticks">
+        <datalist id="second_ticks"><option value="-30"><option value="0"><option value="30"></datalist>
+        <label>Adjust timestamps:</label>
+        <label><input id="hours_stepper" type="number" size="4" min="-12" max="12" value="0">h</label>
+        <label><input id="minutes_stepper" type="number" size="4" min="-59" max="59" value="0">m</label>
+        <label><input id="seconds_stepper" type="number" size="6" min="-59" max="59" step="0.1" value="0">s</label>
+        <button id="save_button" type="button">Save</button><span id="save_error"></span>
     </div>
-    <button id="save_button" type="button">Save</button><span id="save_error"></span>
-    
-    
     
     <script id="setup" data-photo_db="http://localhost:5984/photos" data-location_db="http://localhost:5984/loctest" data-photo_rows="{{ photo_rows }}"></script>
     <script>
@@ -61,19 +60,15 @@
         
         var adj_h = 0, adj_m = 0, adj_s = 0;
         function updateAdjustments() {
-            function signed(n) {
-                if (n) {
-                    return ((n < 0) ? '-' : '+') + Math.abs(n);
-                } else return '0';
-            }
-            d3.select('#timezone_display').text(signed(adj_h) + 'h');
+            d3.select('#hours_stepper').property('value', adj_h);
             d3.select('#minutes_stepper').property('value', adj_m);
-            d3.select('#seconds_display').text(signed(adj_s) + 's');
+            d3.select('#seconds_stepper').property('value', adj_s.toFixed(1));
+            d3.select('#seconds_slider').property('value', adj_s);
         }
         updateAdjustments();
         
         var delayed_reload;
-        d3.select('#timezone_slider').on('input', function () {
+        d3.select('#hours_stepper').on('input', function () {
             adj_h = parseInt(this.value, 10);
             updateAdjustments();
             redrawPhotoMarkers();
@@ -84,17 +79,21 @@
                 reloadGeodata();
             }, 500);
         });
-        d3.select('#seconds_slider').on('input', function () {
-            adj_s = parseInt(this.value, 10);
-            updateAdjustments();
-            redrawPhotoMarkers();
-        });
         d3.select('#minutes_stepper').on('input', function () {
             adj_m = parseInt(this.value, 10);
             updateAdjustments();
             redrawPhotoMarkers();
         });
-        
+        d3.select('#seconds_stepper').on('input', function () {
+            adj_s = parseFloat(this.value);
+            updateAdjustments();
+            redrawPhotoMarkers();
+        });
+        d3.select('#seconds_slider').on('input', function () {
+            adj_s = parseFloat(this.value);
+            updateAdjustments();
+            redrawPhotoMarkers();
+        });
         
         var photoDB = fermata.json(photo_db),
             photos = photo_query.rows.map(function (r) { return {id:r.id, key:r.key, time:dateFromArrayUTC(r.key).getTime()}; });
@@ -161,8 +160,7 @@
             map.extent(b).zoomBy(-0.25);
         }
         function calculateTimeOffset() {
-            var s_adj_m = (adj_s < 0) ? -adj_m : adj_m;
-            return ((adj_h * 60 + s_adj_m) * 60 + adj_s) * 1000;
+            return ((adj_h * 60 + adj_m) * 60 + adj_s) * 1000;
         }
         function positionForTime(t) {
             var i = d3.bisectLeft(coordTimes, t);
