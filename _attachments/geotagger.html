@@ -98,6 +98,19 @@
         var photoDB = fermata.json(photo_db),
             photos = photo_query.rows.map(function (r) { return {id:r.id, key:r.key, time:dateFromArrayUTC(r.key).getTime()}; });
         
+        // set initial ajdustment offset from first photo's geotag if present
+        d3.selectAll("#controls *").property('disabled', true);
+        photoDB(photos[0].id).get(function (e,d) {
+            if (d.timestamp && d.geotag) {
+                var secondsOffset = d.geotag.time - Date.parse(d.timestamp) / 1000;
+                adj_h = ~~(secondsOffset / 3600);
+                adj_m = ~~(secondsOffset / 60) - (adj_h * 60);
+                adj_s = secondsOffset - (adj_m * 60) - (adj_h * 3600);
+                updateAdjustments();
+            }
+            d3.selectAll("#controls *").property('disabled', false);
+        });
+        
         var thumbnails = d3.select("#thumbnails").selectAll('.photo').data(photos);
         thumbnails.enter().append('li').append('img').attr('src', function (d) { return photoDB(d.id)(["thumbnail/64.jpg"])(); });
         
