@@ -45,9 +45,10 @@
     <script>
         // stub to facilitate quicker local iteration
         var req = new XMLHttpRequest();
-        var server = (location.protocol.slice(0,4) == 'file') ? "http://localhost:5984" : '';
-        //req.open('GET', server + "/photos/_design/shutterstem-t3/_view/by_date?reduce=false&startkey=[2007,7,1]&limit=50", false);
-        req.open('GET', server + "/photos/_design/shutterstem-t3/_view/by_date?reduce=false&startkey=[2007,7,1]&endkey=[2007,7,2]", false);
+        var server = (location.protocol.slice(0,4) == 'file') ? "http://localhost:5984" : '',
+            search = location.search || "?reduce=false&startkey=[2007,7,1]&inclusive_end=false&endkey=[2007,7,2]";
+        
+        req.open('GET', server + "/photos/_design/shutterstem-t3/_view/by_date" + search, false);
         req.send();
         d3.select("#setup").attr('data-photo_db', server + "/photos");
         d3.select("#setup").attr('data-location_db', server + "/loctest");
@@ -60,7 +61,7 @@
             location_db = setupEl.attr('data-location_db'),
             photo_query = JSON.parse(setupEl.attr('data-photo_query'));
         
-        var adj_h = 0, adj_m = 0, adj_s = 0;
+        var adj_h = 0, adj_m = 0, adj_s = 0, adj_from = null;
         function updateAdjustments() {
             d3.select('#hours_stepper').property('value', adj_h);
             d3.select('#minutes_stepper').property('value', adj_m);
@@ -105,23 +106,30 @@
         d3.selectAll("#controls *").property('disabled', true);
         photoDB(photos[0].id).get(function (e,d) {
             if (d.timestamp && d.geotag) {
-                var secondsOffset = d.geotag.time - Date.parse(d.timestamp) / 1000;
-                adj_h = ~~(secondsOffset / 3600);
-                adj_m = ~~(secondsOffset / 60) - (adj_h * 60);
-                adj_s = secondsOffset - (adj_m * 60) - (adj_h * 3600);
+                setAdjustments(d.geotag.time - Date.parse(d.timestamp) / 1000);
+                adj_from = 'current';
                 updateAdjustments();
+                redrawPhotoMarkers();
             }
             d3.selectAll("#controls *").property('disabled', false);
         });
         
         // set next/prev links
         var firstPhoto = photos[0], lastPhoto = photos[photos.length - 1];
-        photosIndexed('by_date', {$startkey:firstPhoto.key, startkey_docid:firstPhoto.id, reduce:false, descending:true, skip:1, limit:1}).get(function (e,d) {
+        photosIndexed('by_date', {$startkey:firstPhoto.key, startkey_docid:firstPhoto.id, reduce:false, descending:true, skip:1, limit:1, include_docs:true}).get(function (e,d) {
             if (!d.rows.length) return;
             var prevPhoto = d.rows[0],
                 prevStartKey = prevPhoto.key.slice(0,3),
                 prevURL = fermata.json('')({reduce:false, $startkey:prevStartKey, inclusive_end:false, $endkey:firstPhoto.key, endkey_docid:firstPhoto.id})();
             d3.select("#prev_set").attr('href', prevURL);
+            var d = prevPhoto.doc;      // also set adjustments if not already (first photo may still override)
+            // NOTE: this is currently unreliable, seemingly due to https://issues.apache.org/jira/browse/COUCHDB-1206
+            if (!adj_from && d.timestamp && d.geotag) {
+                setAdjustments(d.geotag.time - Date.parse(d.timestamp) / 1000);
+                adj_from = 'previous';
+                updateAdjustments();
+                redrawPhotoMarkers();
+            }
         });
         photosIndexed('by_date', {$startkey:lastPhoto.key, startkey_docid:lastPhoto.id, reduce:false, skip:1, limit:1}).get(function (e,d) {
             if (!d.rows.length) return;
@@ -162,7 +170,7 @@
             basemapLayer = po.image().url(basemapURL.hosts(["a.", "b.", "c.", ""])),
             geodataLayer = po.geoJson().on('load', po.stylist().attr('r', 1).attr('class', "coord")),
             photoLayer = po.geoJson().on('load', po.stylist().attr('r', 3).attr('class', "photo"));
-        //map.add(po.interact());
+        map.add(po.interact());
         basemapLayer.visible(false);
         map.add(basemapLayer);
         map.add(geodataLayer);
@@ -199,6 +207,11 @@
         function calculateTimeOffset() {
             return ((adj_h * 60 + adj_m) * 60 + adj_s) * 1000;
         }
+        function setAdjustments(secondsOffset) {
+            adj_h = ~~(secondsOffset / 3600);
+            adj_m = ~~(secondsOffset / 60) - (adj_h * 60);
+            adj_s = secondsOffset - (adj_m * 60) - (adj_h * 3600);
+        }
         function positionForTime(t) {
             var i = d3.bisectLeft(coordTimes, t);
             i = Math.min(i, coordTimes.length - 1);
@@ -230,7 +243,7 @@
             photoDB('_all_docs', {include_docs:true}).post({keys:Object.keys(positionsById)}, function (e,d) {
                 var updatedDocs = d.rows.map(function (row) {
                     var position = positionsById[row.id],
-                        geotag = {'lat':position[1], 'lon':position[0], 'ele':position[2], 'time':position[3]};
+                        geotag = {'lat':position[1], 'lon':position[0], 'ele':position[2], 'time':position[3], 'id':row.id};
                     row.doc.geotag = geotag;
                     return row.doc;
                 });
