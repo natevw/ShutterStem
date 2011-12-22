@@ -39,6 +39,7 @@
         <label><input id="seconds_stepper" type="number" size="6" min="-59" max="59" step="0.1" value="0">s</label>
         <button id="save_button" type="button">Save</button><span id="save_error"></span>
     </div>
+    <a id="prev_set">← Previous</a> <a id="next_set">Next →</a>
     
     <script id="setup" data-photo_db="http://localhost:5984/photos" data-location_db="http://localhost:5984/loctest" data-photo_rows="{{ photo_rows }}"></script>
     <script>
@@ -46,7 +47,7 @@
         var req = new XMLHttpRequest();
         var server = (location.protocol.slice(0,4) == 'file') ? "http://localhost:5984" : '';
         //req.open('GET', server + "/photos/_design/shutterstem-t3/_view/by_date?reduce=false&startkey=[2007,7,1]&limit=50", false);
-        req.open('GET', server + "/photos/_design/shutterstem-t3/_view/by_date?reduce=false&startkey=[2007,7,1]&endkey=[2007,7,15]", false);
+        req.open('GET', server + "/photos/_design/shutterstem-t3/_view/by_date?reduce=false&startkey=[2007,7,1]&endkey=[2007,7,2]", false);
         req.send();
         d3.select("#setup").attr('data-photo_db', server + "/photos");
         d3.select("#setup").attr('data-location_db', server + "/loctest");
@@ -97,6 +98,7 @@
         });
         
         var photoDB = fermata.json(photo_db),
+            photosIndexed = photoDB(["_design/shutterstem-t3", "_view"]),
             photos = photo_query.rows.map(function (r) { return {id:r.id, key:r.key, time:dateFromArrayUTC(r.key).getTime()}; });
         
         // set initial ajdustment offset from first photo's geotag if present
@@ -111,6 +113,26 @@
             }
             d3.selectAll("#controls *").property('disabled', false);
         });
+        
+        // set next/prev links
+        var firstPhoto = photos[0], lastPhoto = photos[photos.length - 1];
+        photosIndexed('by_date', {$startkey:firstPhoto.key, startkey_docid:firstPhoto.id, reduce:false, descending:true, skip:1, limit:1}).get(function (e,d) {
+            if (!d.rows.length) return;
+            var prevPhoto = d.rows[0],
+                prevStartKey = prevPhoto.key.slice(0,3),
+                prevURL = fermata.json('')({reduce:false, $startkey:prevStartKey, inclusive_end:false, $endkey:firstPhoto.key, endkey_docid:firstPhoto.id})();
+            d3.select("#prev_set").attr('href', prevURL);
+        });
+        photosIndexed('by_date', {$startkey:lastPhoto.key, startkey_docid:lastPhoto.id, reduce:false, skip:1, limit:1}).get(function (e,d) {
+            if (!d.rows.length) return;
+            var nextPhoto = d.rows[0],
+                nextEndTime = dateFromArrayUTC(nextPhoto.key).getTime() + 24*60*60*1000,
+                nextEndKey = dateAsArrayUTC(nextEndTime).slice(0,3),
+                nextURL = fermata.json('')({reduce:false, $startkey:nextPhoto.key, startkey_docid:nextPhoto.id, inclusive_end:false, $endkey:nextEndKey})();
+            d3.select("#next_set").attr('href', nextURL);
+        });
+        
+        
         
         var thumbnails = d3.select("#thumbnails").selectAll('.photo').data(photos);
         thumbnails.enter().append('li').append('img').attr('src', function (d) { return photoDB(d.id)(["thumbnail/64.jpg"])(); });
