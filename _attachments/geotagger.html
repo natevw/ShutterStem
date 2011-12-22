@@ -69,7 +69,7 @@
         
         var delayed_reload;
         d3.select('#hours_stepper').on('input', function () {
-            adj_h = parseInt(this.value, 10);
+            adj_h = parseInt(this.value, 10) || 0;
             updateAdjustments();
             redrawPhotoMarkers();
             
@@ -80,17 +80,17 @@
             }, 500);
         });
         d3.select('#minutes_stepper').on('input', function () {
-            adj_m = parseInt(this.value, 10);
+            adj_m = parseInt(this.value, 10) || 0;
             updateAdjustments();
             redrawPhotoMarkers();
         });
         d3.select('#seconds_stepper').on('input', function () {
-            adj_s = parseFloat(this.value);
+            adj_s = parseFloat(this.value) || 0;
             updateAdjustments();
             redrawPhotoMarkers();
         });
         d3.select('#seconds_slider').on('input', function () {
-            adj_s = parseFloat(this.value);
+            adj_s = parseFloat(this.value) || 0;
             updateAdjustments();
             redrawPhotoMarkers();
         });
