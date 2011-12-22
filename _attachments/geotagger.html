@@ -197,15 +197,15 @@
         reloadGeodata();
         
         function storePositions() {
+            d3.select("#save_button").property('disabled', true);
+            d3.select("#save_error").text(null);
+                
             var positionsById = {},
                 timeOffset = calculateTimeOffset();
             photos.forEach(function (d) {
                 positionsById[d.id] = d._p;
             });
             photoDB('_all_docs', {include_docs:true}).post({keys:Object.keys(positionsById)}, function (e,d) {
-                d3.select("#save_button").property('disabled', true);
-                d3.select("#save_error").text(null);
-                
                 var updatedDocs = d.rows.map(function (row) {
                     var position = positionsById[row.id],
                         geotag = {'lat':position[1], 'lon':position[0], 'ele':position[2], 'time':position[3]};
