@@ -171,7 +171,7 @@
             var coordFeatures = coords.map(function (d) { return {type:"Feature", properties:null, geometry:{type:"Point", coordinates:d}} }),
                 b = d3.geo.bounds({type:"FeatureCollection", features:coordFeatures}).map(function (c) { return {lon:c[0], lat:c[1]}; });
             geodataLayer.features(coordFeatures);
-            map.extent(b).zoomBy(-0.25);
+            if (coords.length) map.extent(b).zoomBy(-0.25);
             basemapLayer.visible(true);
         }
         function calculateTimeOffset() {
