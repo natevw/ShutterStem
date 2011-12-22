@@ -45,7 +45,8 @@
         // stub to facilitate quicker local iteration
         var req = new XMLHttpRequest();
         var server = (location.protocol.slice(0,4) == 'file') ? "http://localhost:5984" : '';
-        req.open('GET', server + "/photos/_design/shutterstem-t3/_view/by_date?reduce=false&startkey=[2007,7,1]&limit=50", false);
+        //req.open('GET', server + "/photos/_design/shutterstem-t3/_view/by_date?reduce=false&startkey=[2007,7,1]&limit=50", false);
+        req.open('GET', server + "/photos/_design/shutterstem-t3/_view/by_date?reduce=false&startkey=[2007,7,1]&endkey=[2007,7,15]", false);
         req.send();
         d3.select("#setup").attr('data-photo_db', server + "/photos");
         d3.select("#setup").attr('data-location_db', server + "/loctest");
