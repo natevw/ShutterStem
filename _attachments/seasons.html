@@ -19,14 +19,26 @@
             background-image: -webkit-linear-gradient(top, rgba(0,0,0,0.9) 25%, transparent);
         }
         #nav svg { display: block; }
-        .dailyCount { stroke-width: 2.5; }
+        .dailyCount { stroke-width: 2.5; cursor: pointer; }
         #waterDrop { stroke: none; fill: blue; }
         
         #content { width: 100%; background-color: black; }
         #row_padding { float: left; height: 64px; margin: 16px 0px; }
-        .frame { display: block; float: left; width: 64px; height: 64px; margin: 16px; }
-        .photo { border: 2px solid white; }
+        .frame {
+            display: block; float: left; width: 64px; height: 64px; margin: 16px;
+            -webkit-transition: -webkit-transform 0.15s linear;
+        }
+        .photo {
+            max-width: 64px; max-height: 64px;
+            border: 2px solid white;
+            cursor: pointer; -webkit-touch-callout: none;
+        }
         .photo.selected { border: 3px solid blue; }
+        
+        .frame.enlarged { -webkit-transform: scale(8); -moz-transform: scale(2); }
+        .frame.enlarged .photo {
+            -webkit-box-shadow: 5px 5px 50px 5px #000; -moz-box-shadow: 5px 5px 50px 5px #000;
+        }
     </style>
 </head>
 <body>
@@ -134,12 +146,27 @@
             var platen = d3.select('#content'),
                 thumbs = platen.selectAll('.frame').data(d.rows, function (d) { return d.id; });
             
+            var enlargeTimeout;
             thumbs.enter().append('div').classed('frame', true)
                 .append('a').attr('href', function (d) { return photoDB([d.id, 'thumbnail/512.jpg'])(); })
                 .append('img').classed('photo', true).attr('src', function (d) { return photoDB([d.id, 'thumbnail/64.jpg'])(); })
-                .classed('selected', function (d) { return selection.contains(d.id); }).on('click', function (d) {
-                    var selected = selection.toggle(d.id);
-                    d3.select(this).classed('selected', selected);
+                .classed('selected', function (d) { return selection.contains(d.id); }).on('mousedown', function (d) {
+                    d3.event.preventDefault();     // prevents image dragging
+                    var photo_el = this, frame_el = photo_el.parentNode.parentNode;
+                    d3.select(photo_el).classed('selected', selection.toggle(d.id));
+                    enlargeTimeout = setTimeout(function () {
+                        d3.select(frame_el).classed('enlarged', true);
+                        // TODO: translate center inwards if outside 512px/2 padded viewport
+                        d3.select(photo_el).classed('selected', selection.toggle(d.id))
+                            .attr('src', function (d) { return photoDB([d.id, 'thumbnail/512.jpg'])(); });
+                    }, 250);
+                }).on('mouseup', function (d) {
+                    var photo_el = this, frame_el = photo_el.parentNode.parentNode;
+                    clearTimeout(enlargeTimeout);
+                    d3.select(frame_el).classed('enlarged', false);
+                    d3.select(photo_el)
+                        .attr('src', function (d) { return photoDB([d.id, 'thumbnail/64.jpg'])(); });
+                }).on('click', function (d) {
                     d3.event.preventDefault();
                 });
             thumbs.exit().remove();
