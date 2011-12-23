@@ -232,7 +232,7 @@
                 //console.log(dCoords,dTravel);
                 if (dCoords[3] < 60*1000) {
                     coord = prevCoord.map(function (n, i) { return n + dTravel * dCoords[i]; });
-                } else if (dTravel > 0.85) {    // TODO: minute snapping?
+                } else if ((1-dTravel)*dCoords[3] < 60*1000) {
                     coord = nextCoord;
                 } else {
                     coord = prevCoord;
