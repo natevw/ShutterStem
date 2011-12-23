@@ -18,8 +18,11 @@
     <style>
         #map { width: 100%; height: 450px; }
         #timeline { width: 100%; height: 75px; border: 1px solid gray; }
-        #thumbnails { width: 100%; margin: 5px 0; padding: 0; list-style: none; white-space: nowrap; overflow: auto; }
+        #thumbnails { width: 100%; height: 68px; margin: 5px 0; padding: 0; list-style: none; white-space: nowrap; overflow: auto; }
         #thumbnails li { display: inline; margin: 4px; }
+        #thumbnails.mouseover li { display: none; }
+        #thumbnails.mouseover li.undermouse { display: inline; }
+        
         svg .photo { fill: gray; }
         svg .coord { fill: blue; }
         #seconds_slider { display: block; width: 100%; }
@@ -107,10 +110,13 @@
         photoDB(photos[0].id).get(function (e,d) {
             if (d.timestamp && d.geotag) {
                 setAdjustments(d.geotag.time - Date.parse(d.timestamp) / 1000);
-                adj_from = 'current';
                 updateAdjustments();
-                redrawPhotoMarkers();
+                adj_from = 'current';
+                setTimeScale('redraw');
+                if (adj_h) reloadGeodata();         // TODO: this could be the *third* time this gets reloaded on intialization
             }
+            setTimeScale('redraw');
+            reloadGeodata();
             d3.selectAll("#controls *").property('disabled', false);
         });
         
@@ -126,9 +132,10 @@
             // NOTE: this is currently unreliable, seemingly due to https://issues.apache.org/jira/browse/COUCHDB-1206
             if (!adj_from && d.timestamp && d.geotag) {
                 setAdjustments(d.geotag.time - Date.parse(d.timestamp) / 1000);
-                adj_from = 'previous';
                 updateAdjustments();
-                redrawPhotoMarkers();
+                adj_from = 'previous';
+                setTimeScale('redraw');
+                if (adj_h) reloadGeodata();
             }
         });
         photosIndexed('by_date', {$startkey:lastPhoto.key, startkey_docid:lastPhoto.id, reduce:false, skip:1, limit:1}).get(function (e,d) {
@@ -143,7 +150,7 @@
         
         
         var thumbnails = d3.select("#thumbnails").selectAll('.photo').data(photos);
-        thumbnails.enter().append('li').append('img').attr('src', function (d) { return photoDB(d.id)(["thumbnail/64.jpg"])(); });
+        thumbnails.enter().append('li').classed('photo', true).append('img').attr('src', function (d) { return photoDB(d.id)(["thumbnail/64.jpg"])(); });
         
         var timeline = d3.select("#timeline").attr('viewBox', "0 0 1000 100").attr('preserveAspectRatio', "none"),
             timelineAltitudesLayer = timeline.append('svg:g'),
@@ -168,8 +175,8 @@
             map = po.map().container(d3.select('#map').append("svg:svg").node()),
             basemapURL = po.url("http://{S}tile.cloudmade.com" + "/51664f123b50414da85e963f92c721f0" + "/998/256/{Z}/{X}/{Y}.png"),
             basemapLayer = po.image().url(basemapURL.hosts(["a.", "b.", "c.", ""])),
-            geodataLayer = po.geoJson().on('load', po.stylist().attr('r', 1).attr('class', "coord")),
-            photoLayer = po.geoJson().on('load', po.stylist().attr('r', 3).attr('class', "photo"));
+            geodataLayer = po.geoJson().on('load', po.stylist().attr('r', 1).attr('class', "coord").attr('id', function (d) { return "map-coord:" + d.properties.idx; })),
+            photoLayer = po.geoJson().on('load', po.stylist().attr('r', 3).attr('class', "photo").attr('id', function (d) { return "map-photo:" + d.properties.id; }));
         map.add(po.interact());
         basemapLayer.visible(false);
         map.add(basemapLayer);
@@ -198,7 +205,7 @@
                 .attr('cy', function (d) { return timeScaleY(d[2]+500); });
             timelineAltitudes.exit().remove()
             
-            var coordFeatures = coords.map(function (d) { return {type:"Feature", properties:null, geometry:{type:"Point", coordinates:d}} }),
+            var coordFeatures = coords.map(function (d,i) { return {type:"Feature", properties:{idx:i}, geometry:{type:"Point", coordinates:d}} }),
                 b = d3.geo.bounds({type:"FeatureCollection", features:coordFeatures}).map(function (c) { return {lon:c[0], lat:c[1]}; });
             geodataLayer.features(coordFeatures);
             if (coords.length) map.extent(b).zoomBy(-0.25);
@@ -218,6 +225,20 @@
             return coords[i].map(function (c,i) { return (i === 3) ? t/1000 : c; });
         }
         redrawPhotoMarkers();
+        
+        var centerPoint = map.container().createSVGPoint(0,0);
+        d3.select(map.container()).on('mousemove', function (d) {
+            var mousePosition = map.mouse(d3.event), photosUnderMouse = {};
+            d3.select(photoLayer.container()).selectAll('.photo').each(function () {
+                var markerPosition = centerPoint.matrixTransform(this.getCTM()),
+                    dx = mousePosition.x - markerPosition.x, dy = mousePosition.y - markerPosition.y,
+                    distanceSqd = dx*dx + dy*dy;
+                if (distanceSqd < 25) photosUnderMouse[this.id.split(':')[1]] = true;
+            });
+            
+            d3.select("#thumbnails").classed('mouseover', !!Object.keys(photosUnderMouse).length);
+            d3.select("#thumbnails").selectAll('.photo').classed('undermouse', function (d) { return photosUnderMouse[d.id]; });
+        });
         
         var coordDB = fermata.json(location_db),
             coordsIndexed = coordDB(["_design/loclog", "_view"]);
