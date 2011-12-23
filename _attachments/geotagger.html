@@ -223,7 +223,7 @@
         }
         function positionForTime(t) {
             var i = d3.bisect(coordTimes, t);
-            i = Math.min(i, coordTimes.length - 1);
+            i = Math.max(0, i - 1);
             return coords[i].map(function (c,i) { return (i === 3) ? t/1000 : c; });
         }
         redrawPhotoMarkers();
