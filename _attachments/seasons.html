@@ -32,6 +32,7 @@
             max-width: 64px; max-height: 64px;
             border: 2px solid white;
             cursor: pointer; -webkit-touch-callout: none;
+            -webkit-transition: -webkit-transform 0.15s linear;
         }
         .photo.selected { border: 3px solid blue; }
         
@@ -71,7 +72,7 @@
         
         var updateDrop;
         function updateURL(startKey, skip, scroll) {
-            var query = {$startkey:startKey, skip:skip, limit:100, reduce:false};
+            var query = {$startkey:startKey, skip:skip, limit:250, reduce:false};
             photosIndexed(['by_date'])(query).get(function (e,d) {
                 updatePhotos(d, scroll);
             });
@@ -156,7 +157,16 @@
                     d3.select(photo_el).classed('selected', selection.toggle(d.id));
                     enlargeTimeout = setTimeout(function () {
                         d3.select(frame_el).classed('enlarged', true);
-                        // TODO: translate center inwards if outside 512px/2 padded viewport
+                        enlargeTimeout = setTimeout(function () {
+                            var bounds = photo_el.getBoundingClientRect(),
+                                adj_l = (bounds.left < 0) ? -bounds.left : 0,
+                                adj_r = (bounds.right > window.innerWidth) ? bounds.right - window.innerWidth : 0,
+                                adj_t = (bounds.top < 0) ? -bounds.top : 0,
+                                adj_b = (bounds.bottom > window.innerHeight) ? bounds.bottom - window.innerHeight : 0;
+                            var adj_x = (adj_l && adj_r) ? adj_l/2 - adj_r/2 : adj_l - adj_r,
+                                adj_y = (adj_t && adj_b) ? adj_t/2 - adj_b/2 : adj_t - adj_b;
+                            if (adj_x || adj_y) d3.select(photo_el).style('-webkit-transform', 'translate(' + adj_x/8 + 'px,' + adj_y/8 + 'px)');
+                        }, 200);
                         d3.select(photo_el).classed('selected', selection.toggle(d.id))
                             .attr('src', function (d) { return photoDB([d.id, 'thumbnail/512.jpg'])(); });
                     }, 250);
@@ -164,6 +174,7 @@
                     var photo_el = this, frame_el = photo_el.parentNode.parentNode;
                     clearTimeout(enlargeTimeout);
                     d3.select(frame_el).classed('enlarged', false);
+                    d3.select(photo_el).style('-webkit-transform', null);
                     d3.select(photo_el)
                         .attr('src', function (d) { return photoDB([d.id, 'thumbnail/64.jpg'])(); });
                 }).on('click', function (d) {
