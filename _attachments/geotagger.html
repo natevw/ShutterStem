@@ -20,6 +20,7 @@
         #timeline { width: 100%; height: 75px; border: 1px solid gray; }
         #thumbnails { width: 100%; height: 68px; margin: 5px 0; padding: 0; list-style: none; white-space: nowrap; overflow: auto; }
         #thumbnails li { display: inline; margin: 4px; }
+        #thumbnails .splitter { position: relative; top: -25%; left: -5px; }
         #thumbnails.mouseover { border: 1px dotted gray; }
         #thumbnails.mouseover li { display: none; }
         #thumbnails.mouseover li.undermouse { display: inline; }
@@ -152,6 +153,19 @@
         
         var thumbnails = d3.select("#thumbnails").selectAll('.photo').data(photos);
         thumbnails.enter().append('li').classed('photo', true).append('img').attr('src', function (d) { return photoDB(d.id)(["thumbnail/64.jpg"])(); });
+        function addSplitLinks() {
+            var baseQuery = queryDict(location.search);
+            baseQuery.inclusive_end = false;
+            d3.select("#thumbnails").selectAll('.photo').each(function (d, i) {
+                if (!i) return;
+                var el = document.createElement('a');
+                baseQuery.endkey = JSON.stringify(d.key);
+                baseQuery.endkey_docid = d.id;
+                d3.select(el).text('⇏').classed('splitter', true).attr('href', fermata.json('')(baseQuery)());
+                this.insertBefore(el, this.firstChild);
+            });
+        }
+        addSplitLinks();
         
         var timeline = d3.select("#timeline").attr('viewBox', "0 0 1000 100").attr('preserveAspectRatio', "none"),
             timelineAltitudesLayer = timeline.append('svg:g'),
@@ -323,6 +337,14 @@
             d.setUTCMilliseconds(1000 * (arr[5] - Math.floor(arr[5])) || 0);
             return d;
         }
+        
+        function queryDict(search) {
+            search = search.slice(1);
+            return fermata._unflatten(search.split("&").map(function (kv) {
+                return kv.split("=").map(function (c) { return decodeURIComponent(c.replace(/\+/g, ' ')); });
+            }));
+        }
+        
     </script>
 </body>
 </html>
