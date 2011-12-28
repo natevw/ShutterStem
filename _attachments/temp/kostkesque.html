@@ -16,13 +16,28 @@
             }
         };
         
-        var dbURL = "http://localhost:5984/loctest";
-        var edit = function (doc) {
+        var _dbURL = "http://localhost:5984/loctest";
+        var _edit = function (doc) {
             if (!doc['com.stemstorage.loclog.track']) return;
             
             if (doc.points[1] && doc.points[0].time > doc.points[1].time) {
                     doc.points[0].time = new Date(Date.parse(doc.points[0].time) - 24*60*60*1000).toISOString().replace(".000", '');
             }
+        };
+        
+        
+        var attachment_info = {};
+        var dbURL = "http://localhost:5984/photos";
+        var edit = function (doc) {
+            if (!doc['com.shutterstem.image']) return;
+            
+            doc._attachments && Object.keys(doc._attachments).forEach(function (file) {
+                var a = doc._attachments[file];
+                attachment_info[file] || (attachment_info[file] = {size:0, n:0});
+                attachment_info[file].size += a.length;
+                attachment_info[file].n += 1;
+                if (!(attachment_info[file].n % 100)) console.log(file, "n =", attachment_info[file].n, "avg = ", attachment_info[file].size / attachment_info[file].n / 1024);
+            });
         };
         
         
