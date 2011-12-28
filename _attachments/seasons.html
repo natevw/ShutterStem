@@ -135,6 +135,7 @@
                     secondsAcross = scaleX.invert(mouse[0]),
                     itemsDown = scaleY.invert(mouse[1]),
                     overviewIndex = d3.bisect(overviewSeconds, secondsAcross),
+                    overviewIndex = Math.min(overviewIndex, overviewRows.length - 1), 
                     overview = overviewRows[overviewIndex],
                     wasTarget = (overviewSeconds[overviewIndex] < secondsAcross + 24*60*60),
                     startKey = overview.key,
