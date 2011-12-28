@@ -72,7 +72,7 @@
         
         var updateDrop;
         function updateURL(startKey, skip, scroll) {
-            var query = {$startkey:startKey, skip:skip, limit:250, reduce:false};
+            var query = {$startkey:startKey, skip:skip, limit:160, reduce:false};
             photosIndexed(['by_date'])(query).get(function (e,d) {
                 updatePhotos(d, scroll);
             });
@@ -188,9 +188,11 @@
             var photosPerRow = Math.floor(platen.property('clientWidth') / Wp),
                 topPadding = Hp * Math.floor(d.offset / photosPerRow),
                 rowPadding = Wp * (d.offset - photosPerRow * topPadding / Hp),
+                contHeight = Hp * Math.ceil((d.rows.length + rowPadding / Wp) / photosPerRow),
                 botPadding = Hp * Math.ceil((d.total_rows - d.rows.length - d.offset) / photosPerRow);
             d3.select("#top_padding").style('height', topPadding + "px");
             d3.select("#row_padding").style('width', rowPadding + "px");
+            d3.select("#content").style('height', contHeight + "px");
             d3.select("#bot_padding").style('height', botPadding + "px");
             
             var autoscrolling, throttled;
