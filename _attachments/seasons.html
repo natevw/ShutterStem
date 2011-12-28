@@ -184,13 +184,13 @@
             thumbs = thumbs.sort(function (a, b) { return d3.ascending(rowSeconds(a), rowSeconds(b)); });
             
             // set up padding
-            var Wp = 96, Hp = 96;
+            var Wp = 96, Hp = 96, TOP_BUFFER = d3.select('#nav').property('clientHeight');
             var photosPerRow = Math.floor(platen.property('clientWidth') / Wp),
                 topPadding = Hp * Math.floor(d.offset / photosPerRow),
                 rowPadding = Wp * (d.offset - photosPerRow * topPadding / Hp),
                 contHeight = Hp * Math.ceil((d.rows.length + rowPadding / Wp) / photosPerRow),
                 botPadding = Hp * Math.ceil((d.total_rows - d.rows.length - d.offset) / photosPerRow);
-            d3.select("#top_padding").style('height', topPadding + "px");
+            d3.select("#top_padding").style('height', (topPadding + TOP_BUFFER) + "px");
             d3.select("#row_padding").style('width', rowPadding + "px");
             d3.select("#content").style('height', contHeight + "px");
             d3.select("#bot_padding").style('height', botPadding + "px");
@@ -207,7 +207,7 @@
                 if (autoscrolling || !overviewOffsets) return;
                 clearTimeout(throttled);
                 throttled = setTimeout(function () {
-                    var itemOffset = photosPerRow * (this.scrollY / Hp),
+                    var itemOffset = photosPerRow * ((window.scrollY - TOP_BUFFER) / Hp),
                         overviewIndex = d3.bisect(overviewOffsets, itemOffset),
                         overview = overviewRows[overviewIndex],
                         overOffset = overviewOffsets[overviewIndex] - overview.value,
