@@ -26,7 +26,6 @@
         #row_padding { float: left; height: 64px; margin: 16px 0px; }
         .frame {
             display: block; float: left; width: 64px; height: 64px; margin: 16px;
-            -webkit-transition: -webkit-transform 0.15s linear;
         }
         .photo {
             max-width: 64px; max-height: 64px;
@@ -35,9 +34,7 @@
             -webkit-transition: -webkit-transform 0.15s linear;
         }
         .photo.selected { border: 3px solid blue; }
-        
-        .frame.enlarged { -webkit-transform: scale(8); -moz-transform: scale(2); }
-        .frame.enlarged .photo {
+        .photo.enlarged {
             -webkit-box-shadow: 5px 5px 50px 5px #000; -moz-box-shadow: 5px 5px 50px 5px #000;
         }
     </style>
@@ -154,27 +151,32 @@
                 .append('img').classed('photo', true).attr('src', function (d) { return photoDB([d.id, 'thumbnail/64.jpg'])(); })
                 .classed('selected', function (d) { return selection.contains(d.id); }).on('mousedown', function (d) {
                     d3.event.preventDefault();     // prevents image dragging
-                    var photo_el = this, frame_el = photo_el.parentNode.parentNode;
+                    var photo_el = this;
                     d3.select(photo_el).classed('selected', selection.toggle(d.id));
                     enlargeTimeout = setTimeout(function () {
-                        d3.select(frame_el).classed('enlarged', true);
-                        enlargeTimeout = setTimeout(function () {
-                            var bounds = photo_el.getBoundingClientRect(),
-                                adj_l = (bounds.left < 0) ? -bounds.left : 0,
-                                adj_r = (bounds.right > window.innerWidth) ? bounds.right - window.innerWidth : 0,
-                                adj_t = (bounds.top < 0) ? -bounds.top : 0,
-                                adj_b = (bounds.bottom > window.innerHeight) ? bounds.bottom - window.innerHeight : 0;
-                            var adj_x = (adj_l && adj_r) ? adj_l/2 - adj_r/2 : adj_l - adj_r,
-                                adj_y = (adj_t && adj_b) ? adj_t/2 - adj_b/2 : adj_t - adj_b;
-                            if (adj_x || adj_y) d3.select(photo_el).style('-webkit-transform', 'translate(' + adj_x/8 + 'px,' + adj_y/8 + 'px)');
-                        }, 200);
+                        var bounds = photo_el.getBoundingClientRect(),
+                            bounds = {
+                                left: bounds.left - 7 * bounds.width / 2,
+                                right: bounds.right + 7 * bounds.width / 2,
+                                top: bounds.top - 7 * bounds.height / 2,
+                                bottom: bounds.bottom + 7 * bounds.height / 2
+                            },
+                            adj_l = (bounds.left < 0) ? -bounds.left : 0,
+                            adj_r = (bounds.right > window.innerWidth) ? bounds.right - window.innerWidth : 0,
+                            adj_t = (bounds.top < 0) ? -bounds.top : 0,
+                            adj_b = (bounds.bottom > window.innerHeight) ? bounds.bottom - window.innerHeight : 0;
+                        var adj_x = (adj_l && adj_r) ? adj_l/2 - adj_r/2 : adj_l - adj_r,
+                            adj_y = (adj_t && adj_b) ? adj_t/2 - adj_b/2 : adj_t - adj_b;
+                        var transform = (adj_x || adj_y) ? "scale(8) translate(" + adj_x/8 + 'px,' + adj_y/8 + "px)" : "scale(8)";
+                        d3.select(photo_el).style('-webkit-transform', transform).style('-moz-transform', transform);
                         d3.select(photo_el).classed('selected', selection.toggle(d.id))
                             .attr('src', function (d) { return photoDB([d.id, 'thumbnail/512.jpg'])(); });
+                        d3.select(photo_el).classed('enlarged', true);
                     }, 250);
                 }).on('mouseup', function (d) {
-                    var photo_el = this, frame_el = photo_el.parentNode.parentNode;
+                    var photo_el = this;
                     clearTimeout(enlargeTimeout);
-                    d3.select(frame_el).classed('enlarged', false);
+                    d3.select(photo_el).classed('enlarged', false);
                     d3.select(photo_el).style('-webkit-transform', null);
                     d3.select(photo_el)
                         .attr('src', function (d) { return photoDB([d.id, 'thumbnail/64.jpg'])(); });
