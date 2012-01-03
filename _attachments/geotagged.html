@@ -17,6 +17,7 @@
     
     <style>
         #map { width: 900px; height: 450px; }
+        .count { fill: blue; fill-opacity: 0.2; stroke: darkblue; stroke-width: 5px; }
     </style>
 </head>
 <body>
@@ -28,6 +29,7 @@
             basemapLayer = po.image().url(basemapURL.hosts(["a.", "b.", "c.", ""]));
         map.add(po.interact());
         map.add(basemapLayer);
+        map.zoom(0);
         
         var server = (location.protocol.slice(0,4) == 'file') ? "http://localhost:5984" : '',
             photoDB = fermata.json(server)('photos'),
@@ -50,7 +52,14 @@
                     url = photosIndexed('geotagged', {$startkey:key, $endkey:key.concat([[]]), group_level:tile.zoom})();
                 tile.element = po.svg('g');
                 tile.request = po.queue.json(url, function (data) {
-                    if (data.rows.length) console.log(key, data.rows[0].value);
+                    if (data.rows.length) {
+                        var numPhotos = data.rows[0].value;
+                        //console.log(key, numPhotos);
+                        d3.select(tile.element).append('svg:circle').classed('count', true)
+                            .attr('r', 50).attr('cx', 128).attr('cy', 128);
+                        d3.select(tile.element).append('svg:text').text(''+numPhotos)
+                            .attr('text-anchor', "middle").attr('alignment-baseline', "middle").attr('x', 128).attr('y', 128);
+                    }
                     tile.ready = true;
                     layer.dispatch({type:'load', tile:tile});
                 });
