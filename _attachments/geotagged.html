@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>ShutterStem Geotagger</title>
+    <script src="d3.min.js"></script>
+    <script src="d3.geo.min.js"></script>
+    <script src="fermata.min.js"></script>
+    <script src="polymaps.min.js"></script>
+    
+    <!--
+    <script src="../_attachments/d3.min.js"></script>
+    <script src="../_attachments/d3.geo.min.js"></script>
+    <script src="../_attachments/fermata.min.js"></script>
+    <script src="../_attachments/polymaps.min.js"></script>
+    -->
+    
+    <style>
+        #map { width: 900px; height: 450px; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <script>
+        var po = org.polymaps,
+            map = po.map().container(d3.select('#map').append("svg:svg").node()),
+            basemapURL = po.url("http://{S}tile.cloudmade.com" + "/51664f123b50414da85e963f92c721f0" + "/998/256/{Z}/{X}/{Y}.png"),
+            basemapLayer = po.image().url(basemapURL.hosts(["a.", "b.", "c.", ""]));
+        map.add(po.interact());
+        map.add(basemapLayer);
+        
+        var server = (location.protocol.slice(0,4) == 'file') ? "http://localhost:5984" : '',
+            photoDB = fermata.json(server)('photos'),
+            photosIndexed = photoDB(['_design/shutterstem-t3', '_view']);
+        
+        var circle_layer = function () {
+            var po = org.polymaps;
+            
+            function tileQuadKey(tile) {
+                var quads = [], tx = tile.column, ty = tile.row, nshifts = tile.zoom;
+                while (nshifts --> 0) {
+                    quads.push((ty & 1) * 2 + (tx & 1));
+                    tx = tx >>> 1, ty = ty >>> 1;
+                }
+                return quads.reverse();
+            }
+            
+            var layer = po.layer(function (tile, tileProj) {
+                var key = tileQuadKey(tile),
+                    url = photosIndexed('geotagged', {$startkey:key, $endkey:key.concat([[]]), group_level:tile.zoom})();
+                tile.element = po.svg('g');
+                tile.request = po.queue.json(url, function (data) {
+                    if (data.rows.length) console.log(key, data.rows[0].value);
+                    tile.ready = true;
+                    layer.dispatch({type:'load', tile:tile});
+                });
+                
+            }, function (tile) {
+                if (tile.request) tile.request.abort(true);
+            });
+            
+            return layer;
+        }
+        
+        map.add(circle_layer());
+    </script>
+</body>
+</html>

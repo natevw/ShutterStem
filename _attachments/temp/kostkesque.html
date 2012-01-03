@@ -40,6 +40,13 @@
             });
         };
         
+        var dbURL = "http://localhost:5984/loctest";
+        var edit = function (doc) {
+            if (!doc['com.stemstorage.loclog.geoloqi']) return;
+            delete doc['com.stemstorage.loclog.track'];
+            delete doc.points;
+        };
+        
         
         function deepCopy(doc) {
             return JSON.parse(JSON.stringify(doc));
@@ -56,7 +63,7 @@
         var db = fermata.json(dbURL);
         function updateBatch(startKey) {
             var query = (startKey) ? {$startkey:startKey, skip:1} : {};
-            db('_all_docs', {include_docs:true, limit:1000})(query).get(function (e, d) {
+            db('_all_docs', {include_docs:true, limit:10})(query).get(function (e, d) {
                 var lastId = null;
                 d.rows.forEach(function (row) {
                     var editDoc = deepCopy(row.doc);
