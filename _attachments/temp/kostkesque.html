@@ -27,8 +27,8 @@
         
         
         var attachment_info = {};
-        var dbURL = "http://localhost:5984/photos";
-        var edit = function (doc) {
+        var _dbURL = "http://localhost:5984/photos";
+        var _edit = function (doc) {
             if (!doc['com.shutterstem.image']) return;
             
             doc._attachments && Object.keys(doc._attachments).forEach(function (file) {
@@ -40,11 +40,31 @@
             });
         };
         
-        var dbURL = "http://localhost:5984/loctest";
-        var edit = function (doc) {
+        var _dbURL = "http://localhost:5984/loctest";
+        var _edit = function (doc) {
             if (!doc['com.stemstorage.loclog.geoloqi']) return;
             delete doc['com.stemstorage.loclog.track'];
             delete doc.points;
+        };
+        
+        var bad_paths = [];
+        var dbURL = "http://localhost:5984/photos";
+        var edit = function (doc) {
+            if (!doc['com.shutterstem.image']) return;
+            
+            var pathInfo = doc.identifiers.path;
+            if (pathInfo && pathInfo.source._id === "imgsrc-c393ded1a81e71d11859e937dd002ccd") {
+                var parts = pathInfo.name.split("CANON/"),
+                    range = parseInt(parts[0].slice(1), 10) * 100 + 1,
+                    number = parseInt(parts[1].slice(4, -4), 10);
+                if (number < range || number >= range + 1000) {
+                    console.log(pathInfo.name);
+                    if (parts[0] === "391") pathInfo.name = pathInfo.name.replace("391", "400");
+                    else if (parts[0] === "400") pathInfo.name = pathInfo.name.replace("400", "410");
+                    else bad_paths.push(pathInfo.name);
+                    // TODO: finish cleaning up others
+                }
+            }
         };
         
         
