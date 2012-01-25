@@ -17,7 +17,8 @@
     
     <style>
         #map { width: 900px; height: 450px; }
-        .count { fill: blue; fill-opacity: 0.2; stroke: darkblue; stroke-width: 5px; }
+        circle.count { fill: royalblue; fill-opacity: 0.3; stroke: darkblue; stroke-opacity: 0.5; stroke-width: 3px; }
+        text.count { font-family: sans-serif; fill: darkblue; stroke: white; stroke-opacity: 0.25; stroke-width: 2px; }
     </style>
 </head>
 <body>
@@ -49,16 +50,19 @@
             
             var layer = po.layer(function (tile, tileProj) {
                 var key = tileQuadKey(tile),
-                    url = photosIndexed('geotagged', {$startkey:key, $endkey:key.concat([[]]), group_level:tile.zoom})();
+                    url = photosIndexed('geotagged', {$startkey:key, $endkey:key.concat([[]]), group_level:tile.zoom})(),
+                    proj = tileProj(tile).locationPoint;
                 tile.element = po.svg('g');
                 tile.request = po.queue.json(url, function (data) {
                     if (data.rows.length) {
-                        var numPhotos = data.rows[0].value;
+                        var avgLoc = data.rows[0].value,
+                            numPhotos = avgLoc.count,
+                            pt = proj(avgLoc);
                         //console.log(key, numPhotos);
                         d3.select(tile.element).append('svg:circle').classed('count', true)
-                            .attr('r', 50).attr('cx', 128).attr('cy', 128);
-                        d3.select(tile.element).append('svg:text').text(''+numPhotos)
-                            .attr('text-anchor', "middle").attr('alignment-baseline', "middle").attr('x', 128).attr('y', 128);
+                            .attr('r', 25).attr('cx', pt.x).attr('cy', pt.y);
+                        d3.select(tile.element).append('svg:text').classed('count', true).text(''+numPhotos)
+                            .attr('text-anchor', "middle").attr('alignment-baseline', "middle").attr('x', pt.x).attr('y', pt.y);
                     }
                     tile.ready = true;
                     layer.dispatch({type:'load', tile:tile});
