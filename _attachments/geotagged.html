@@ -50,20 +50,19 @@
             
             var layer = po.layer(function (tile, tileProj) {
                 var key = tileQuadKey(tile),
-                    url = photosIndexed('geotagged', {$startkey:key, $endkey:key.concat([[]]), group_level:tile.zoom})(),
+                    url = photosIndexed('geotagged', {$startkey:key, $endkey:key.concat([[]]), group_level:tile.zoom + 1})(),
                     proj = tileProj(tile).locationPoint;
                 tile.element = po.svg('g');
                 tile.request = po.queue.json(url, function (data) {
-                    if (data.rows.length) {
-                        var avgLoc = data.rows[0].value,
+                    data.rows.forEach(function (row) {
+                        var avgLoc = row.value,
                             numPhotos = avgLoc.count,
                             pt = proj(avgLoc);
-                        //console.log(key, numPhotos);
                         d3.select(tile.element).append('svg:circle').classed('count', true)
                             .attr('r', 25).attr('cx', pt.x).attr('cy', pt.y);
                         d3.select(tile.element).append('svg:text').classed('count', true).text(''+numPhotos)
                             .attr('text-anchor', "middle").attr('alignment-baseline', "middle").attr('x', pt.x).attr('y', pt.y);
-                    }
+                    });
                     tile.ready = true;
                     layer.dispatch({type:'load', tile:tile});
                 });
