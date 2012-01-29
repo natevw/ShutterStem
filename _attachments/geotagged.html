@@ -59,7 +59,7 @@
                             numPhotos = avgLoc.count,
                             pt = proj(avgLoc);
                         d3.select(tile.element).append('svg:circle').classed('count', true)
-                            .attr('r', 25).attr('cx', pt.x).attr('cy', pt.y);
+                            .attr('r', (numPhotos > 500) ? 32 : (numPhotos > 50) ? 22 : 14).attr('cx', pt.x).attr('cy', pt.y);
                         d3.select(tile.element).append('svg:text').classed('count', true).text(''+numPhotos)
                             .attr('text-anchor', "middle").attr('alignment-baseline', "middle").attr('x', pt.x).attr('y', pt.y);
                     });
