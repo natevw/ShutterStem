@@ -48,8 +48,8 @@
         };
         
         var bad_paths = [];
-        var dbURL = "http://localhost:5984/photos";
-        var edit = function (doc) {
+        var _dbURL = "http://localhost:5984/photos";
+        var _edit = function (doc) {
             if (!doc['com.shutterstem.image']) return;
             
             var pathInfo = doc.identifiers.path;
@@ -65,6 +65,12 @@
                     // TODO: finish cleaning up others
                 }
             }
+        };
+        
+        var dbURL = "http://localhost:5984/photos";
+        var edit = function (doc) {
+            if (!doc['com.shutterstem.image']) return;
+            if (doc.geotag && doc.geotag.id) delete doc.geotag.id;
         };
         
         

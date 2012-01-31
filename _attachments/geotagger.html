@@ -298,7 +298,7 @@
             photoDB('_all_docs', {include_docs:true}).post({keys:Object.keys(positionsById)}, function (e,d) {
                 var updatedDocs = d.rows.map(function (row) {
                     var position = positionsById[row.id],
-                        geotag = {'lat':position[1], 'lon':position[0], 'ele':position[2], 'time':position[3], 'id':row.id};
+                        geotag = {'lat':position[1], 'lon':position[0], 'ele':position[2], 'time':position[3]};
                     row.doc.geotag = geotag;
                     return row.doc;
                 });
