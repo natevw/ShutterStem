@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>ShutterStem Geotagger</title>
+    
+    <script src="{{app_url}}/d3.min.js"></script>
+    <script src="{{app_url}}/d3.geo.min.js"></script>
+    <script src="{{app_url}}/fermata.min.js"></script>
+    <script src="{{app_url}}/polymaps.min.js"></script>
+    
+    <style>
+        #map { width: 450px; height: 450px; }
+        circle { fill: royalblue; fill-opacity: 0.5; stroke: darkblue; stroke-opacity: 0.9; stroke-width: 1px; }
+    </style>
+</head>
+<body>
+    <a href="{{app_url}}/geotagged.html">← back to summary</a>
+    <div id="map"></div>
+    <script>
+        var photoRows = {{{photos}}}, queryLimit = {{{query_limit}}};
+    </script>
+    <script>
+        var po = org.polymaps,
+            map = po.map().container(d3.select('#map').append("svg:svg").node()),
+            basemapURL = po.url("http://{S}tile.cloudmade.com" + "/51664f123b50414da85e963f92c721f0" + "/998/256/{Z}/{X}/{Y}.png"),
+            basemapLayer = po.image().url(basemapURL.hosts(["a.", "b.", "c.", ""]));
+        map.add(po.interact());
+        map.add(basemapLayer);
+        map.zoom(0);
+        
+        if (photoRows.length == queryLimit) {
+            var lastPhoto = photoRows.pop();
+            // TODO: some sort of pagination dealio
+        }
+        
+        var photosLayer = po.geoJson().on('load', po.stylist().attr('r', 3.5)),
+            photoMarkers = photoRows.map(function (row) {
+                return {type:'Feature', properties:null, geometry:{type:'Point', coordinates:[row.value.lon, row.value.lat]}};
+            }),
+            bounds = d3.geo.bounds({type:"FeatureCollection", features:photoMarkers}).map(function (c) { return {lon:c[0], lat:c[1]}; });
+        photosLayer.features(photoMarkers);
+        if (photoMarkers.length) map.extent(bounds).zoomBy(-0.25);
+        map.add(photosLayer);
+    </script>
+</body>
+</html>
