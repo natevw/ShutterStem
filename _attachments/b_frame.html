@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>ShutterStem</title>
+        <style>
+            html, body {
+                margin: 0; padding: 0;
+                width: 100%; height: 100%;
+            }
+            body {
+                display: -webkit-box;
+                -webkit-box-orient: horizontal;
+            }
+            iframe { display: block; }
+            #baskets { -webkit-box-flex: 1; }
+            #browser { -webkit-box-flex: 10; }
+        </style>
+    </head>
+    <body>
+        <iframe id="baskets" src="http://localhost:5984/photos/_design/shutterstem-t3/_list/baskets/in_baskets?descending=true"></iframe>
+        <iframe id="browser" src="seasons.html"></iframe>
+    </body>
+</html>
