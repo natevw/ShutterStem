@@ -1,6 +1,6 @@
 ShutterStem is your photos everywhere.
 
-With this project trying to make taking photos fun again. It is a collection of tools for curating a CouchDB-based photo library that is extendable, syncable and scalable.
+With this project I'm trying to make taking photos fun again. It is a collection of tools for curating a CouchDB-based photo library that is extendable, syncable and scalable.
 
 The goal is a reliable "personal cloud" for managing photo collections and maintaining the underlying image files. Currently it requires CouchDB and command-line expertise, but it's already got a good start on a basic organizer, a seasons-based navigator and a geotagging map.
 
