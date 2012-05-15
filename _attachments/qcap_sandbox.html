@@ -27,6 +27,7 @@
         
         var key, doc;
         function updatePhotos(query) {
+            query.include_docs = true;
             query.reduce = false;
             query.limit = 3;
             photosIndexed('by_date')(query).get(function (e, d) {
@@ -35,12 +36,27 @@
                 }
                 d3.selectAll("img").data(d.rows).property('src', function (row) { return photoDB(row.id)(["thumbnail/512.jpg"])(); });
                 key = d.rows[1].key;
-                doc = d.rows[1].id;
+                doc = d.rows[1].doc;
+                // TODO: make default description be previous but pre-selected, like flCaptionater?
+                d3.select('#description').property('value', doc.description || '');
+                d3.select('form button').property('disabled', false);
             });
         }
         updatePhotos({});
-        d3.select("#prev").on('click', function () { updatePhotos({$startkey:key, startkey_docid:doc, descending:true}); });
-        d3.select("#next").on('click', function () { updatePhotos({$startkey:key, startkey_docid:doc, descending:false}); });
+        d3.select("#prev").on('click', function () { updatePhotos({$startkey:key, startkey_docid:doc._id, descending:true}); });
+        d3.select("#next").on('click', function () { updatePhotos({$startkey:key, startkey_docid:doc._id, descending:false}); });
+        d3.select('form').on('submit', function () {
+            d3.event.preventDefault();
+            doc.description = d3.select('#description').property('value');
+            d3.select('form button').property('disabled', true);
+            photoDB.post(doc, function (e,d) {
+                if (e) {
+                    alert("Error saving caption: " + e);
+                    return;
+                }
+                d3.select("#next").on('click')();
+            });
+        });
     </script>
 </body>
 </html>
