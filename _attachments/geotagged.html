@@ -19,14 +19,13 @@
     <script>
         var po = org.polymaps,
             map = po.map().container(d3.select('#map').append("svg:svg").node()),
-            basemapURL = po.url("http://{S}tile.cloudmade.com" + "/51664f123b50414da85e963f92c721f0" + "/998/256/{Z}/{X}/{Y}.png"),
+            basemapURL = po.url("http://{S}tile.stamen.com" + "/terrain" + "/{Z}/{X}/{Y}.jpg"),
             basemapLayer = po.image().url(basemapURL.hosts(["a.", "b.", "c.", ""]));
         map.add(po.interact());
         map.add(basemapLayer);
         map.zoom(0);
         
-        var server = (location.protocol.slice(0,4) == 'file') ? "http://localhost:5984" : '',
-            photoDB = fermata.json(server)('photos'),
+        var photoDB = (location.protocol.slice(0,4) == 'file') ? fermata.json("http://localhost:5984/photos") : fermata.json("../.."),
             photosIndexed = photoDB(['_design/shutterstem-t3', '_view']);
         
         var circle_layer = function () {

@@ -26,7 +26,7 @@
             console.log(selection.getArray());
         });
         
-        var photoDB = fermata.json("http://localhost:5984")('photos');
+        var photoDB = (location.protocol.slice(0,4) == 'file') ? fermata.json("http://localhost:5984/photos") : fermata.json("../..");
         var photosIndexed = photoDB(['_design/shutterstem-t3', '_view']);
         var LIMIT = 100;
         

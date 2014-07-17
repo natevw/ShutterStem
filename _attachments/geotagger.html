@@ -188,7 +188,7 @@
         
         var po = org.polymaps,
             map = po.map().container(d3.select('#map').append("svg:svg").node()),
-            basemapURL = po.url("http://{S}tile.cloudmade.com" + "/51664f123b50414da85e963f92c721f0" + "/998/256/{Z}/{X}/{Y}.png"),
+            basemapURL = po.url("http://{S}tile.stamen.com" + "/terrain" + "/{Z}/{X}/{Y}.jpg"),
             basemapLayer = po.image().url(basemapURL.hosts(["a.", "b.", "c.", ""])),
             geodataLayer = po.geoJson().on('load', po.stylist().attr('r', 1).attr('class', "coord").attr('id', function (d) { return "map-coord:" + d.properties.idx; })),
             photoLayer = po.geoJson().on('load', po.stylist().attr('r', 3).attr('class', "photo").attr('id', function (d) { return "map-photo:" + d.properties.id; }));
