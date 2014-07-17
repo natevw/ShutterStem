@@ -181,7 +181,7 @@
                     d3.event.preventDefault();
                 });
             thumbs.exit().remove();
-            thumbs = thumbs.sort(function (a, b) { return d3.ascending(rowSeconds(a), rowSeconds(b)); });
+            thumbs = thumbs.sort(function (a, b) { return d3.ascending(rowSeconds(a), rowSeconds(b)) || d3.ascending(a.id, b.id); });
             
             // set up padding
             var Wp = 96, Hp = 96, TOP_BUFFER = d3.select('#nav').property('clientHeight');
