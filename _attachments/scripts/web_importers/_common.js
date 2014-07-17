@@ -1,5 +1,18 @@
 var f = require('fermata');
 
+// HACK: add timeout handling to HTTP requests
+var _transport = f.plugins._base();
+f.registerPlugin('_base', function () {
+    return function () {
+        var req = _transport.apply(this, arguments);
+        req.setTimeout(120e3, function () {
+            console.warn("Request timed out.");
+            req.abort();
+        });
+        return req;
+    };
+});
+
 // WORKAROUND: https://github.com/natevw/fermata/issues/28
 // NOTE: breaks unless run with `node --harmony_proxies`
 function _apply(fn) {
