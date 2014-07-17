@@ -51,7 +51,14 @@
             <a href="_list/baskets/in_baskets?descending=true"><img src="ss_baskets.png" alt>Baskets</a>
             <div>
                 <p>Experimenting with organization on very limited devices (e.g eReaders, etc.) and with concepts of how apps could extend each other.
-                <p>The experience isn't great, but you can actually pull up this in a separate window (or iframe) and use it in conjunction with photo selections in the Seasons app above.
+                <p>The experience isn't great, but you can actually pull up this in a separate window (<a href="http://localhost:5984/photos/_design/shutterstem-t3/b_frame.html">or iframe</a>) and use it in conjunction with photo selections in the Seasons app above.
+            </div>
+        </li>
+        <li>
+            <a href="geotagged.html"><img src="ss_geotagged2.png" alt>Photo map</a>
+            <div>
+                <p>Shows a map of geotagged photos, with concern given to scaling even when thousands of photos are in one location.
+                <p class=badness>TODO: this doesn't show the photos/thumbnails themselves yet!
             </div>
         </li>
         <li>
@@ -66,6 +73,27 @@
             <div>
                 <p>A port of what I wanted for <a href="http://calftrail.com/geotagalog">Geotagalog 3.0</a>, much easier using HTML5 and building atop CouchDB than it ever was versus Cocoa/iPhoto!
                 <p class=badness>NOTE: this requires sample data that I haven't added to this library yet…sorry!
+            </div>
+        </li>
+        <li>
+            <a href="qcap_sandbox.html"><img src="ss_qcap_sandbox.png" alt>Quick Captioning</a>
+            <div>
+                <p>Quick-and-dirty start porting my ancient <a href="http://extinguishedscholar.com/soft/flcapt2.html">flCaptionater</a> app to ShutterStem. The idea is that you can get into a nice rhythm (describe, hit enter, describe hit enter…) and add text descriptions to hundreds/thousands of photos per session.
+                <p class=badness>TODO: needs a way to navigate to a particular starting photo amongst hundreds of thousands (original app's UI didn't scale)
+            </div>
+        </li>
+        <li>
+            <a href="search_sandbox.html"><img src="ss_search_sandbox.png" alt>Caption Search</a>
+            <div>
+                <p>Super simple proof-of-concept instant search of captioned photos.
+                <p class=badness>TODO: better stemming/indexing, nicer interface, etc. etc.
+            </div>
+        </li>
+        <li>
+            <a href="tepui_sandbox.html"><img src="ss_tepui_sandbox.png" alt>Tepui</a>
+            <div>
+                <p>Basically unstarted, but the idea is to make a multitouch (and self-hosted ;-) version of the <a href="http://nedbatchelder.com/blog/201201/goodbye_tabblo.html">now-gone Tabblo</a> — a site that let you layout photos and text in kind of a lightbox/scrapbook/webpage style, to share whole stories!
+                <p class=badness>TODO: implement
             </div>
         </li>
     </ul>
