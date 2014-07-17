@@ -34,7 +34,8 @@ f.registerPlugin('dropbox', function (transport, key) {
 });
 
 
-var api = f.dropbox(process.env.API_TOKEN),
+var folder = process.env.FOLDER,
+    api = f.dropbox(process.env.API_TOKEN),
     db = f.json(process.env.DB_URL);
 
 function logback(e,d) {
@@ -55,11 +56,14 @@ function _apply(fn) {
 function fetchPhoto(path, cb) {
     var doc = {},
         q = Q();
-    q.defer(_apply, api.metadata([path], {include_media_info:true}).get);
+    if (typeof path === 'object') {
+        q.defer(function (d, cb) { cb(null, d); }, path);
+        path = path.path;
+    } else q.defer(_apply, api.metadata([path], {include_media_info:true}).get);
+    console.log("Fetching", path);
+    
     q.defer(_apply, api.thumbnails([path], {size:'s'}).get, {Accept:"image/jpeg"}, Buffer(0));
     q.defer(_apply, api.thumbnails([path], {size:'l'}).get, {Accept:"image/jpeg"}, Buffer(0));
-    //q.defer(_apply, api.files([path]).head, {Accept:"*/*"}, Buffer(0));
-    
     q.await(function (e,d,sm,lg) {
         if (e) cb(e);
         else if (typeof d.photo_info !== 'object') cb(new Error("Photo metadata not available: "+meta.photo_info));  // e.g. 'pending'
@@ -81,41 +85,42 @@ function fetchPhoto(path, cb) {
     });
 }
 
-function processPhoto(path, cb) {
+function _processPhoto(path, cb) {
     fetchPhoto(path, function (e,d) {
         if (e) cb(e);
-        else db.post(d, cb);
+        else db.post(d, function (e,d) {
+            if (e) cb(e);
+            else console.log(" -> saved as", d.id), cb();
+        });
     });
 }
 
-processPhoto('/10000/_DSC0012.jpg', logback);
+function processPhoto(path, cb) {
+    _processPhoto(path, function (e) {
+        if (e) {
+            console.warn("Failed, retrying!");
+            processPhoto(path, cb);
+        } else cb.apply(this, arguments);
+    });
+}
 
+console.log("Fetching contents of Dropbox folder:", folder);
+//api.metadata([folder], {include_media_info:true}).get(function (e,d) {
+//if (!e) require('fs').writeFileSync("dbg-folder.json", JSON.stringify(d, null, 4));
+require('fs').readFile("dbg-folder.json", {encoding:'utf8'}, function (e,d) {
+if (!e) d = JSON.parse(d);
 
-//api.files(['/10000/_DSC0012.jpg']).get({Accept:"*/*"}, Buffer(0), function (e,d,m) {
-//    console.log("META", e,d,m);
-//    var md5 = require('crypto').createHash('md5'),
-//        sha = require('crypto').createHash('sha1');
-//    md5.update(d), sha.update(d);
-//    md5 = md5.digest(), sha = sha.digest();
-//    console.log("MD5", md5.toString('hex'), md5.toString('base64'));
-//    console.log("SHA1", sha.toString('hex'), sha.toString('base64'));
-//    // NOTE: neither of these seem to be exposed in Dropbox metadata
-//});
-
-/*
-api.metadata.auto(['10000'], {include_media_info:true}).get(function (e,d) {
     if (e) throw e;
+    
+    console.log("Folder contains", d.contents.length, "files");
     
     var q = Q(1);
     d.contents.forEach(function (file) {
-        q.defer(processPhoto, file, db);  
-    })
-    q.awaitAll(function (e,arr) {
-        if (e) throw e;
-        console.log("Processed results, count:", arr.length);
+        // TODO: handle non-photos, subfolders…
+        q.defer(processPhoto, file);  
     });
-    
-    console.log("# files:", d.contents.length);
-    console.log(d.contents[0]);
+    q.awaitAll(function (e,arr) {
+        if (e) console.error(e.stack);
+        else console.log("Success!");
+    });
 });
-*/
