@@ -6,17 +6,73 @@
     <script src="fermata.min.js"></script>
     
     <style>
+        body { font-family: sans-serif; }
+        ul { list-style-type: none; padding-left: 0; }
+        li { clear: both; padding: 1em; }
+        li img, li > a { display: block; float: left; line-height: 100%; }
+        li img { width: 100px; margin-right: 2ex; }
+        li > a {
+            height: 5em; line-height: 5em;
+            width: 30ex;
+        }
+        .badness { color: darkred; }
+        li div { float: left; margin-left: 2ex; font-size: 0.75em; font-style: italic; max-width: 75ex; }
+        footer { font-size: 0.5em; }
     </style>
 </head>
 <body>
-    <h1>ShutterStem demos:</h1>
+    <h1>ShutterStem</h1>
+    
+    <p>
+    ShutterStem enables apps that are optimized for organizing—and recalling—a lifetime of photos.
+    </p><p>
+    It <a href="http://www.extinguishedscholar.com/wpglob/?p=767">grew out of</a> dissatifcation with existing tools for shutterbugs: stuck with either inflexible libraries stuck on the big computer at home, or having to somehow upload terabytes of life history to a hopefully-trustworthy cloud provider. I wanted better, and I suspect there are others (e.g. photojournalists or citizens in sensitive situations) that <em>need</em> better.
+    </p><p>
+    ShutterStem is ultimately envisioned as a scalable, syncable local network appliance. It will provide some polished core features like backup/sync, import/export/upload, basic organization/editing, etc. as well as an open API (with flexible schema) to enable custom integrations and extensions.
+    </p>
+    
+    <h2>Rough demos:</h2>
     <ul>
-        <li><a href="seasons.html">Seasons</a></li>
-        <li><a href="_list/baskets/in_baskets?descending=true">Baskets</a></li>
-        <li><a href="/loctest/_design/loclog/summary_sandbox.html">Journeys</a></li>
-        <li><a href="organizer.html">Old Organizer</a></li>
-        <li><a href="geotagger.html">Geotagging (work-in-progress)</a></li>
+        <li>
+            <a href="seasons.html"><img src="ss_seasons.png" alt>Seasons</a>
+            <div>
+                <p>Traditional grid view reenvisioned to give users a feel for the overall "landscape" while navigating a lifetime of photos. Features a horizontally-scrolling daily histogram with seasons reminiscent of icicles and stalactites.
+                <p>As with all the apps, its interface is designed to support both desktop and tablet browsers.
+            </div>
+        </li>
+        <li>
+            <a href="organizer.html"><img src="ss_old_organizer2.png" alt>Old Organizer</a>
+            <div>
+                <p>First proof-of-concept, a basic clone of typical grid+albums consumer photo organizer apps. (The pagination sucked, hence Seasons above.)
+                <p>Notice this app shares the same underlying data as e.g. Baskets below. A core ShutterStem concept is a single library supporting diverse interfaces: apps optimized for particular workflows and user contexts.
+            </div>
+        </li>
+        <li>
+            <a href="_list/baskets/in_baskets?descending=true"><img src="ss_baskets.png" alt>Baskets</a>
+            <div>
+                <p>Experimenting with organization on very limited devices (e.g eReaders, etc.) and with concepts of how apps could extend each other.
+                <p>The experience isn't great, but you can actually pull up this in a separate window (or iframe) and use it in conjunction with photo selections in the Seasons app above.
+            </div>
+        </li>
+        <li>
+            <a href="/loctest/_design/loclog/summary_sandbox.html"><img src="ll_journeys.png" alt>Journeys</a>
+            <div>
+                <p>(This is actually part of a separate set of <a href="https://github.com/natevw/LocLog">location logging utilities</a> but shows an overview of data used by the geotagger below.)
+                <p class=badness>NOTE: this requires sample data that I haven't added to this library yet…sorry!
+            </div>
+        </li>
+        <li>
+            <a href="geotagger.html"><img src="ss_geotagger.png" alt>Geotagalog</a>
+            <div>
+                <p>A port of what I wanted for <a href="http://calftrail.com/geotagalog">Geotagalog 3.0</a>, much easier using HTML5 and building atop CouchDB than it ever was versus Cocoa/iPhoto!
+                <p class=badness>NOTE: this requires sample data that I haven't added to this library yet…sorry!
+            </div>
+        </li>
     </ul>
     
+    <p style="clear:both; margin-top: 6em;">
+    Questions/comments/ideas? Wanna try it yourself? Check out the <a href="https://github.com/natevw/ShutterStem">source repository</a>, or <a href="http://exts.ch/contact/">get in touch with me</a> directly.
+    
+    <footer>© 2010–2014 Nathan Vander Wilt.</footer>
 </body>
 </html>
