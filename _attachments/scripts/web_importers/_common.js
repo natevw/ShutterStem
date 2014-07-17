@@ -21,13 +21,16 @@ function _apply(fn) {
 }
 
 function _retry() {
-    var args = Array.prototype.slice.call(arguments),
+    var backoff = 5,
+        args = Array.prototype.slice.call(arguments),
         cb = args.pop(),
         fn = this;
     args.push(function (e) {
         if (e) {
             console.warn("Failed, retrying!", e.stack);
-            fn.apply(null, args);
+            setTimeout(function () {
+                fn.apply(null, args);
+            }, backoff *= 2);
         }
         else cb.apply(this, arguments);
     });
