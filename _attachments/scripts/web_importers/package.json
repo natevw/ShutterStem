@@ -1,0 +1,9 @@
+{
+  "name": "web_importers",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "queue-async": "^1.0.7",
+    "fermata": "^0.10.4"
+  }
+}
