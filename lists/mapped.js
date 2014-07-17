@@ -2,8 +2,9 @@ function (head, req) {
     var ddoc = this;
     var fs = require('lib/flatstache');
     provides("html", function () {
-        var db_url = '/' + req.info.db_name,
+        var db_url = ('X-Forwarded-For' in req.headers) ? '' : ('/' + req.info.db_name),
             app_url = db_url + '/' + ddoc._id;
+        if (!db_url) db_url = '/.';
         
         var row, lastRow, photos = [];
         while (row = getRow()) {

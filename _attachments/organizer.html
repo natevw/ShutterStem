@@ -345,7 +345,7 @@
                     return Couch.makeRef({_id:id});
                 });
                 var basket = {
-                    _id: "bskt-" + db.get("../_uuids").uuids[0],
+                    _id: "bskt-" + Math.random().toFixed(20).slice(2),
                     name: name,
                     photos: photos,
                     created: (new Date).toISOString()

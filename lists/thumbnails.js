@@ -2,7 +2,9 @@ function (head, req) {
     var ddoc = this;
     var fs = require('lib/flatstache');
     provides("html", function () {
-        var app_url = fs.to_html("/{{{db}}}/{{{id}}}", {db:req.info.db_name, id:ddoc._id});
+        var app_url = ('X-Forwarded-For' in req.headers) ?
+            fs.to_html("/{{{id}}}", {id:ddoc._id}) :
+            fs.to_html("/{{{db}}}/{{{id}}}", {db:req.info.db_name, id:ddoc._id});
         
         var photoRow,
             thumbnails = "",

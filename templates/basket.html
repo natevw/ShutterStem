@@ -90,7 +90,7 @@
             } else {
                 basket.created = (new Date).toISOString();
                 basket._id = 'bskt-' + Math.round(Math.random() * 1e16);
-                photoDB.post(basket, function (e, d) {
+                photoDB(basket._id).put(basket, function (e, d) {
                     var basketURL = location.pathname.split('/').filter(function (p,i) { return !i || p; }).concat(d.id).join('/');
                     location.replace(basketURL);
                 });
