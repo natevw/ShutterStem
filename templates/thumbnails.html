@@ -1,133 +1,62 @@
 <!doctype html>
 <html>
-    <head>
-    <meta charset="UTF-8">
+<head>
+    <meta charset="utf-8">
+    <title>ShutterStem - Seasons</title>
     
-    <title>ShutterStem</title>
-    
+    <meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0">
     <style>
-    body { background: black; }
-    .frame {
-        width: 256px; height: 256px; margin: 32px 8px; float: left;
-        display: -webkit-box; -webkit-box-align: center; -webkit-box-pack: center;
-    }
-    .image { max-width: 256px; max-height: 256px; border: 6px solid white; }
-    .selected { border: 6px solid blue; }
-    </style>
-    
+            html {
+                width: 100%; height: 100%;
+            }
+            body {
+                background: black; color: white;
+                position:absolute; top:0; left:0; right:0; bottom:0;
+                padding: 5px; margin: 5px;
+            }
+            .frame {
+                width: 256px; height: 256px; margin: 32px 8px; float: left;
+                display: -webkit-box; -webkit-box-align: center; -webkit-box-pack: center;
+            }
+            .image {
+                max-width: 256px; max-height: 256px; border: 6px solid white;
+            }
+            
+            #debug {
+                clear: both;
+                overflow: hidden;
+            }
+        </style>
+        
+    <script src="{{ app_url }}/d3.min.js"></script>
+    <script src="{{ app_url }}/fermata.min.js"></script>
+    <script type="x-template/x-data" id="config" data-app-url="{{app_url}}"></script>
     <script>
-        function Couch(url) {
-            this.url = url;
-        }
-        Couch.prototype.urlFor = function (path, query) {
-            if (path.join) {
-                path = path.join("/");
-            }
-            if (query) {
-                path += "?" + Object.keys(query).map(function (key) {
-                    if (key[0] === '$') {
-                        return encodeURIComponent(key.slice(1)) + "=" + encodeURIComponent(JSON.stringify(query[key]));
-                    } else {
-                        return encodeURIComponent(key) + "=" + encodeURIComponent(query[key]);
-                    }
-                }).join("&");
-            }
-            return this.url + "/" + path;
-        };
-        Couch.prototype.http = function (method, obj, path, query, callback) {
-            var req = new XMLHttpRequest();
-            req.open(method, this.urlFor(path, query));
-            req.setRequestHeader("Content-Type", "application/json");
-            req.send(JSON.stringify(obj));
-            req.onreadystatechange = function() {
-                if (req.readyState === req.DONE) {
-                    callback(req.status, JSON.parse(req.responseText));
-                }
-            }
-        };
-        Couch.prototype.get = function (path, query, callback) {
-            this.http("GET", null, path, query, function (status, result) {
-                callback((status === 200) ? result : null);
-            });
-        };
+        setTimeout(function () {
         
-        // https://developer.mozilla.org/en/DOM/element.classList
-        function ClassList(element) {
-            this.element = element;
-            this.list = {};
-            element.className.split(" ").forEach(function (token) { this.list[token] = true; }, this);
-        }
-        ClassList.prototype._update = function () {
-            this.element.className = Object.keys(this.list).join(" ");
-        };
-        ClassList.prototype.add = function (token) {
-            this.list[token] = true;
-            this._update();
-        };
-        ClassList.prototype.remove = function (token) {
-            delete this.list[token];
-            this._update();
-        };
-        ClassList.prototype.contains = function (token) {
-            return (token in this.list);
-        };
-        ClassList.prototype.toggle = function (token) {
-            var contained = this.contains(token);
-            this[contained ? "remove" : "add"](token);
-            return !contained;
-        };
+        var app_url = d3.select("#config").attr('data-app-url'),
+            app = fermata.api({url:app_url});
+        app(['_view','by_date'])({reduce:false, limit:150, skip:2}).get(function (e,d) {
+            var thumbnails = d3.select('#thumbnails').selectAll('div.frame')
+                .data(d.rows, function (d) { return (d) ? d.id : this.id; });
+            thumbnails.enter().append('div').classed('frame', true)
+                .append('img').classed('image', true).attr('src', function (d) { return app_url + "/../../" + d.id + '/thumbnail/512.jpg'; });
+            thumbnails.exit().remove();
+        });
         
+        }, 2000);
     </script>
-    </head>
+</head>
+<body>
+    <h1>ShutterStem</h1>
+    <h2>Seasons</h2>
     
-    <body>
-        {{#image}}
-        {{>thumbnail}}
-        {{/image}}
-        
-        <script>
-            var db = new Couch("http://localhost:5984/dev");
-            
-            // WebKit (and others?) do not structured clone.... https://bugs.webkit.org/show_bug.cgi?id=41645
-            var current_set = JSON.parse(localStorage['current_set'] || "{}");
-            var images = document.querySelectorAll(".image");
-            Array.prototype.forEach.call(images, function (image) {
-                if (!image.classList) {
-                    image.classList = new ClassList(image);
-                }
-                
-                if (image.id in current_set) {
-                    image.classList.add("selected");
-                }
-                image.addEventListener("click", function () {
-                    var selected = this.classList.toggle("selected");
-                    if (selected) {
-                        current_set[this.id] = true;
-                    } else {
-                        delete current_set[this.id];
-                    }
-                    localStorage['current_set'] = JSON.stringify(current_set);
-                }, false);
-            });
-            
-            addEventListener("storage", function (e) {
-                if (!e.key) {
-                    e.newValue = "{}";
-                } else if (e.key !== 'current_set') {
-                    return;
-                }
-                current_set = JSON.parse(e.newValue);
-                
-                var images = document.querySelectorAll(".image");
-                Array.prototype.forEach.call(images, function (image) {
-                    if (image.id in current_set) {
-                        image.classList.add("selected");
-                    } else {
-                        image.classList.remove("selected");
-                    }
-                });
-            }, false);
-            
-        </script>
-    </body>
+    <div id="thumbnails">
+        {{{ thumbnails }}}
+    </div>
+    <pre id="debug">
+        {{ debug }}
+    </pre>
+    
+</body>
 </html>

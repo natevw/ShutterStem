@@ -1,0 +1,227 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>ShutterStem Seasons</title>
+    <script src="d3.min.js"></script>
+    <script src="fermata.min.js"></script>
+    <script src="ssselection.js"></script>
+    
+    <meta name="viewport" content="initial-scale=1.0, maximum-scale=1.0">
+    <style>
+        html { height: 100%; }
+        body { margin: 0px; background: black; height: 100%; }
+        #nav {
+            margin: 0px; height: 100px; width: 100%;
+            overflow-x: auto; overflow-y: hidden; position: fixed; -webkit-overflow-scrolling: touch;
+            background-image: -webkit-linear-gradient(top, rgba(0,0,0,0.9) 25%, transparent);
+        }
+        #nav svg { display: block; }
+        .dailyCount { stroke-width: 2.5; cursor: pointer; }
+        #waterDrop { stroke: none; fill: blue; }
+        
+        #content { width: 100%; background-color: black; }
+        #row_padding { float: left; height: 64px; margin: 16px 0px; }
+        .frame {
+            display: block; float: left; width: 64px; height: 64px; margin: 16px;
+        }
+        .photo {
+            max-width: 64px; max-height: 64px;
+            border: 2px solid white;
+            cursor: pointer; -webkit-touch-callout: none;
+            -webkit-transition: -webkit-transform 0.15s linear;
+        }
+        .photo.selected { border: 3px solid blue; }
+        .photo.enlarged {
+            -webkit-box-shadow: 5px 5px 50px 5px #000; -moz-box-shadow: 5px 5px 50px 5px #000;
+        }
+    </style>
+</head>
+<body>
+    <div id="nav"></div>
+    <div id="top_padding"></div>
+    <div id="content">
+        <div id="row_padding"></div>
+    </div>
+    <div id="bot_padding"></div>
+    
+    <script>
+        var overviewRows, overviewOffsets, overviewSeconds, activePhotos;
+        var selection = new ShutterStemSelection();
+        d3.select(window).on('shutterstem-selectionchange', function () {
+            d3.selectAll('.photo').classed('selected', function (d) { return selection.contains(d.id); });
+        });
+        
+        var photoDB = (location.protocol.slice(0,4) == 'file') ? fermata.json("http://localhost:5984/photos") : fermata.json("../..");
+        var photosIndexed = photoDB(['_design/shutterstem-t3', '_view']);
+        photosIndexed('by_date')({group_level:3}).get(function (e,d) {
+            var runningTotal = 0;
+            overviewRows = d.rows;
+            overviewOffsets = overviewRows.map(function (row) {
+                return runningTotal += row.value;
+            });
+            overviewSeconds = overviewRows.map(rowSeconds);
+            updateOverview(d);
+        });
+        
+        var updateDrop;
+        function updateURL(startKey, skip, scroll) {
+            var query = {$startkey:startKey, skip:skip, limit:160, reduce:false};
+            photosIndexed(['by_date'])(query).get(function (e,d) {
+                updatePhotos(d, scroll);
+            });
+            
+            //var url = fermata.raw({base:".", path:["d3_sandbox.html"], query:query})();
+            //history.replaceState(null, null, url);
+            history.replaceState(null, null, "?startkey=" + JSON.stringify(startKey) + "&skip=" + skip);
+            updateDrop(startKey, skip);
+        }
+        
+        var rowSeconds = function (r) {
+            var a = r.key,
+                d = new Date(a[0], a[1] - 1, a[2], a[3] || null, a[4] || null, a[5] || null);
+            return d.getTime() / 1000;
+        };
+        var rowCount = function (r) {
+            return r.value;
+        };
+        var rowSeason = function (r) {
+            var seconds = rowSeconds(r),
+                d = new Date(seconds * 1000),
+                y0 = new Date(d.getFullYear(), 0, 1),
+                y1 = new Date(d.getFullYear() + 1, 0, 1),
+                θ = (d - y0) / (y1 - y0);
+            return Math.cos(θ * 2 * Math.PI) / 2 + 0.5;
+        };
+        
+        function updateOverview(d) {
+            var W = 8000, H = 100;
+            var scaleX = d3.scale.linear()
+                .domain([d3.min(d.rows, rowSeconds), d3.max(d.rows, rowSeconds)])
+                .range([15, W-15]);
+            var scaleY = d3.scale.linear()
+                 .domain([0, d3.max(d.rows, rowCount)])
+                 .range([0, H]);
+            var scaleSeason = d3.scale.linear()
+                .range(['darkgoldenrod', 'lightsteelblue']);
+            
+            var nav = d3.select('#nav'),
+                timeline = nav.append('svg:svg').attr('width', W).attr('height', H);
+            
+            var dailyBars = timeline.selectAll('.dailyCount').data(d.rows);
+            dailyBars.enter().append('svg:line').attr('class', "").classed('dailyCount', true) // (need .class to workaround weird iOS 4.2 selector issue)
+                .attr('x1', function (r) { return scaleX(rowSeconds(r)); }).attr('x2', function (r) { return d3.select(this).attr('x1'); })
+                .attr('y1', 0).attr('y2', function (r) { return scaleY(rowCount(r)); })
+                .attr('stroke', function (r) { return scaleSeason(rowSeason(r)); });
+            
+            updateDrop = function (startKey, skip) {
+                var waterDrop = timeline.selectAll('#waterDrop').data([{key:startKey, value:skip}]);
+                    waterDrop.enter().append('svg:circle').attr('id', "waterDrop").attr('r', 2.5);
+                    waterDrop.attr('cx', function (r) { return scaleX(rowSeconds(r)); }).attr('cy', function (r) { return scaleY(rowCount(r)); });
+                nav.transition().duration(1000).tween('scroll', function () {
+                    var i = d3.interpolate(nav.property('scrollLeft'), waterDrop.attr('cx') - nav.property('clientWidth') / 2);
+                    return function (t) { this.scrollLeft = i(t); }
+                });
+            };
+            
+            timeline.on("click", function () {
+                var mouse = d3.svg.mouse(this),
+                    secondsAcross = scaleX.invert(mouse[0]),
+                    itemsDown = scaleY.invert(mouse[1]),
+                    overviewIndex = d3.bisect(overviewSeconds, secondsAcross),
+                    overviewIndex = Math.min(overviewIndex, overviewRows.length - 1), 
+                    overview = overviewRows[overviewIndex],
+                    wasTarget = (overviewSeconds[overviewIndex] < secondsAcross + 24*60*60),
+                    startKey = overview.key,
+                    skip = (wasTarget) ? Math.min(Math.floor(itemsDown), overview.value - 1) : 0;
+                updateURL(startKey, skip, true);
+            });
+        }
+        
+        function updatePhotos(d, scroll) {
+            var platen = d3.select('#content'),
+                thumbs = platen.selectAll('.frame').data(d.rows, function (d) { return d.id; });
+            
+            var enlargeTimeout;
+            thumbs.enter().append('div').classed('frame', true)
+                .append('a').attr('href', function (d) { return photoDB([d.id, 'thumbnail/512.jpg'])(); })
+                .append('img').classed('photo', true).attr('src', function (d) { return photoDB([d.id, 'thumbnail/64.jpg'])(); })
+                .classed('selected', function (d) { return selection.contains(d.id); }).on('mousedown', function (d) {
+                    d3.event.preventDefault();     // prevents image dragging
+                    var photo_el = this;
+                    d3.select(photo_el).classed('selected', selection.toggle(d.id));
+                    enlargeTimeout = setTimeout(function () {
+                        var bounds = photo_el.getBoundingClientRect(),
+                            bounds = {
+                                left: bounds.left - 7 * bounds.width / 2,
+                                right: bounds.right + 7 * bounds.width / 2,
+                                top: bounds.top - 7 * bounds.height / 2,
+                                bottom: bounds.bottom + 7 * bounds.height / 2
+                            },
+                            adj_l = (bounds.left < 0) ? -bounds.left : 0,
+                            adj_r = (bounds.right > window.innerWidth) ? bounds.right - window.innerWidth : 0,
+                            adj_t = (bounds.top < 0) ? -bounds.top : 0,
+                            adj_b = (bounds.bottom > window.innerHeight) ? bounds.bottom - window.innerHeight : 0;
+                        var adj_x = (adj_l && adj_r) ? adj_l/2 - adj_r/2 : adj_l - adj_r,
+                            adj_y = (adj_t && adj_b) ? adj_t/2 - adj_b/2 : adj_t - adj_b;
+                        var transform = (adj_x || adj_y) ? "scale(8) translate(" + adj_x/8 + 'px,' + adj_y/8 + "px)" : "scale(8)";
+                        d3.select(photo_el).style('-webkit-transform', transform).style('-moz-transform', transform);
+                        d3.select(photo_el).classed('selected', selection.toggle(d.id))
+                            .attr('src', function (d) { return photoDB([d.id, 'thumbnail/512.jpg'])(); });
+                        d3.select(photo_el).classed('enlarged', true);
+                    }, 250);
+                }).on('mouseup', function (d) {
+                    var photo_el = this;
+                    clearTimeout(enlargeTimeout);
+                    d3.select(photo_el).classed('enlarged', false);
+                    d3.select(photo_el).style('-webkit-transform', null);
+                    d3.select(photo_el)
+                        .attr('src', function (d) { return photoDB([d.id, 'thumbnail/64.jpg'])(); });
+                }).on('click', function (d) {
+                    d3.event.preventDefault();
+                });
+            thumbs.exit().remove();
+            thumbs = thumbs.sort(function (a, b) { return d3.ascending(rowSeconds(a), rowSeconds(b)); });
+            
+            // set up padding
+            var Wp = 96, Hp = 96, TOP_BUFFER = d3.select('#nav').property('clientHeight');
+            var photosPerRow = Math.floor(platen.property('clientWidth') / Wp),
+                topPadding = Hp * Math.floor(d.offset / photosPerRow),
+                rowPadding = Wp * (d.offset - photosPerRow * topPadding / Hp),
+                contHeight = Hp * Math.ceil((d.rows.length + rowPadding / Wp) / photosPerRow),
+                botPadding = Hp * Math.ceil((d.total_rows - d.rows.length - d.offset) / photosPerRow);
+            d3.select("#top_padding").style('height', (topPadding + TOP_BUFFER) + "px");
+            d3.select("#row_padding").style('width', rowPadding + "px");
+            d3.select("#content").style('height', contHeight + "px");
+            d3.select("#bot_padding").style('height', botPadding + "px");
+            
+            var autoscrolling, throttled;
+            if (scroll) {
+                autoscrolling = true;
+                thumbs.node().scrollIntoView();
+                setTimeout(function () {
+                    autoscrolling = false;
+                }, 0);
+            }
+            d3.select(window).on('scroll', function () {
+                if (autoscrolling || !overviewOffsets) return;
+                clearTimeout(throttled);
+                throttled = setTimeout(function () {
+                    var itemOffset = photosPerRow * ((window.scrollY - TOP_BUFFER) / Hp),
+                        overviewIndex = d3.bisect(overviewOffsets, itemOffset),
+                        overview = overviewRows[overviewIndex],
+                        overOffset = overviewOffsets[overviewIndex] - overview.value,
+                        startKey = overview.key,
+                        skip = Math.floor(itemOffset - overOffset);
+                    updateURL(startKey, skip);
+                }, 50);
+            });
+        }
+        
+        // this initial set should eventually be done server-side
+        photosIndexed(['by_date'])({reduce:false, limit:100}).get(function (e,d) {
+            updatePhotos(d);
+        });
+    </script>
+</body>
+</html>

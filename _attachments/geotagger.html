@@ -1,0 +1,350 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>ShutterStem Geotagger</title>
+    <script src="d3.min.js"></script>
+    <script src="d3.geo.min.js"></script>
+    <script src="fermata.min.js"></script>
+    <script src="polymaps.min.js"></script>
+    
+    <!--
+    <script src="../_attachments/d3.min.js"></script>
+    <script src="../_attachments/d3.geo.min.js"></script>
+    <script src="../_attachments/fermata.min.js"></script>
+    <script src="../_attachments/polymaps.min.js"></script>
+    -->
+    
+    <style>
+        #map { width: 100%; height: 450px; }
+        #timeline { width: 100%; height: 75px; border: 1px solid gray; }
+        #thumbnails { width: 100%; height: 68px; margin: 5px 0; padding: 0; list-style: none; white-space: nowrap; overflow: auto; }
+        #thumbnails li { display: inline; margin: 4px; }
+        #thumbnails .splitter { position: relative; top: -25%; left: -5px; }
+        #thumbnails.mouseover { border: 1px dotted gray; }
+        #thumbnails.mouseover li { display: none; }
+        #thumbnails.mouseover li.undermouse { display: inline; }
+        
+        svg .photo { fill: black; fill-opacity: 0.5; }
+        svg .coord { fill: blue; }
+        #seconds_slider { display: block; width: 100%; }
+        #save_error { color: red; }
+    </style>
+</head>
+<body>
+    <ol id="thumbnails"></ol>
+    <svg id="timeline"></svg>
+    <div id="map"></div>
+    <div id="controls">
+        <input id="seconds_slider" type="range" min="-59" max="59" step="0.1" value="0" list="second_ticks">
+        <datalist id="second_ticks"><option value="-30"><option value="0"><option value="30"></datalist>
+        <label>Adjust timestamps:</label>
+        <label><input id="hours_stepper" type="number" size="4" min="-12" max="12" value="0">h</label>
+        <label><input id="minutes_stepper" type="number" size="4" min="-59" max="59" value="0">m</label>
+        <label><input id="seconds_stepper" type="number" size="6" min="-59" max="59" step="0.1" value="0">s</label>
+        <button id="save_button" type="button">Save</button><span id="save_error"></span>
+    </div>
+    <a id="prev_set">← Previous</a> <a id="next_set">Next →</a>
+    
+    <script id="setup" data-photo_db="http://localhost:5984/photos" data-location_db="http://localhost:5984/loctest" data-photo_rows="{{ photo_rows }}"></script>
+    <script>
+        // stub to facilitate quicker local iteration
+        var req = new XMLHttpRequest();
+        var server = (location.protocol.slice(0,4) == 'file') ? "http://localhost:5984" : '',
+            search = location.search || "?reduce=false&startkey=[2007,7,1]&inclusive_end=false&endkey=[2007,7,2]";
+        
+        req.open('GET', server + "/photos/_design/shutterstem-t3/_view/by_date" + search, false);
+        req.send();
+        d3.select("#setup").attr('data-photo_db', server + "/photos");
+        d3.select("#setup").attr('data-location_db', server + "/loctest");
+        d3.select("#setup").attr('data-photo_query', req.response);
+    </script>
+    
+    <script>
+        var setupEl = d3.select("#setup"),
+            photo_db = setupEl.attr('data-photo_db')
+            location_db = setupEl.attr('data-location_db'),
+            photo_query = JSON.parse(setupEl.attr('data-photo_query'));
+        
+        var adj_h = 0, adj_m = 0, adj_s = 0, adj_from = null;
+        function updateAdjustments() {
+            d3.select('#hours_stepper').property('value', adj_h);
+            d3.select('#minutes_stepper').property('value', adj_m);
+            d3.select('#seconds_stepper').property('value', adj_s.toFixed(1));
+            d3.select('#seconds_slider').property('value', adj_s);
+        }
+        updateAdjustments();
+        
+        var delayed_reload;
+        d3.select('#hours_stepper').on('input', function () {
+            adj_h = parseInt(this.value, 10) || 0;
+            updateAdjustments();
+            redrawPhotoMarkers();
+            
+            clearTimeout(delayed_reload);
+            delayed_reload = setTimeout(function () {
+                setTimeScale('redraw');
+                reloadGeodata();
+            }, 500);
+        });
+        d3.select('#minutes_stepper').on('input', function () {
+            adj_m = parseInt(this.value, 10) || 0;
+            updateAdjustments();
+            redrawPhotoMarkers();
+        });
+        d3.select('#seconds_stepper').on('input', function () {
+            adj_s = parseFloat(this.value) || 0;
+            updateAdjustments();
+            redrawPhotoMarkers();
+        });
+        d3.select('#seconds_slider').on('input', function () {
+            adj_s = parseFloat(this.value) || 0;
+            updateAdjustments();
+            redrawPhotoMarkers();
+        });
+        
+        var photoDB = fermata.json(photo_db),
+            photosIndexed = photoDB(["_design/shutterstem-t3", "_view"]),
+            photos = photo_query.rows.map(function (r) { return {id:r.id, key:r.key, time:dateFromArrayUTC(r.key).getTime()}; });
+        
+        // set initial ajdustment offset from first photo's geotag if present
+        d3.selectAll("#controls *").property('disabled', true);
+        photoDB(photos[0].id).get(function (e,d) {
+            if (d.timestamp && d.geotag) {
+                setAdjustments(d.geotag.time - Date.parse(d.timestamp) / 1000);
+                updateAdjustments();
+                adj_from = 'current';
+                setTimeScale('redraw');
+                if (adj_h) reloadGeodata();         // TODO: this could be the *third* time this gets reloaded on intialization
+            }
+            setTimeScale('redraw');
+            reloadGeodata();
+            d3.selectAll("#controls *").property('disabled', false);
+        });
+        
+        // set next/prev links
+        var firstPhoto = photos[0], lastPhoto = photos[photos.length - 1];
+        photosIndexed('by_date', {$startkey:firstPhoto.key, startkey_docid:firstPhoto.id, reduce:false, descending:true, skip:1, limit:1, include_docs:true}).get(function (e,d) {
+            if (!d.rows.length) return;
+            var prevPhoto = d.rows[0],
+                prevStartKey = prevPhoto.key.slice(0,3),
+                prevURL = fermata.json('')({reduce:false, $startkey:prevStartKey, inclusive_end:false, $endkey:firstPhoto.key, endkey_docid:firstPhoto.id})();
+            d3.select("#prev_set").attr('href', prevURL);
+            var d = prevPhoto.doc;      // also set adjustments if not already (first photo may still override)
+            // NOTE: this is currently unreliable, seemingly due to https://issues.apache.org/jira/browse/COUCHDB-1206
+            if (!adj_from && d.timestamp && d.geotag) {
+                setAdjustments(d.geotag.time - Date.parse(d.timestamp) / 1000);
+                updateAdjustments();
+                adj_from = 'previous';
+                setTimeScale('redraw');
+                if (adj_h) reloadGeodata();
+            }
+        });
+        photosIndexed('by_date', {$startkey:lastPhoto.key, startkey_docid:lastPhoto.id, reduce:false, skip:1, limit:1}).get(function (e,d) {
+            if (!d.rows.length) return;
+            var nextPhoto = d.rows[0],
+                nextEndTime = dateFromArrayUTC(nextPhoto.key).getTime() + 24*60*60*1000,
+                nextEndKey = dateAsArrayUTC(nextEndTime).slice(0,3),
+                nextURL = fermata.json('')({reduce:false, $startkey:nextPhoto.key, startkey_docid:nextPhoto.id, inclusive_end:false, $endkey:nextEndKey})();
+            d3.select("#next_set").attr('href', nextURL);
+        });
+        
+        
+        
+        var thumbnails = d3.select("#thumbnails").selectAll('.photo').data(photos);
+        thumbnails.enter().append('li').classed('photo', true).append('img').attr('src', function (d) { return photoDB(d.id)(["thumbnail/64.jpg"])(); });
+        function addSplitLinks() {
+            var baseQuery = queryDict(location.search);
+            baseQuery.inclusive_end = false;
+            d3.select("#thumbnails").selectAll('.photo').each(function (d, i) {
+                if (!i) return;
+                var el = document.createElement('a');
+                baseQuery.endkey = JSON.stringify(d.key);
+                baseQuery.endkey_docid = d.id;
+                d3.select(el).text('⇏').classed('splitter', true).attr('href', fermata.json('')(baseQuery)());
+                this.insertBefore(el, this.firstChild);
+            });
+        }
+        //addSplitLinks();
+        
+        var timeline = d3.select("#timeline").attr('viewBox', "0 0 1000 100").attr('preserveAspectRatio', "none"),
+            timelineAltitudesLayer = timeline.append('svg:g'),
+            timelineMarkersLayer = timeline.append('svg:g');
+        
+        
+        var minTime, maxTime, timeScaleX, timeScaleY = d3.scale.log().domain([500, 12500]).range([100, 0]);
+        function setTimeScale(redraw) {
+            var PADDING = 1.5, HOURS_TO_MSEC = 60 * 60 * 1000;
+            minTime = photos[0].time + (adj_h - PADDING) * HOURS_TO_MSEC;
+            maxTime = photos[photos.length - 1].time + (adj_h + PADDING) * HOURS_TO_MSEC;
+            timeScaleX = d3.scale.linear().domain([minTime, maxTime]).range([0, 1000]);
+            if (redraw) {
+                redrawGeodata();
+                redrawPhotoMarkers();
+            }
+        }
+        setTimeScale();
+                
+        
+        var po = org.polymaps,
+            map = po.map().container(d3.select('#map').append("svg:svg").node()),
+            basemapURL = po.url("http://{S}tile.stamen.com" + "/terrain" + "/{Z}/{X}/{Y}.jpg"),
+            basemapLayer = po.image().url(basemapURL.hosts(["a.", "b.", "c.", ""])),
+            geodataLayer = po.geoJson().on('load', po.stylist().attr('r', 1).attr('class', "coord").attr('id', function (d) { return "map-coord:" + d.properties.idx; })),
+            photoLayer = po.geoJson().on('load', po.stylist().attr('r', 3).attr('class', "photo").attr('id', function (d) { return "map-photo:" + d.properties.id; }));
+        map.add(po.interact());
+        basemapLayer.visible(false);
+        map.add(basemapLayer);
+        map.add(geodataLayer);
+        map.add(photoLayer);
+        
+        var coords = [], coordTimes = [];
+        function redrawPhotoMarkers() {                 // also caches position on photos[n]._p
+            var timeOffset = calculateTimeOffset(),
+                timelineMarkers = timelineMarkersLayer.selectAll('.photo').data(photos);
+            timelineMarkers.enter().append('svg:circle').classed('photo', true).attr('r', 3)
+            timelineMarkers
+                .attr('cx', function (d) { return timeScaleX(d.time + timeOffset); })
+                .attr('cy', coords.length ? function (d) { d._p = positionForTime(d.time + timeOffset); return timeScaleY(d._p[2]+500); } : 50);
+            timelineMarkers.exit().remove();
+            
+            photoLayer.features(null);
+            if (coords.length) photoLayer.features(photos.map(function (d) {
+                return {type: "Feature", properties: {id:d.id}, geometry: {type:"Point", coordinates:d._p} };
+            }));
+        }
+        function redrawGeodata() {
+            var timelineAltitudes = timelineAltitudesLayer.selectAll('.coord').data(coords);
+            timelineAltitudes.enter().append('svg:circle').classed('coord', true).attr('r',1);
+            timelineAltitudes.attr('cx', function (d) { return timeScaleX(d[3]); })
+                .attr('cy', function (d) { return timeScaleY(d[2]+500); });
+            timelineAltitudes.exit().remove()
+            
+            var coordFeatures = coords.map(function (d,i) { return {type:"Feature", properties:{idx:i}, geometry:{type:"Point", coordinates:d}} }),
+                b = d3.geo.bounds({type:"FeatureCollection", features:coordFeatures}).map(function (c) { return {lon:c[0], lat:c[1]}; });
+            geodataLayer.features(coordFeatures);
+            if (coords.length) map.extent(b).zoomBy(-0.25);
+            basemapLayer.visible(true);
+        }
+        function calculateTimeOffset() {
+            return ((adj_h * 60 + adj_m) * 60 + adj_s) * 1000;
+        }
+        function setAdjustments(secondsOffset) {
+            // TODO: minimize m/s offset (e.g. -2h+1m+23s over -1h-58m-37s)
+            adj_h = Math.round(secondsOffset / 3600);
+            adj_m = Math.round(secondsOffset / 60) - (adj_h * 60);
+            adj_s = secondsOffset - (adj_m * 60) - (adj_h * 3600);
+        }
+        function positionForTime(t) {
+            var i = d3.bisect(coordTimes, t),
+                prevCoord = coords[i - 1],
+                nextCoord = coords[i], coord;
+            if (prevCoord && nextCoord) {
+                // TODO: interpolate < 30 or find closest
+                var dCoords = nextCoord.map(function (n, i) { return n - prevCoord[i]; }),
+                    dTravel = (t - prevCoord[3]) / dCoords[3];
+                //console.log(dCoords,dTravel);
+                if (dCoords[3] < 60*1000) {
+                    coord = prevCoord.map(function (n, i) { return n + dTravel * dCoords[i]; });
+                } else if ((1-dTravel)*dCoords[3] < 60*1000) {
+                    coord = nextCoord;
+                } else {
+                    coord = prevCoord;
+                }
+            } else if (prevCoord) {
+                coord = prevCoord;
+            } else if (nextCoord) {
+                coord = nextCoord;
+            }
+            return coord.map(function (c,i) { return (i === 3) ? t/1000 : c; });
+        }
+        redrawPhotoMarkers();
+        
+        var centerPoint = map.container().createSVGPoint(0,0);
+        d3.select(map.container()).on('mousemove', function (d) {
+            var mousePosition = map.mouse(d3.event), photosUnderMouse = {};
+            d3.select(photoLayer.container()).selectAll('.photo').each(function () {
+                var markerPosition = centerPoint.matrixTransform(this.getCTM()),
+                    dx = mousePosition.x - markerPosition.x, dy = mousePosition.y - markerPosition.y,
+                    distanceSqd = dx*dx + dy*dy;
+                if (distanceSqd < 25) photosUnderMouse[this.id.split(':')[1]] = true;
+            });
+            
+            d3.select("#thumbnails").classed('mouseover', !!Object.keys(photosUnderMouse).length);
+            d3.select("#thumbnails").selectAll('.photo').classed('undermouse', function (d) { return photosUnderMouse[d.id]; });
+        });
+        
+        var coordDB = fermata.json(location_db),
+            coordsIndexed = coordDB(["_design/loclog", "_view"]);
+        function reloadGeodata() {
+            coordsIndexed('by_time', {reduce:false, $startkey:dateAsArrayUTC(minTime), $endkey:dateAsArrayUTC(maxTime)}).get(function (e,d) {
+                coords = d.rows.map(function (r) { var c = r.value; c[3] = dateFromArrayUTC(r.key).getTime(); return c; });
+                coordTimes = coords.map(function (c) { return c[3]; });
+                redrawGeodata();
+                redrawPhotoMarkers();
+            });
+        };
+        reloadGeodata();
+        
+        function storePositions() {
+            d3.select("#save_button").property('disabled', true);
+            d3.select("#save_error").text(null);
+                
+            var positionsById = {},
+                timeOffset = calculateTimeOffset();
+            photos.forEach(function (d) {
+                positionsById[d.id] = d._p;
+            });
+            photoDB('_all_docs', {include_docs:true}).post({keys:Object.keys(positionsById)}, function (e,d) {
+                var updatedDocs = d.rows.map(function (row) {
+                    var position = positionsById[row.id],
+                        geotag = {'lat':position[1], 'lon':position[0], 'ele':position[2], 'time':position[3]};
+                    row.doc.geotag = geotag;
+                    return row.doc;
+                });
+                photoDB('_bulk_docs').post({all_or_nothing:true, docs:updatedDocs}, function (e,d) {
+                    if (e) {
+                        d3.select("#save_error").text(d.reason);
+                    }
+                    d3.select("#save_button").property('disabled', false);
+                });
+            });
+        }
+        d3.select("#save_button").on('click', function () {
+            d3.event.preventDefault();
+            storePositions();
+        });
+        
+        function dateAsArrayUTC(date) {
+            date instanceof Date || (date = new Date(date));
+            return [
+                date.getUTCFullYear(),      // 0
+                date.getUTCMonth() + 1,     // 1
+                date.getUTCDate(),          // 2
+                date.getUTCHours(),         // 3
+                date.getUTCMinutes(),       // 4
+                date.getUTCSeconds() + (date.getUTCMilliseconds() / 1000)
+            ];
+        }
+        function dateFromArrayUTC(arr) {
+            var d = new Date();
+            d.setUTCFullYear(arr[0] || 0);
+            d.setUTCMonth(arr[1] - 1 || 0);
+            d.setUTCDate(arr[2] || 1);
+            d.setUTCHours(arr[3] || 0);
+            d.setUTCMinutes(arr[4] || 0);
+            d.setUTCSeconds(Math.floor(arr[5]) || 0);
+            d.setUTCMilliseconds(1000 * (arr[5] - Math.floor(arr[5])) || 0);
+            return d;
+        }
+        
+        function queryDict(search) {
+            search = search.slice(1);
+            return fermata._unflatten(search.split("&").map(function (kv) {
+                return kv.split("=").map(function (c) { return decodeURIComponent(c.replace(/\+/g, ' ')); });
+            }));
+        }
+        
+    </script>
+</body>
+</html>

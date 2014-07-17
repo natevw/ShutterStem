@@ -1,21 +1,21 @@
 function (head, req) {
     var ddoc = this;
+    var fs = require('lib/flatstache');
     provides("html", function () {
-        var Mustache = require("lib/mustache");
-        var list = require("lib/list");
+        var app_url = fs.to_html("/{{{db}}}/{{{id}}}", {db:req.info.db_name, id:ddoc._id});
         
-        var image = list.rows();
-        var num_prev = head.offset;
-        var num_next = (req.query.limit) ? Math.max(0, head.total_rows - (head.offset + req.query.limit)) : 0;
-        var SIZE = 256, PAD_LIMIT = 8167;
-        var data = {
-            pad_above: Math.min(num_prev * SIZE, PAD_LIMIT),
-            pad_below: Math.min(num_next * SIZE, PAD_LIMIT),
-            image: image,
-            first_image: image.first(JSON.stringify),
-            last_image: image.last(JSON.stringify),
-            thumbnail_partial: ddoc.templates.partials.thumbnail
-        };
-        return Mustache.to_html(ddoc.templates.thumbnails, data, ddoc.templates.partials);
+        var photoRow,
+            thumbnails = "",
+            thumbnailTemplate = "<div class='frame' id='{{id}}'><img class='image' src='{{app_url}}/../../{{id}}/thumbnail/512.jpg'></div>";
+        while (photoRow = getRow()) {
+            thumbnails += fs.to_html(thumbnailTemplate, {app_url:app_url, id:photoRow.id});
+        }
+        
+        
+        return fs.to_html(ddoc.templates.thumbnails, {
+            app_url: app_url,
+            thumbnails: thumbnails,
+            //debug: JSON.stringify({ddoc:ddoc, head:head, req:req}, null, 4)
+        });
     });
 }

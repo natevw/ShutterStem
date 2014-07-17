@@ -1,0 +1,461 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, user-scalable=no">
+        <title>ShutterStem</title>
+        <style>
+            html {
+                width: 100%; height: 100%;
+            }
+            body {
+                background: black; color: white;
+                padding: 0px; margin: 0px; width: 100%; height: 100%;
+                display: -webkit-box; -webkit-box-align: stretch;
+            }
+            #debug {
+                border: 1px dashed red;
+            }
+            #baskets {
+                max-height: 95%;
+                width: 85px;  padding: 5px;
+                font-size: 90%;
+                overflow: auto;
+            }
+            #thumbnails {
+                max-height: 95%;
+                -webkit-box-flex: 1.0;
+                overflow: auto;
+                padding: 128px;
+            }
+            .frame {
+                width: 256px; height: 256px; margin: 32px 8px; float: left;
+                display: -webkit-box; -webkit-box-align: center; -webkit-box-pack: center;
+                -webkit-transition: -webkit-transform 0.15s linear;
+            }
+            .image {
+                max-width: 256px; max-height: 256px; border: 6px solid white;
+                cursor: pointer; -webkit-touch-callout: none;
+            }
+            .selected { border: 6px solid blue; }
+            
+            .frame.enlarged { -webkit-transform: scale(2); -moz-transform: scale(2); }
+            .frame.enlarged .image {
+                -webkit-box-shadow: 5px 5px 50px 5px #000; -moz-box-shadow: 5px 5px 50px 5px #000;
+            }
+            
+            /* hack to preserve padding for bottom thumbnails, not sure why it's necessary */
+            #next { padding-bottom: 192px; }
+            
+            .basket { clear: both; margin: 1em 0em; color: grey; }
+            #_selection_basket { color: lightgray; }
+            .basket.displayed { color: white; }
+            .basket h1 { margin: 0.1em; font-size: 110%; font-weight: normal; }
+            #_selection_basket h1 { font-style: italic; color: blue; }
+            .basket.displayed h1 { font-weight: bold; }
+            
+            .basket ul { margin: 0em; padding: 0em; }
+            .basket li { margin: 0em 0.25em; list-style-type: none; }
+            .basket.displayed .add { display: none; }
+            .basket .remove { display: none; }
+            .basket.displayed .remove { display: list-item; }
+            .clickable { cursor: pointer; text-decoration: underline; }
+            .subtly_clickable { cursor: pointer; }
+        </style>
+        <script>
+            function Couch(url) {
+                this.url = url || Couch.guessDB();
+            }
+            Couch.prototype.urlFor = function (path, query) {
+                if (path.join) {
+                    path = path.join("/");
+                }
+                if (query) {
+                    path += "?" + Couch._keys(query).map(function (key) {
+                        if (key[0] === '$') {
+                            return encodeURIComponent(key.slice(1)) + "=" + encodeURIComponent(JSON.stringify(query[key]));
+                        } else {
+                            return encodeURIComponent(key) + "=" + encodeURIComponent(query[key]);
+                        }
+                    }).join("&");
+                }
+                return this.url + "/" + path;
+            };
+            Couch.prototype.http = function (method, obj, path, query, callback) {
+                var req = new XMLHttpRequest();
+                req.open(method, this.urlFor(path, query), Boolean(callback));
+                req.setRequestHeader("Content-Type", "application/json");
+                req.send(JSON.stringify(obj));
+                if (callback) {
+                    req.onreadystatechange = function() {
+                        if (req.readyState === (req.DONE || 4)) {
+                            callback(req.status, JSON.parse(req.responseText));
+                        }
+                    }
+                } else {
+                    req.responseObj = JSON.parse(req.responseText);
+                }
+                return req;
+            };
+            Couch.prototype.get = function (path, query, callback) {
+                if (callback) {
+                    this.http("GET", null, path, query, function (status, result) {
+                        callback((status === 200) ? result : null);
+                    });
+                } else {
+                    var req = this.http("GET", null, path, query);
+                    return (req.status === 200) ? req.responseObj : null;
+                }
+            };
+
+            Couch.prototype.read = function (id) {
+                var req = this.http("GET", null, id);
+                if (req.status === 404) {
+                    return null;
+                } else if (req.status !== 200) {
+                    throw Error(req.statusText);
+                }
+                return req.responseObj;
+            }
+            Couch.prototype.write = function (doc) {
+                var req = this.http("PUT", doc, doc._id);
+                if (req.status !== 201) {
+                    throw Error(req.statusText);
+                }
+                doc._rev = req.responseObj.rev;
+            }
+            Couch.prototype.remove = function (doc) {
+                var req = this.http("DELETE", null, doc._id, {'rev':doc._rev});
+                if (req.status !== 200) {
+                    throw Error(req.statusText);
+                }
+                doc._deleted = true;
+                doc._rev = req.responseObj.rev;
+            }
+
+
+            // helper needed under older JavaScript engines
+            Couch._keys = Object.keys || function (obj) {
+                var keys = [], key;
+                for (key in obj) if (obj.hasOwnProperty(key)) {
+                    keys.push(key);
+                }
+                return keys;
+            };
+
+            Couch.guessDB = function () {
+                var x;
+                if (location.protocol === "file:") {
+                    return "http://localhost:5984/photos";
+                } else if ((x = location.href.indexOf("/_design")) !== -1) {
+                    return location.href.slice(0, x);
+                } else {
+                    return "../..";
+                }
+            }
+
+            Couch.REF_TYPE = "net.stemstorage.reference";
+
+            Couch.makeRef = function (doc, denormalize) {
+                var reference = {};
+                reference[Couch.REF_TYPE] = true;
+                reference._id = doc._id;
+                if (denormalize) denormalize.forEach(function (field) {
+                    reference[field] = doc[field];
+                }), (reference._rev = doc._rev);
+                return reference;
+            };
+        </script>
+        <script src="flatstache.js"></script>
+        <script>
+            // https://developer.mozilla.org/en/DOM/element.classList
+            function ClassList(element) {
+                this.element = element;
+                this.list = {};
+                element.className.split(" ").forEach(function (token) { this.list[token] = true; }, this);
+            }
+            ClassList.prototype._update = function () {
+                this.element.className = Object.keys(this.list).join(" ");
+            };
+            ClassList.prototype.add = function (token) {
+                this.list[token] = true;
+                this._update();
+            };
+            ClassList.prototype.remove = function (token) {
+                delete this.list[token];
+                this._update();
+            };
+            ClassList.prototype.contains = function (token) {
+                return (token in this.list);
+            };
+            ClassList.prototype.toggle = function (token) {
+                var contained = this.contains(token);
+                this[contained ? "remove" : "add"](token);
+                return !contained;
+            };
+        </script>
+        
+        
+        
+        <script id="basket_template" type="text/x-flat">
+            <section id="{{ id }}" class="basket">
+                <!-- menu/commands? -->
+                <h1 class="subtly_clickable">{{ value }}</h1>
+                <ul>
+                    <li class="rename clickable">Rename
+                    <li class="add clickable">Add selection
+                    <li class="remove clickable">Remove selection
+                    <li class="delete clickable">Delete basket
+                </ul>
+            </section>
+        </script>
+        <script id="thumbnail_template" type="text/x-flat">
+            <div class="frame"><a href="{{orig_url}}"><img class="image" id="{{id}}" src="{{doc_url}}/thumbnail/512.jpg"></a></div>
+        </script>
+    </head>
+    
+    <body>
+        <div id="baskets">
+            <section id="_selection_basket" class="basket">
+            <h1 id="selection">Selection</h1>
+            <ul>
+                <li class="create clickable">Save as basket
+                <li class="all clickable">Select all 
+                <li class="clear clickable">Clear
+            </ul>
+        </div>
+        <div id="thumbnails"></div>
+        
+        <script>
+            var BASKET_TYPE = "com.shutterstem.basket"
+            var db = new Couch();
+            
+            function selectedPhotos(returnType) {
+                var result = document.querySelectorAll('.image.selected');
+                if (returnType === '[]') {
+                    result = Array.prototype.map.call(result, function (img) {
+                        return img.id;
+                    });
+                } else if (returnType === '{}') {
+                    var dict = {};
+                    Array.prototype.forEach.call(result, function (img) {
+                        dict[img.id] = true;
+                    });
+                    result = dict;
+                }
+                return result;
+            }
+            
+            var thumbnails = document.getElementById('thumbnails');
+            function addThumbnail(imageRow) {
+                imageRow.id || (imageRow.id = imageRow._id);
+                imageRow.doc_url = db.urlFor(imageRow.id);
+                imageRow.orig_url = db.urlFor(["_local_shutterstem", "images", imageRow.id]);
+                var frame = Flatstache.elementify('thumbnail_template', imageRow);
+                if (!frame.classList) {
+                    frame.classList = new ClassList(frame);
+                }
+                var image = frame.querySelector(".image");
+                if (!image.classList) {
+                    image.classList = new ClassList(image);
+                }
+                
+                var enlarge;
+                image.addEventListener("mousedown", function (e) {
+                    e.preventDefault();     // prevents image dragging
+                    image.classList.toggle("selected");
+                    enlarge = window.setTimeout(function () {
+                        frame.classList.add("enlarged");
+                        image.classList.toggle("selected");
+                    }, 250);
+                }, false);
+                image.addEventListener("mouseup", function () {
+                    window.clearTimeout(enlarge);
+                    frame.classList.remove("enlarged");
+                }, false);
+                image.parentNode.addEventListener("click", function (e) {
+                    e.preventDefault();
+                }, false);
+                
+                thumbnails.appendChild(frame);
+            }
+            
+            function showPhotos(prev, start, options) {
+                thumbnails.innerHTML = "";
+                if (start) {
+                    var to_prev = document.createElement("div");
+                    to_prev.className = "frame subtly_clickable";
+                    to_prev.innerText = "← Previous";
+                    to_prev.addEventListener("click", function () {
+                        showPhotos(prev && prev.prev, prev, {count:options.count, show_last:true});
+                    }, false);
+                    thumbnails.appendChild(to_prev);
+                } else {
+                    var to_import = document.createElement("div");
+                    to_import.className = "frame";
+                    to_import.innerHTML="<a href='launcher.html'>Other apps...</a>";
+                    thumbnails.appendChild(to_import);
+                }
+                
+                var query = {descending:true, reduce:false, limit:options.count+1};
+                if (start) {
+                    query.$startkey = start.key;
+                    query.startkey_docid = start.id;
+                }
+                db.get("_design/shutterstem-t3/_view/by_date", query, function (response) {
+                    var nextRow;
+                    if (response.total_rows - response.offset - options.count > 0) {
+                        nextRow = response.rows.pop();
+                    }
+                    response.rows.forEach(addThumbnail);
+                    
+                    if (options.show_last) {
+                        thumbnails.scrollTop = thumbnails.scrollHeight - thumbnails.clientHeight;
+                    }
+                    
+                    if (!nextRow) {
+                        return;
+                    }
+                    var to_next = document.createElement("div");
+                    to_next.id = "next";
+                    to_next.className = "frame subtly_clickable";
+                    to_next.innerText = "Next →";
+                    to_next.addEventListener("click", function () {
+                        if (start && prev) {
+                            start.prev = prev;
+                        }
+                        showPhotos(start, nextRow, {count:options.count});
+                    }, false);
+                    thumbnails.appendChild(to_next);
+                });
+            
+            }
+            showPhotos(null, null, {count:25});
+            
+            
+            var selection_basket = document.getElementById('_selection_basket');
+            selection_basket.querySelector(".create").addEventListener('click', function (e) {
+                var name = prompt("Create a basket named:", "Untitled Basket");
+                if (!name) {
+                    return;
+                }
+                var photos = selectedPhotos('[]').map(function (id) {
+                    var image = document.getElementById(id);
+                    image.classList.remove("selected");
+                    return Couch.makeRef({_id:id});
+                });
+                var basket = {
+                    _id: "bskt-" + db.get("../_uuids").uuids[0],
+                    name: name,
+                    photos: photos,
+                    created: (new Date).toISOString()
+                };
+                basket[BASKET_TYPE] = true;
+                db.write(basket);
+                addBasket({id:basket._id, value:basket.name}, 'top');
+            }, false);
+            selection_basket.querySelector(".all").addEventListener('click', function (e) {
+                Array.prototype.forEach.call(document.querySelectorAll('.image'), function (img) {
+                    img.classList.add("selected");
+                });
+            });
+            selection_basket.querySelector(".clear").addEventListener('click', function (e) {
+                Array.prototype.forEach.call(document.querySelectorAll('.image'), function (img) {
+                    img.classList.remove("selected");
+                });
+            });
+            
+            var baskets = document.getElementById('baskets');
+            function addBasket(basketRow, i) {
+                var basket = Flatstache.elementify('basket_template', basketRow);
+                if (!basket.classList) {
+                    basket.classList = new ClassList(basket);
+                }
+                
+                basket.querySelector("h1").addEventListener("click", function () {
+                    var currentBasket = baskets.querySelector(".displayed");
+                    if (currentBasket && currentBasket !== basket) {
+                        currentBasket.classList.remove("displayed");
+                    }
+                    var displayed = basket.classList.toggle("displayed");
+                    thumbnails.innerHTML = "";
+                    if (displayed) {
+                        db.get(basketRow.id, null, function (doc) {
+                            doc.photos.forEach(addThumbnail);
+                        });
+                    } else {
+                        showLastPhotos();
+                    }
+                }, false);
+                                
+                basket.querySelector(".rename").addEventListener("click", function () {
+                    var basketDoc = db.read(basketRow.id);
+                    var newName = prompt("Name this basket:", basketDoc.name);
+                    if (!newName) {
+                        return;
+                    }
+                    basketDoc.name = newName;
+                    basketDoc.modified = (new Date).toISOString();
+                    db.write(basketDoc);
+                    basket.querySelector("h1").innerText = newName;
+                }, false);
+                
+                basket.querySelector(".add").addEventListener("click", function () {
+                    var basketDoc = db.read(basketRow.id);
+                    var currentPhotos = {};
+                    basketDoc.photos.forEach(function (photo) { currentPhotos[photo._id] = true; });
+                    selectedPhotos('[]').forEach(function (photoId) {
+                        if (photoId in currentPhotos) {
+                            return;
+                        }
+                        var image = document.getElementById(photoId);
+                        image.classList.remove("selected");
+                        basketDoc.photos.push(Couch.makeRef({_id:photoId}));
+                    });
+                    basketDoc.modified = (new Date).toISOString();
+                    db.write(basketDoc);
+                }, false);
+                
+                basket.querySelector(".remove").addEventListener("click", function () {
+                    var selectedIds = selectedPhotos('{}');
+                    var basketDoc = db.read(basketRow.id);
+                    basketDoc.photos = basketDoc.photos.filter(function (photo) {
+                        if (photo._id in selectedIds) {
+                            var frame = document.getElementById(photo._id).parentNode.parentNode;
+                            console.log(frame);
+                            frame.parentNode.removeChild(frame);
+                            return false;
+                        } else {
+                            return true;
+                        }
+                    });
+                    basketDoc.modified = (new Date).toISOString();
+                    db.write(basketDoc);
+                }, false);
+                
+                basket.querySelector(".delete").addEventListener("click", function () {
+                    var basketDoc = db.read(basketRow.id);
+                    var forReals = confirm("\"" + basketDoc.name + "\" will disappear forever.");
+                    if (!forReals) {
+                        return;
+                    }
+                    db.remove(basketDoc);
+                    if (basket.classList.contains("displayed")) {
+                        showLastPhotos();
+                    }
+                    basket.parentNode.removeChild(basket);
+                }, false);
+                
+                if (i !== 'top') {
+                    baskets.appendChild(basket);
+                } else {
+                    baskets.insertBefore(basket, document.getElementById('_selection_basket').nextElementSibling);
+                }
+            }
+            db.get("_design/shutterstem-t3/_view/baskets", {descending:true}, function (response) {
+                response.rows.forEach(addBasket);
+            });
+            
+        </script>
+    </body>
+</html>

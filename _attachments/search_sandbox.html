@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Caption Search Sandbox</title>
+    <script src="d3.min.js"></script>
+    <script src="../../../Others'/d3/d3.js"></script>
+    <script src="fermata.min.js"></script>
+    <script src="../../../&yet/fermata/fermata.js"></script>
+    <script src="ssselection.js"></script>
+    
+    <style>
+        #prev, #next { width: 64px; }
+        #main { position: absolute; left: 0; right: 0; margin: auto; bottom: 0; }
+        #mainframe { position: relative; display: inline-block; width: 512px; height: 512px; margin: 0px 16px; }
+        #description { width: 666px; }
+    </style>
+</head>
+<body>
+    <input id="query" type="text" placeholder="Lookup word...">
+    <div id="results"></div>
+    
+    <script>
+        var selection = new ShutterStemSelection();
+        d3.select(window).on('shutterstem-selectionchange', function () {
+            console.log(selection.getArray());
+        });
+        
+        var photoDB = (location.protocol.slice(0,4) == 'file') ? fermata.json("http://localhost:5984/photos") : fermata.json("../..");
+        var photosIndexed = photoDB(['_design/shutterstem-t3', '_view']);
+        var LIMIT = 100;
+        
+        d3.select("#query").on('input', function () {
+            photosIndexed('by_words', {reduce:false, $key:this.value, limit:LIMIT}).get(function (e,d) {
+                var result_items = d3.select("#results").selectAll(".result").data(d.rows);
+                result_items.enter().append('img').classed('result', true);
+                result_items.attr('src', function (d) { return photoDB(d.id)('thumbnail')('64.jpg')(); });
+                result_items.exit().remove();
+                d3.select("#results").select("#more").remove();
+                if (d.rows.length === LIMIT) {
+                    d3.select("#results").append('span').attr('id', "more").text("...");
+                }
+                console.log(d);
+            });
+        });
+    </script>
+</body>
+</html>

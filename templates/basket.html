@@ -1,0 +1,173 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>ShutterStem — "{{name}}" basket</title>
+    <script src="{{app_url}}/d3.min.js"></script>
+    <script src="{{app_url}}/fermata.min.js"></script>
+    <script src="{{app_url}}/ssselection.js"></script>
+    
+    <style>
+        .photo { margin: 5px; }
+        .photo.selected { border: 2px solid blue; margin: 3px; }
+        #global_selection .photo { max-width: 16px; max-height: 16px; border: 1px solid blue; margin: 2px; }
+        #global_selection .photo.basketed { border: 2px solid green; margin: 1px; }
+        #global_selection { border: 2px solid gray; width: 450px; padding: 0.5em; margin: 1em 0; }
+        
+        .edit_only, .js_only { display: none; }
+        .editing div.edit_only { display: block; }
+        .editing a.edit_only { display: inline; }
+        .editing .edit_basket { display: none; }
+    </style>
+</head>
+<body>
+    <a href="{{app_url}}/_list/baskets/in_baskets?descending=true">← View another basket</a>
+    <h1 class="basket_name">{{name}}</h1>
+    <a href class="rename_basket edit_only">Rename basket</a><br/>
+    There <span class="in_basket">are {{photoCount}} photos</a> in this basket. <a href class="select_all js_only">Select all</a> <a href class="select_none js_only">Unselect basket</a><br/>
+    
+    <a href class="edit_basket js_only">Edit</a>
+    <a href class="cancel_edit edit_only">Cancel editing</a> <a href class="save_basket edit_only">Save changes</a>
+    <div id="global_selection" class="edit_only">
+        <span class="total_are">N photos are</span> selected in ShutterStem.
+        <a href class="forget_selection">∅ Forget selection</a><br>
+        <div id="selected_photos"></div>
+        <a href class="add_selection">↓ Add all</a> <a href class="remove_selection">Remove all ↑</a>
+    </div>
+    <div id="basket_photos">
+        {{{ photos }}}
+    </div>
+    
+    
+    <script id="basket_doc" type="text/plain" data-json="{{ doc_source }}"></script>
+    <script>
+        var basket = JSON.parse( d3.select("#basket_doc").attr('data-json') );
+        d3.select('#basket_photos').selectAll('.photo').data(basket.photos);
+        d3.selectAll('.js_only').classed('js_only', false);
+        
+        var photoDB = fermata.json("{{{db_url}}}"),
+            selection = new ShutterStemSelection();
+            
+        function basketPhoto(s) { return {"net.stemstorage.reference":true, _id:s}; }
+        
+        if (!basket.created) {
+            // .rename_basket
+            var newName = prompt("Create a basket named:", basket.name);
+            if (!newName) {
+                var basketsURL = d3.select('a').attr('href');
+                location.replace(basketsURL);
+            }
+            basket.name = newName;
+            d3.selectAll('.basket_name').text(newName);
+            
+            // .add_selection
+            basket.photos = selection.getArray().map(function (s) { return basketPhoto(s); });
+            
+            // .edit_basket
+            d3.select(document.body).classed('editing', true);
+        }
+        
+        d3.selectAll('.edit_basket').on('click', function () {
+            d3.select(document.body).classed('editing', true);
+            d3.event.preventDefault();
+        });
+        d3.selectAll('.rename_basket').on('click', function () {
+            var newName = prompt("Name this basket:", basket.name);
+            if (!newName) {
+                return;
+            }
+            basket.name = newName;
+            d3.selectAll('.basket_name').text(newName);
+            d3.event.preventDefault();
+        });
+        d3.selectAll('.save_basket').on('click', function () {
+            if (basket.created) {
+                basket.modified = (new Date).toISOString();
+                // save allowing (/ignoring) any potential conflict
+                photoDB('_bulk_docs').post({all_or_nothing:true, docs:[basket]}, function (e, d) {
+                    location.reload();
+                });
+            } else {
+                basket.created = (new Date).toISOString();
+                basket._id = 'bskt-' + Math.round(Math.random() * 1e16);
+                photoDB.post(basket, function (e, d) {
+                    var basketURL = location.pathname.split('/').filter(function (p,i) { return !i || p; }).concat(d.id).join('/');
+                    location.replace(basketURL);
+                });
+            }
+            
+            d3.event.preventDefault();
+        });
+        d3.selectAll('.cancel_edit').on('click', function () {
+            location.reload();
+            d3.event.preventDefault();
+        });
+        
+        function updateSelection() {
+            var selected = selection.getArray(), basketed = {};
+            d3.select('#basket_photos').selectAll('.photo').classed('selected', function (d) {
+                var selected = selection.contains(d._id);
+                if (selected) basketed[d._id] = true;
+                return selected;
+            });
+            
+            var photos = d3.select("#selected_photos").selectAll(".photo").data(selected, function (d) { return d; });
+            photos.enter().append('img').classed('photo', true).attr('src', function (d) { return photoDB([d, 'thumbnail/64.jpg'])(); });
+            photos.classed('basketed', function (s) { return basketed[s]; }).on('click', function (s) {
+                if (basketed[s]) {
+                    basket.photos = basket.photos.filter(function (p) { return p._id != s; });
+                } else {
+                    basket.photos = basket.photos.concat(basketPhoto(s));
+                }
+                updateBasket();
+                d3.event.preventDefault();
+            });
+            photos.exit().remove();
+            
+            d3.select('#global_selection .total_are').text(function () {
+                return (selected.length == 1) ? "1 photo is" : (selected.length + " photos are");
+            });
+        }
+        d3.select(window).on('shutterstem-selectionchange', updateSelection);
+        updateSelection();
+        
+        function updateBasket() {
+            var photos = d3.select('#basket_photos').selectAll('.photo').data(basket.photos, function (d) { return d._id; });
+            photos.enter().append('img').classed('photo', true).attr('src', function (d) { return photoDB([d._id, 'thumbnail/64.jpg'])(); })
+            photos.on('click', function (d) {
+                    selection.toggle(d._id);
+                    d3.event.preventDefault();
+                });
+            photos.exit().remove();
+            updateSelection();
+        }
+        updateBasket();
+        
+        d3.selectAll('.forget_selection').on('click', function () {
+            selection.clear();
+            d3.event.preventDefault();
+        });
+        d3.selectAll('.remove_selection').on('click', function () {
+            basket.photos = basket.photos.filter(function (d) { return !selection.contains(d._id); });
+            updateBasket();
+            d3.event.preventDefault();
+        });
+        d3.selectAll('.add_selection').on('click', function () {
+            var already = {},
+                selectedPhotos = selection.getArray().map(function (d) { return basketPhoto(d); });
+            basket.photos = basket.photos.concat(selectedPhotos).filter(function (d) { var was = already[d._id]; already[d._id] = true; return !was; });
+            updateBasket();
+            d3.event.preventDefault();
+        });
+        d3.selectAll('.select_all').on('click', function () {
+            basket.photos.forEach(function (d) { selection.set(d._id, true); });
+            d3.event.preventDefault();
+        });
+        d3.selectAll('.select_none').on('click', function () {
+            basket.photos.forEach(function (d) { selection.set(d._id, false); });
+            d3.event.preventDefault();
+        });
+        
+    </script>
+</body>
+</html>
