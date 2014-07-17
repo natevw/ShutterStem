@@ -332,6 +332,11 @@
             }
             showPhotos(null, null, {count:25});
             
+            function showLastPhotos() {
+                // HACK: original version used localStorage here, not sure why I ripped it out…
+                showPhotos(null, null, {count:25});
+            }
+            
             
             var selection_basket = document.getElementById('_selection_basket');
             selection_basket.querySelector(".create").addEventListener('click', function (e) {
